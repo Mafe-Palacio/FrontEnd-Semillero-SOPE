@@ -1,0 +1,117 @@
+/* Fondo de pantalla completa con la imagen del ITM */
+.auth-bg {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-image: url('https://www.itm.edu.co//wp-content/uploads/noticias/fraternidad-2.jpg'); /* ¡Asegúrate de que la imagen exista! */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Tarjeta principal dividida en dos */
+.split-card {
+  display: flex;
+  width: 900px;
+  min-height: 450px;
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+/* Sección del logo */
+.card-left {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-image: url('https://www.grupolarabida.org/wp-content/uploads/2020/10/Colombia_InstitutoTecnologicoMetropolitano_ITM_81_.jpg'); /* ¡Asegúrate de que la imagen exista! */
+  border-right: 1px solid #eaeaea;
+  padding: 40px;
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Sección del formulario */
+.card-right {
+  flex: 1.2;
+  padding: 50px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.form-title {
+  margin-top: 0;
+  margin-bottom: 30px;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  border-bottom: 3px solid #4a148c; /* Línea decorativa como en tu diseño */
+  display: inline-block;
+  padding-bottom: 5px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 5px;
+}
+
+.forgot-password {
+  margin-bottom: 20px;
+  a {
+    color: #555;
+    text-decoration: none;
+    font-size: 0.9rem;
+    &:hover {
+      text-decoration: underline;
+      color: #4a148c;
+    }
+  }
+}
+
+.info-box {
+  margin-bottom: 30px;
+  
+  .badge {
+    background-color: #ffc107;
+    color: #000;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-block;
+    margin-bottom: 5px;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #666;
+    line-height: 1.4;
+  }
+}
+
+.actions-right {
+  display: flex;
+  justify-content: flex-end; /* Alinea el botón a la derecha */
+  
+  .submit-button {
+    padding: 24px 30px;
+    border-radius: 30px; /* Botón redondeado como en tu diseño */
+    font-size: 1.1rem;
+    background-color: #4a148c; /* Morado ITM, ajústalo según necesites */
+    color: white;
+  }
+}

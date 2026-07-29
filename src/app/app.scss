@@ -1,0 +1,47 @@
+.sidenav-container {
+  height: 100vh;
+}
+
+.sidenav {
+  width: 250px;
+  background-color: #fafafa;
+  border-right: 1px solid #e0e0e0;
+}
+
+.logo-container {
+  padding: 20px;
+  background-color: #ffffff; 
+  color: #333333;
+  text-align: center;
+  border-bottom: 2px solid #e0e0e0;
+
+  .institucional-logo {
+    max-width: 80%; /* Para que la imagen no se salga del menú */
+    height: auto;
+    margin-bottom: 15px;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #003366; /* Azul oscuro institucional */
+  }
+  p {
+    margin: 5px 0 0;
+    font-size: 0.8rem;
+    color: #666666;
+  }
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.main-content {
+  padding: 20px;
+}
+
+.institucional-toolbar {
+  background-color: #003366 !important; /* Azul oscuro para la barra superior */
+  color: white;
+}

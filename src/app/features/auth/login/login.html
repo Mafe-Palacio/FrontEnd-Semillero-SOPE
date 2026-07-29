@@ -1,0 +1,49 @@
+<div class="auth-bg">
+  <div class="split-card">
+    
+    <!-- Lado Izquierdo: Logo ITM -->
+    <div class="card-left">
+      <img src="https://www.grupolarabida.org/wp-content/uploads/2020/10/Colombia_InstitutoTecnologicoMetropolitano_ITM_81_.jpg" alt="Institución Universitaria ITM">
+    </div>
+
+    <!-- Lado Derecho: Formulario -->
+    <div class="card-right">
+      <h2 class="form-title">Ingrese su usuario</h2>
+      
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
+        
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Nombre de usuario (Correo)</mat-label>
+          <mat-icon matPrefix>person_outline</mat-icon>
+          <input matInput formControlName="username" type="email">
+        </mat-form-field>
+
+        <!-- Campo de contraseña (oculto en tu primera foto, pero necesario) -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Contraseña</mat-label>
+          <mat-icon matPrefix>lock_outline</mat-icon>
+          <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password">
+          <button type="button" mat-icon-button matSuffix (click)="hidePassword = !hidePassword">
+            <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <div class="forgot-password">
+          <a href="#">¿Olvidaste tu correo electrónico o contraseña?</a>
+        </div>
+
+        <div class="info-box">
+          <span class="badge">Recuerda</span>
+          <p>Tu usuario es tu correo institucional completo.<br>ej: juanperez112234&#64;correo.itm.edu.co</p>
+        </div>
+
+        <div class="actions-right">
+          <button mat-flat-button color="primary" type="submit" class="submit-button" [disabled]="loginForm.invalid || isLoading">
+            {{ isLoading ? 'Cargando...' : 'Siguiente' }}
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
