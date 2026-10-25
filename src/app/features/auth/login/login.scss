@@ -1,44 +1,53 @@
-/* Fondo de pantalla completa con la imagen del ITM */
+$azul: #011C5B;
+$ing-1: #102D69;
+$ing-2: #00A0B7;
+$ing-3: #56ACDE;
+$cian: #29ABE2;
+$gris: #C6C6C6;
+
 .auth-bg {
-  height: 100vh;
-  width: 100vw;
+  min-height: 100vh;
+  width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-image: url('https://www.itm.edu.co//wp-content/uploads/noticias/fraternidad-2.jpg'); /* ¡Asegúrate de que la imagen exista! */
+  padding: 24px;
+  box-sizing: border-box;
+  font-family: 'Montserrat', 'Lato', Arial, sans-serif;
+  background-image: url('https://www.itm.edu.co//wp-content/uploads/noticias/fraternidad-2.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
 
-/* Tarjeta principal dividida en dos */
 .split-card {
   display: flex;
   width: 900px;
+  max-width: 100%;
   min-height: 450px;
-  background-color: white;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  background-color: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
   overflow: hidden;
 }
 
-/* Sección del logo */
 .card-left {
   flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-image: url('https://www.grupolarabida.org/wp-content/uploads/2020/10/Colombia_InstitutoTecnologicoMetropolitano_ITM_81_.jpg'); /* ¡Asegúrate de que la imagen exista! */
-  border-right: 1px solid #eaeaea;
   padding: 40px;
+  background: #fff;
+  border-right: 1px solid #eaeaea;
 
   img {
-    max-width: 100%;
+    width: 100%;
+    max-width: 320px;
     height: auto;
+    object-fit: contain;
   }
 }
 
-/* Sección del formulario */
 .card-right {
   flex: 1.2;
   padding: 50px 40px;
@@ -51,10 +60,11 @@
   margin-top: 0;
   margin-bottom: 30px;
   font-size: 1.8rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  border-bottom: 3px solid #4a148c; /* Línea decorativa como en tu diseño */
+  font-weight: 800;
+  color: $ing-1;
+  border-bottom: 3px solid $cian;
   display: inline-block;
+  align-self: flex-start;
   padding-bottom: 5px;
 }
 
@@ -70,48 +80,98 @@
 
 .forgot-password {
   margin-bottom: 20px;
+
   a {
-    color: #555;
+    color: $ing-2;
     text-decoration: none;
     font-size: 0.9rem;
+    font-weight: 500;
+
     &:hover {
       text-decoration: underline;
-      color: #4a148c;
+      color: $ing-1;
     }
   }
 }
 
 .info-box {
   margin-bottom: 30px;
-  
+  padding: 12px 16px;
+  background: #f1f1f1;
+  border-left: 4px solid $cian;
+
   .badge {
-    background-color: #ffc107;
-    color: #000;
-    padding: 3px 10px;
+    background-color: $ing-3;
+    color: #fff;
+    padding: 3px 12px;
     border-radius: 12px;
     font-size: 0.8rem;
-    font-weight: 500;
+    font-weight: 600;
     display: inline-block;
     margin-bottom: 5px;
   }
-  
+
   p {
     margin: 0;
     font-size: 0.85rem;
-    color: #666;
+    color: #444;
     line-height: 1.4;
   }
 }
 
 .actions-right {
   display: flex;
-  justify-content: flex-end; /* Alinea el botón a la derecha */
-  
+  justify-content: flex-end;
+
   .submit-button {
-    padding: 24px 30px;
-    border-radius: 30px; /* Botón redondeado como en tu diseño */
-    font-size: 1.1rem;
-    background-color: #4a148c; /* Morado ITM, ajústalo según necesites */
-    color: white;
+    --mdc-filled-button-container-color: #{$ing-1};
+    --mdc-filled-button-label-text-color: #fff;
+    --mdc-protected-button-container-color: #{$ing-1};
+    --mdc-protected-button-label-text-color: #fff;
+    --mat-button-filled-container-color: #{$ing-1};
+    --mat-button-filled-label-text-color: #fff;
+    min-width: 160px;
+    height: 48px;
+    padding: 0 32px;
+    border-radius: 30px;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    background-color: $ing-1;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.2s, box-shadow 0.2s;
+
+    &:hover:not(:disabled) {
+      background-color: $ing-2;
+      box-shadow: 0 4px 12px rgba(16, 45, 105, 0.3);
+    }
+
+    &:disabled {
+      background-color: $gris;
+      color: #fff;
+      cursor: not-allowed;
+    }
+  }
+}
+
+@media (max-width: 800px) {
+  .split-card {
+    flex-direction: column;
+    min-height: 0;
+  }
+
+    .card-left {
+    padding: 24px;
+    border-right: 0;
+    border-bottom: 1px solid #eaeaea;
+
+    img {
+      max-width: 220px;
+    }
+  }
+
+  .card-right {
+    padding: 30px 24px;
   }
 }

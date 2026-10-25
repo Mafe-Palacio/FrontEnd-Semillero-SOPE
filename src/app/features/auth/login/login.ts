@@ -1,79 +1,63 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-
-// Módulos de Angular Material
-import { MatCardModule } from '@angular/material/card';
+import { HttpErrorResponse } from '@angular/common/http';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-
-// Importamos exactamente la clase que el generador creó
-import { AutenticacinService } from '../../../api';
+import { AuthService } from '../../../core/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatCardModule,
+    MatFormFieldModule,
     MatInputModule,
-    MatButtonModule,
     MatIconModule,
+    MatButtonModule,
     MatSnackBarModule
   ],
   templateUrl: './login.html',
   styleUrl: './login.scss'
 })
-export class LoginComponent {
-  loginForm: FormGroup;
+export class Login {
+  private fb = inject(FormBuilder);
+  private auth = inject(AuthService);
+  private router = inject(Router);
+  private snack = inject(MatSnackBar);
+
   hidePassword = true;
   isLoading = false;
 
-  private fb = inject(FormBuilder);
-  private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  loginForm = this.fb.nonNullable.group({
+    username: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]]
+  });
 
-  // Inyectamos el servicio correcto
-  private authService = inject(AutenticacinService);
+  onSubmit(): void {
+    if (this.loginForm.invalid || this.isLoading) return;
 
-  constructor() {
-    this.loginForm = this.fb.group({
-      username: ['', [Validators.required, Validators.email]],
-      password: ['', Validators.required]
+    const { username, password } = this.loginForm.getRawValue();
+    this.isLoading = true;
+
+    this.auth.login(username.trim(), password).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.router.navigate(['/']);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.isLoading = false;
+        const mensaje =
+          err.status === 0
+            ? 'No se pudo conectar con el servidor'
+            : typeof err.error?.detail === 'string'
+              ? err.error.detail
+              : 'No se pudo iniciar sesión';
+        this.snack.open(mensaje, 'Cerrar', { duration: 5000 });
+      }
     });
-  }
-
-  onSubmit() {
-    if (this.loginForm.valid) {
-      this.isLoading = true;
-      const { username, password } = this.loginForm.value;
-
-      // Llamamos al método exacto y le pasamos un objeto JSON
-      this.authService.loginAuthLoginPost({
-        correo: username,
-        password: password
-      }).subscribe({
-        next: (respuesta: any) => {
-          this.isLoading = false;
-          // Guardamos el token
-          localStorage.setItem('access_token', respuesta.access_token);
-
-          // Mostramos mensaje de éxito
-          this.snackBar.open('¡Bienvenido al sistema!', 'Cerrar', { duration: 3000 });
-
-          // Redirigimos al panel de administrador
-          this.router.navigate(['/admin']);
-        },
-        error: (error) => {
-          this.isLoading = false;
-          this.snackBar.open('Correo o contraseña incorrectos', 'Cerrar', { duration: 4000 });
-          console.error('Error de login:', error);
-        }
-      });
-    }
   }
 }
