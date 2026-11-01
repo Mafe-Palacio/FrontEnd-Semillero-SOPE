@@ -3,14 +3,14 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve --host 0.0.0.0 --port 3000",
+    "dev": "ng serve --host 0.0.0.0 --port 3000",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:frontend-objetos-perdidos": "node dist/frontend-objetos-perdidos/server/server.mjs"
+    "serve:ssr:frontend-objetos-perdidos": "PORT=3000 node dist/frontend-objetos-perdidos/server/server.mjs"
   },
   "private": true,
-  "packageManager": "npm@11.11.0",
   "dependencies": {
     "@angular/cdk": "^21.2.14",
     "@angular/common": "^21.2.0",

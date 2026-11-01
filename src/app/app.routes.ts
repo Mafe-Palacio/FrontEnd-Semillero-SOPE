@@ -1,41 +1,57 @@
 import { Routes } from '@angular/router';
+import { adminGuard, authGuard } from './core/auth.guard';
 
 export const routes: Routes = [
+    {
+        // Muro y Catálogo Público (HU01, HU08, HU21, HU22)
+        // Permite acceso público a la comunidad ITM; la autenticación se exige al reclamar o gestionar.
+        path: 'catalogo',
+        loadComponent: () => import('./features/catalogo-publico/catalogo.component').then(m => m.CatalogoComponent)
+    },
     {
         // Ruta pública para el Login/Registro
         path: 'auth',
         loadChildren: () => import('./features/auth/auth-module').then(m => m.AuthModule)
     },
     {
-        // Rutas protegidas (El panel principal)
+        // Panel administrativo: solo ADMIN / SUPERADMIN
         path: 'admin',
+        canActivate: [adminGuard],
         loadChildren: () => import('./features/admin/admin-module').then(m => m.AdminModule)
     },
     {
+        // Módulo de Reportes: exige sesión activa
         path: 'reportes',
+        canActivate: [authGuard],
         loadChildren: () => import('./features/reportes/reportes-module').then(m => m.ReportesModule)
     },
     {
+        // Módulo de Reclamaciones: exige sesión activa
         path: 'reclamaciones',
+        canActivate: [authGuard],
         loadChildren: () => import('./features/reclamaciones/reclamaciones-module').then(m => m.ReclamacionesModule)
     },
     {
+        // Módulo de Chat: exige sesión activa
         path: 'chat',
+        canActivate: [authGuard],
         loadChildren: () => import('./features/chat/chat-module').then(m => m.ChatModule)
     },
     {
+        // Notificaciones: exige sesión activa
         path: 'notificaciones',
+        canActivate: [authGuard],
         loadChildren: () => import('./features/notificaciones/notificaciones-module').then(m => m.NotificacionesModule)
     },
     {
-        // Por defecto redirige al login
+        // Por defecto redirige al catálogo público
         path: '',
-        redirectTo: 'auth',
+        redirectTo: 'catalogo',
         pathMatch: 'full'
     },
     {
-        // Si escriben una URL que no existe, redirige al login
+        // Si ingresan una URL inexistente, redirige al catálogo
         path: '**',
-        redirectTo: 'auth'
+        redirectTo: 'catalogo'
     }
 ];

@@ -1,5 +1,17 @@
+// Variables Institucionales ITM
+$color-itm-blue: #011C5B;
+$color-itm-blue-hover: #0A2F8A;
+$color-itm-blue-soft: #EBF1F8;
+$font-itm: 'Montserrat', sans-serif;
+
 .sidenav-container {
-  height: 100vh;
+  min-height: 100vh;
+  height: auto;
+}
+
+mat-sidenav-content {
+  overflow: visible !important;
+  height: auto;
 }
 
 .sidenav {
@@ -16,7 +28,7 @@
   border-bottom: 2px solid #e0e0e0;
 
   .institucional-logo {
-    max-width: 80%; /* Para que la imagen no se salga del menú */
+    max-width: 80%;
     height: auto;
     margin-bottom: 15px;
   }
@@ -24,24 +36,220 @@
   h2 {
     margin: 0;
     font-size: 1.2rem;
-    color: #003366; /* Azul oscuro institucional */
+    color: $color-itm-blue;
+    font-family: $font-itm;
+    font-weight: 700;
   }
   p {
     margin: 5px 0 0;
     font-size: 0.8rem;
     color: #666666;
+    font-family: $font-itm;
   }
 }
 
-.spacer {
-  flex: 1 1 auto;
-}
-
 .main-content {
-  padding: 20px;
+  padding: 0;
+  min-height: calc(100vh - 64px);
+  background-color: #f8f9fa;
+  height: auto;
+  overflow: visible;
 }
 
+// ------------------------------------------------------------------
+// Barra Superior Institucional (Header Principal)
+// ------------------------------------------------------------------
 .institucional-toolbar {
-  background-color: #003366 !important; /* Azul oscuro para la barra superior */
-  color: white;
+  background-color: $color-itm-blue !important;
+  color: #ffffff !important;
+  font-family: $font-itm !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 10px 16px !important;
+  gap: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  min-height: 56px;
+  height: auto !important;
+  position: relative;
+  z-index: 20;
+
+  // Contenedor del Título / Identificador institucional (Izquierda)
+  .brand-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0; // Vital: permite truncar y evita que empuje el botón derecho
+    overflow: hidden;
+
+    .menu-toggle-btn {
+      color: #ffffff;
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      line-height: 36px;
+    }
+
+    .brand-link {
+      color: #ffffff;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      overflow: hidden;
+
+      &:hover {
+        opacity: 0.95;
+      }
+    }
+
+    .toolbar-brand-title {
+      font-family: $font-itm;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+      line-height: 1.25;
+
+      .brand-full {
+        display: inline;
+      }
+
+      .brand-compact {
+        display: none;
+      }
+    }
+  }
+
+  // Contenedor de Botones de Acceso / Perfil (Derecha)
+  .toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    z-index: 2;
+
+    .nav-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: $font-itm;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #ffffff !important;
+      padding: 6px 14px;
+      height: 36px;
+      border-radius: 6px;
+      transition: background-color 0.2s ease;
+      white-space: nowrap;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.12);
+      }
+
+      &.login-btn {
+        background-color: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.28);
+        }
+      }
+
+      &.btn-logout:hover {
+        background-color: rgba(239, 68, 68, 0.25);
+      }
+    }
+  }
+}
+
+.catalogo-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+
+  .catalogo-content-area {
+    flex: 1;
+    width: 100%;
+  }
+}
+
+// ------------------------------------------------------------------
+// Adaptabilidad Móvil (max-width: 600px)
+// ------------------------------------------------------------------
+@media (max-width: 600px) {
+  .institucional-toolbar {
+    padding: 8px 12px !important;
+    gap: 8px !important;
+    min-height: 50px;
+
+    .brand-container {
+      gap: 6px;
+
+      .menu-toggle-btn {
+        width: 32px;
+        height: 32px;
+        line-height: 32px;
+        padding: 4px;
+
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      .toolbar-brand-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        line-height: 1.2;
+
+        // En pantallas móviles estrechas cambiamos a la versión compacta "OPE · ITM Fraternidad"
+        .brand-full {
+          display: none;
+        }
+
+        .brand-compact {
+          display: inline;
+        }
+      }
+    }
+
+    .toolbar-actions {
+      gap: 6px;
+
+      .nav-action-btn {
+        padding: 6px 10px !important;
+        font-size: 0.8rem !important;
+        height: 32px !important;
+        min-width: auto !important;
+        border-radius: 6px !important;
+        gap: 4px;
+
+        mat-icon {
+          font-size: 16px !important;
+          width: 16px !important;
+          height: 16px !important;
+        }
+
+        .action-label {
+          font-size: 0.78rem;
+        }
+      }
+    }
+  }
 }

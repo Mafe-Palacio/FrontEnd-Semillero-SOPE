@@ -1,0 +1,562 @@
+<div class="catalogo-wrapper">
+
+  <!-- Header Institucional ITM (Sede Fraternidad) -->
+  <header class="catalogo-header">
+    <div class="header-container">
+      <div class="header-branding">
+        <span class="sede-pill">Institución Universitaria ITM · Sede Fraternidad</span>
+        <h1 class="header-title">Muro Público de Objetos en Custodia</h1>
+        <p class="header-subtitle">
+          Consulta los artículos encontrados dentro de las instalaciones del ITM (Bloques, Biblioteca, Cafetería y Aulas). Si reconoces tu pertenencia, inicia el proceso de validación seguro.
+        </p>
+      </div>
+
+      <div class="header-action-buttons">
+        <button type="button" class="action-card-btn btn-lost" (click)="abrirModalReportarPerdido()">
+          <div class="action-icon-box icon-red">
+            <mat-icon>search</mat-icon>
+          </div>
+          <div class="action-text-content">
+            <span class="action-title">Se me perdió un objeto</span>
+            <span class="action-desc">Reporta un objeto que hayas perdido</span>
+          </div>
+        </button>
+
+        <button type="button" class="action-card-btn btn-found" (click)="abrirModalRegistrarEncontrado()">
+          <div class="action-icon-box icon-green">
+            <mat-icon>add</mat-icon>
+          </div>
+          <div class="action-text-content">
+            <span class="action-title">Encontré un objeto</span>
+            <span class="action-desc">Registra un objeto que hayas encontrado</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Barra de Búsqueda Reactiva y Filtros Dinámicos -->
+  <section class="filtros-section" [formGroup]="filtrosForm">
+    <div class="filtros-container">
+      
+      <!-- Fila superior: Input de búsqueda en tiempo real (debounce 300ms) -->
+      <div class="search-bar-row">
+        <div class="search-input-wrapper">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input
+            type="text"
+            formControlName="termino"
+            placeholder="Buscar por categoría, bloque, biblioteca, código (ej: audífonos, calculadora, OP-001)..."
+            class="search-input"
+            aria-label="Buscar objetos encontrados en el ITM"
+          />
+          @if (filtrosForm.controls.termino.value) {
+            <button
+              type="button"
+              class="clear-search-btn"
+              (click)="filtrosForm.controls.termino.setValue('')"
+              aria-label="Limpiar búsqueda"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </div>
+
+        <!-- Selectores agrupados en una fila: Sede y Orden -->
+        <div class="selectors-row">
+          <!-- Selector de Orden -->
+          <div class="select-wrapper">
+            <label for="orden-select" class="select-label">Orden:</label>
+            <select id="orden-select" formControlName="orden" class="custom-select">
+              <option value="recientes">Más recientes primero</option>
+              <option value="antiguos">Más antiguos primero</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila inferior: Segmented Controls de Categorías -->
+      <div class="categorias-scroll-container">
+        <div class="categorias-rail" role="tablist" aria-label="Filtrar por categoría">
+          @for (cat of categorias; track cat.id) {
+            <button
+              type="button"
+              class="cat-chip"
+              [class.active]="filtrosForm.controls.categoria.value === cat.id"
+              (click)="seleccionarCategoria(cat.id)"
+              role="tab"
+              [attr.aria-selected]="filtrosForm.controls.categoria.value === cat.id"
+            >
+              <mat-icon class="chip-icon">{{ cat.icono }}</mat-icon>
+              <span>{{ cat.etiqueta }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Barra de resumen de resultados y botón de reset -->
+      <div class="filtros-feedback-bar">
+        <div class="feedback-info">
+          @if (cargando()) {
+            <span class="loading-text">
+              <mat-icon class="spin-icon">sync</mat-icon>
+              Actualizando inventario de objetos...
+            </span>
+          } @else {
+            <span class="count-text">
+              Mostrando <strong>{{ totalFiltrados() }}</strong> objetos encontrados
+            </span>
+          }
+        </div>
+
+        @if (filtrosForm.controls.termino.value || filtrosForm.controls.categoria.value !== 'TODAS') {
+          <button type="button" class="reset-filters-btn" (click)="limpiarFiltros()">
+            <mat-icon>filter_alt_off</mat-icon>
+            <span>Limpiar filtros</span>
+          </button>
+        }
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Muro de Objetos (Grid de Tarjetas) -->
+  <main class="catalogo-content">
+    <div class="content-container">
+
+      <!-- Estado: Cargando -->
+      @if (cargando() && objetos().length === 0) {
+        <div class="loading-state">
+          <div class="spinner-institutional"></div>
+          <p>Cargando objetos bajo custodia institucional...</p>
+        </div>
+      }
+
+      <!-- Estado: Error con opción de reintentar -->
+      @if (!cargando() && errorMensaje()) {
+        <div class="error-banner">
+          <mat-icon>error_outline</mat-icon>
+          <div class="error-text">
+            <h4>No fue posible sincronizar el catálogo</h4>
+            <p>{{ errorMensaje() }}</p>
+          </div>
+          <button type="button" mat-stroked-button (click)="cargarCatalogo()">
+            Reintentar
+          </button>
+        </div>
+      }
+
+      <!-- Estado: Resultados en Grid -->
+      @if (!cargando() && objetosFiltrados().length > 0) {
+        <div class="cards-grid">
+          @for (item of objetosFiltrados(); track item.id) {
+            <article class="objeto-card" (click)="iniciarReclamo(item, $event)">
+              
+              <!-- Imagen / Visual Container con Fallback Seguro -->
+              <div class="card-media">
+                @if (item.imagenUrl) {
+                  <img
+                    [src]="item.imagenUrl"
+                    [alt]="item.descripcion"
+                    class="media-img"
+                    referrerpolicy="no-referrer"
+                    (error)="onImageError(item)"
+                  />
+                } @else {
+                  <div class="media-fallback">
+                    <div class="fallback-icon-ring">
+                      <mat-icon>{{ getIconoPorCategoria(item.categoria) }}</mat-icon>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- Contenido de la Tarjeta: Solo Descripción y Botón (por seguridad del cliente) -->
+              <div class="card-body">
+                <h3 class="card-title">{{ item.descripcion }}</h3>
+
+                <div class="card-footer">
+                  <button
+                    type="button"
+                    class="btn-claim"
+                    (click)="iniciarReclamo(item, $event)"
+                    aria-label="Reclamar pertenencia de este objeto"
+                  >
+                    <mat-icon>person_check</mat-icon>
+                    <span>¿Es tuyo? Reclamar</span>
+                  </button>
+                </div>
+              </div>
+
+            </article>
+          }
+        </div>
+      }
+
+      <!-- Estado Vacío: Sin Coincidencias -->
+      @if (!cargando() && objetosFiltrados().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon-box">
+            <mat-icon>search_off</mat-icon>
+          </div>
+          <h3 class="empty-title">No se encontraron objetos que coincidan</h3>
+          <p class="empty-desc">
+            No hay registros con los criterios seleccionados actualmente. Intenta buscar con otros términos o borrar los filtros aplicados.
+          </p>
+          <div class="empty-actions">
+            <button type="button" class="btn-primary-itm" (click)="limpiarFiltros()">
+              <mat-icon>restart_alt</mat-icon>
+              <span>Ver todos los objetos</span>
+            </button>
+            <button type="button" class="btn-secondary-itm" (click)="abrirModalReportarPerdido()">
+              <mat-icon>post_add</mat-icon>
+              <span>Reportar objeto perdido</span>
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  </main>
+
+  <!-- Modal de Reclamación y Validación de Seguridad (HU08, HU21, HU22) -->
+  @if (modalReclamarAbierto() && objetoSeleccionado()) {
+    <div class="modal-backdrop" (click)="cerrarModalReclamo()">
+      <div class="modal-card modal-card-claim" (click)="$event.stopPropagation()">
+        
+        <div class="modal-header">
+          <div class="modal-header-titles">
+            <span class="modal-kicker">Validación de Titularidad ITM</span>
+            <h2 class="modal-title">Reclamar {{ objetoSeleccionado()?.descripcion }}</h2>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="cerrarModalReclamo()" aria-label="Cerrar">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        @if (!reclamoEnviadoConExito()) {
+          <form [formGroup]="reclamoForm" (ngSubmit)="enviarReclamo()" class="claim-form">
+            <div class="modal-body">
+              
+              <div class="notice-box">
+                <mat-icon>info</mat-icon>
+                <p>
+                  Para proteger los artículos de la comunidad universitaria, debes describir detalles que solo el dueño real conoce (marcas, contraseñas, pegatinas, contenido interior o marcas de uso).
+                </p>
+              </div>
+
+              <div class="form-group">
+                <label for="desc" class="form-label">
+                  Descripción de características no visibles en la foto: *
+                </label>
+                <textarea
+                  id="desc"
+                  formControlName="descripcionDetallada"
+                  rows="3"
+                  class="form-textarea"
+                  placeholder="Ej: Tiene un sticker de Java en la esquina, funda transparente con tarjeta de metro en el interior..."
+                  required
+                ></textarea>
+              </div>
+
+              <div class="form-group">
+                <label for="caract" class="form-label">
+                  Seña particular o marca distintiva:
+                </label>
+                <input
+                  id="caract"
+                  type="text"
+                  formControlName="caracteristicaUnica"
+                  class="form-input"
+                  placeholder="Ej: Número de serie parcial, fondo de pantalla, nombre en etiqueta..."
+                />
+              </div>
+
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="fechaPerdida" class="form-label">Fecha aproximada en que lo perdiste:</label>
+                  <input
+                    id="fechaPerdida"
+                    type="date"
+                    formControlName="fechaPerdidaEstimada"
+                    class="form-input"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="lugarPerdida" class="form-label">Lugar probable de extravío:</label>
+                  <input
+                    id="lugarPerdida"
+                    type="text"
+                    formControlName="lugarPerdidaEstimado"
+                    class="form-input"
+                    placeholder="Ej: Aula 204, Cafetería Fraternidad..."
+                  />
+                </div>
+              </div>
+
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn-cancel" (click)="cerrarModalReclamo()">
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                class="btn-primary-itm"
+                [disabled]="reclamoForm.invalid"
+              >
+                <mat-icon>send</mat-icon>
+                <span>Enviar Reclamo a Custodia</span>
+              </button>
+            </div>
+          </form>
+        } @else {
+          <div class="modal-body success-state">
+            <div class="success-icon-box">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+            <h3>¡Solicitud de Reclamación Recibida!</h3>
+            <p>
+              Tu reclamo para el artículo <strong>{{ objetoSeleccionado()?.descripcion }}</strong> ha sido registrado con éxito. El equipo de custodia verificará los datos suministrados y recibirás una notificación para acudir a reclamarlo con tu carnet institucional.
+            </p>
+            <div class="success-actions">
+              <button type="button" class="btn-primary-itm" (click)="cerrarModalReclamo()">
+                Aceptar y Volver al Catálogo
+              </button>
+            </div>
+          </div>
+        }
+
+      </div>
+    </div>
+  }
+
+  <!-- Modal "Se me perdió un objeto" -->
+  @if (modalReportarPerdidoAbierto()) {
+    <div class="modal-backdrop" (click)="cerrarModalReportarPerdido()">
+      <div class="modal-card modal-card-claim" (click)="$event.stopPropagation()">
+        
+        <div class="modal-header">
+          <div class="modal-header-titles">
+            <span class="modal-kicker modal-kicker-red">Reporte de Extravío · Sede Fraternidad</span>
+            <h2 class="modal-title text-red">Se me perdió un objeto</h2>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="cerrarModalReportarPerdido()" aria-label="Cerrar">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        @if (!reportePerdidoEnviado()) {
+          <form [formGroup]="formReportePerdido" (ngSubmit)="enviarReportePerdido()" class="claim-form">
+            <div class="modal-body">
+              
+              <div class="notice-box notice-red">
+                <mat-icon>search</mat-icon>
+                <p>
+                  Registra los datos del objeto que perdiste. Si alguien lo entrega en custodia en el ITM, el sistema te notificará automáticamente.
+                </p>
+              </div>
+
+              <div class="form-group">
+                <label for="lost-categoria" class="form-label">Categoría del objeto: *</label>
+                <select id="lost-categoria" formControlName="categoria" class="form-input">
+                  @for (cat of categorias; track cat.id) {
+                    @if (cat.id !== 'TODAS') {
+                      <option [value]="cat.id">{{ cat.etiqueta }}</option>
+                    }
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="lost-desc" class="form-label">¿Qué objeto perdiste? (Descripción y señas particulares): *</label>
+                <textarea
+                  id="lost-desc"
+                  formControlName="descripcion"
+                  rows="3"
+                  class="form-textarea"
+                  placeholder="Ej: Audífonos Sony negros en estuche gris, termo azul metálico con sticker del ITM, billetera café..."
+                  required
+                ></textarea>
+              </div>
+
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="lost-lugar" class="form-label">Lugar donde crees haberlo perdido:</label>
+                  <input
+                    id="lost-lugar"
+                    type="text"
+                    formControlName="lugarExtravio"
+                    class="form-input"
+                    placeholder="Ej: Biblioteca Bloque M, Cafetería, Aula 204..."
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="lost-fecha" class="form-label">Fecha aproximada:</label>
+                  <input
+                    id="lost-fecha"
+                    type="date"
+                    formControlName="fechaExtravio"
+                    class="form-input"
+                  />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="lost-contacto" class="form-label">Correo institucional de contacto:</label>
+                <input
+                  id="lost-contacto"
+                  type="email"
+                  formControlName="contacto"
+                  class="form-input"
+                  placeholder="ej: nombre.apellido@correo.itm.edu.co"
+                />
+              </div>
+
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn-cancel" (click)="cerrarModalReportarPerdido()">
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                class="btn-primary-itm btn-danger-itm"
+                [disabled]="formReportePerdido.invalid"
+              >
+                <mat-icon>send</mat-icon>
+                <span>Registrar Reporte de Pérdida</span>
+              </button>
+            </div>
+          </form>
+        } @else {
+          <div class="modal-body success-state">
+            <div class="success-icon-box icon-red-box">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+            <h3>¡Reporte Registrado!</h3>
+            <p>
+              Hemos registrado la información de tu pertenencia. El personal de custodia en <strong>Sede Fraternidad</strong> comparará este reporte con los objetos entregados.
+            </p>
+            <div class="success-actions">
+              <button type="button" class="btn-primary-itm" (click)="cerrarModalReportarPerdido()">
+                Aceptar y Volver al Catálogo
+              </button>
+            </div>
+          </div>
+        }
+
+      </div>
+    </div>
+  }
+
+  <!-- Modal "Encontré un objeto" -->
+  @if (modalRegistrarEncontradoAbierto()) {
+    <div class="modal-backdrop" (click)="cerrarModalRegistrarEncontrado()">
+      <div class="modal-card modal-card-claim" (click)="$event.stopPropagation()">
+        
+        <div class="modal-header">
+          <div class="modal-header-titles">
+            <span class="modal-kicker modal-kicker-green">Solidaridad ITM · Sede Fraternidad</span>
+            <h2 class="modal-title text-green">Encontré un objeto</h2>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="cerrarModalRegistrarEncontrado()" aria-label="Cerrar">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        @if (!reporteEncontradoEnviado()) {
+          <form [formGroup]="formReporteEncontrado" (ngSubmit)="enviarReporteEncontrado()" class="claim-form">
+            <div class="modal-body">
+              
+              <div class="notice-box notice-green">
+                <mat-icon>volunteer_activism</mat-icon>
+                <p>
+                  ¡Gracias por tu honestidad! Por favor entrega el objeto en el punto de custodia autorizado (Portería Principal o Bloque M) para su custodia oficial.
+                </p>
+              </div>
+
+              <div class="form-group">
+                <label for="found-categoria" class="form-label">Categoría del objeto: *</label>
+                <select id="found-categoria" formControlName="categoria" class="form-input">
+                  @for (cat of categorias; track cat.id) {
+                    @if (cat.id !== 'TODAS') {
+                      <option [value]="cat.id">{{ cat.etiqueta }}</option>
+                    }
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="found-desc" class="form-label">Descripción breve del objeto encontrado: *</label>
+                <textarea
+                  id="found-desc"
+                  formControlName="descripcion"
+                  rows="3"
+                  class="form-textarea"
+                  placeholder="Ej: Llaves con llavero azul, termo metálico, calculadora científica..."
+                  required
+                ></textarea>
+              </div>
+
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="found-lugar" class="form-label">Lugar donde lo encontraste:</label>
+                  <input
+                    id="found-lugar"
+                    type="text"
+                    formControlName="lugarHallazgo"
+                    class="form-input"
+                    placeholder="Ej: Pasillo Bloque M, Cafetería, Aula..."
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="found-entrega" class="form-label">Punto de entrega en Sede Fraternidad:</label>
+                  <input
+                    id="found-entrega"
+                    type="text"
+                    formControlName="lugarEntrega"
+                    class="form-input"
+                    placeholder="Ej: Portería Principal, Bloque M, Biblioteca..."
+                  />
+                </div>
+              </div>
+
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn-cancel" (click)="cerrarModalRegistrarEncontrado()">
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                class="btn-primary-itm btn-success-itm"
+                [disabled]="formReporteEncontrado.invalid"
+              >
+                <mat-icon>check_circle</mat-icon>
+                <span>Registrar Objeto Encontrado</span>
+              </button>
+            </div>
+          </form>
+        } @else {
+          <div class="modal-body success-state">
+            <div class="success-icon-box icon-green-box">
+              <mat-icon>volunteer_activism</mat-icon>
+            </div>
+            <h3>¡Gracias por tu aporte a la comunidad ITM!</h3>
+            <p>
+              El registro ha sido creado. Recuerda llevar la pertenencia al punto de custodia en <strong>Sede Fraternidad</strong> para que su dueño pueda recuperarlo.
+            </p>
+            <div class="success-actions">
+              <button type="button" class="btn-primary-itm" (click)="cerrarModalRegistrarEncontrado()">
+                Aceptar y Volver al Catálogo
+              </button>
+            </div>
+          </div>
+        }
+
+      </div>
+    </div>
+  }
+
+</div>

@@ -15,10 +15,14 @@
 export const CategoriaObjeto = {
     Electronicos: 'ELECTRONICOS',
     Documentos: 'DOCUMENTOS',
-    RopaYAccesorios: 'ROPA_Y_ACCESORIOS',
+    Ropa: 'ROPA',
+    Accesorios: 'ACCESORIOS',
+    BilleterasYMonederos: 'BILLETERAS_Y_MONEDEROS',
     BolsosYMaletas: 'BOLSOS_Y_MALETAS',
     Llaves: 'LLAVES',
     LibrosYUtiles: 'LIBROS_Y_UTILES',
+    TermosYContenedores: 'TERMOS_Y_CONTENEDORES',
+    Cascos: 'CASCOS',
     Otros: 'OTROS'
 } as const;
 export type CategoriaObjeto = typeof CategoriaObjeto[keyof typeof CategoriaObjeto];

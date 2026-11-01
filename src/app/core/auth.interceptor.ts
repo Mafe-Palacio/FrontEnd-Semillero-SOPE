@@ -9,18 +9,27 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     const auth = inject(AuthService);
     const router = inject(Router);
 
-    if (!req.url.startsWith(API_URL) || req.headers.has('Authorization')) {
-        return next(req);
+    let headers = req.headers;
+    if (req.url.startsWith(API_URL) || req.url.includes('ngrok')) {
+        headers = headers.set('ngrok-skip-browser-warning', 'true');
     }
 
     const token = auth.getToken();
-    const peticion = token
-        ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
-        : req;
+    if (token && !headers.has('Authorization') && (req.url.startsWith(API_URL) || req.url.includes('ngrok'))) {
+        headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    const peticion = req.clone({ headers });
 
     return next(peticion).pipe(
         catchError((err: HttpErrorResponse) => {
-            if (err.status === 401 && !req.url.includes('/auth/login')) {
+            const isPublicEndpoint =
+                req.url.includes('/catalogo') ||
+                req.url.includes('/buscar') ||
+                req.url.includes('/publicaciones-encontradas') ||
+                req.url.includes('/auth/login');
+
+            if (err.status === 401 && !isPublicEndpoint && auth.isLoggedIn()) {
                 auth.logout();
                 router.navigate(['/auth']);
             }

@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -8,11 +8,24 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/auth.service';
+import { mensajeDeError } from '../../../core/api-error';
+
+/**
+ * Validador de dominio institucional ITM conforme a HU30 (CU01)
+ * Acepta @correo.itm.edu.co y @itm.edu.co
+ */
+function institucionalEmailValidator(control: AbstractControl): ValidationErrors | null {
+  const email = (control.value || '').trim().toLowerCase();
+  if (!email) return null;
+  const esItm = email.endsWith('@correo.itm.edu.co') || email.endsWith('@itm.edu.co');
+  return esItm ? null : { institutionalDomain: true };
+}
 
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [
+    RouterModule,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -27,37 +40,40 @@ export class Login {
   private fb = inject(FormBuilder);
   private auth = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private snack = inject(MatSnackBar);
 
   hidePassword = true;
   isLoading = false;
 
   loginForm = this.fb.nonNullable.group({
-    username: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]]
+    username: ['', [Validators.required, Validators.email, institucionalEmailValidator]],
+    password: ['', [Validators.required, Validators.minLength(4)]]
   });
 
   onSubmit(): void {
-    if (this.loginForm.invalid || this.isLoading) return;
+    if (this.loginForm.invalid || this.isLoading) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
 
     const { username, password } = this.loginForm.getRawValue();
     this.isLoading = true;
 
-    this.auth.login(username.trim(), password).subscribe({
+    this.auth.login(username.trim().toLowerCase(), password).subscribe({
       next: () => {
         this.isLoading = false;
-        this.router.navigate(['/']);
+        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/catalogo';
+        this.snack.open('¡Sesión iniciada correctamente!', 'Aceptar', { duration: 3000 });
+        this.router.navigateByUrl(returnUrl);
       },
       error: (err: HttpErrorResponse) => {
         this.isLoading = false;
-        const mensaje =
-          err.status === 0
-            ? 'No se pudo conectar con el servidor'
-            : typeof err.error?.detail === 'string'
-              ? err.error.detail
-              : 'No se pudo iniciar sesión';
-        this.snack.open(mensaje, 'Cerrar', { duration: 5000 });
+        const mensaje = mensajeDeError(err, 'No se pudo iniciar sesión. Verifique sus credenciales institucionales.');
+        this.snack.open(mensaje, 'Cerrar', { duration: 6000 });
       }
     });
   }
 }
+
+export { Login as LoginComponent };

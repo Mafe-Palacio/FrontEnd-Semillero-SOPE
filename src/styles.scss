@@ -1,5 +1,5 @@
 @import './temas-itm.css';
-html, body { height: 100%; margin: 0; }
+html, body { min-height: 100%; height: auto; margin: 0; }
 body { font-family: 'Montserrat', 'Lato', 'Roboto', 'Helvetica Neue', Arial, sans-serif; }
 button, input, select, textarea { font-family: inherit; }
 .material-icons, .material-symbols-outlined {

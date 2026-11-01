@@ -11,7 +11,7 @@
   --itm-radio: 12px;
 }
 
-html, body { height: 100%; margin: 0; }
+html, body { min-height: 100%; height: auto; margin: 0; }
 body {
   font-family: 'Montserrat', 'Lato', Arial, sans-serif;
   color: var(--itm-texto);

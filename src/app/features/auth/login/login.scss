@@ -56,6 +56,32 @@ $gris: #C6C6C6;
   justify-content: center;
 }
 
+.back-link-box {
+  margin-bottom: 20px;
+
+  .back-to-catalog {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: $ing-1;
+    text-decoration: none;
+    transition: color 0.2s ease;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      color: $cian;
+      text-decoration: underline;
+    }
+  }
+}
+
 .form-title {
   margin-top: 0;
   margin-bottom: 30px;

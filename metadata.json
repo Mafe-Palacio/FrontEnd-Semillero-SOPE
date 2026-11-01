@@ -1,0 +1,8 @@
+{
+  "name": "Frontend Semillero SOPE - Objetos Perdidos",
+  "description": "Sistema de gestión de objetos perdidos y encontrados del ITM.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
