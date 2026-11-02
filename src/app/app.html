@@ -1,5 +1,5 @@
-<!-- 1. SI ESTAMOS EN EL LOGIN: Solo mostramos la pantalla completa sin menú -->
-@if (isAuthRoute) {
+<!-- 1. SI ESTAMOS EN EL LOGIN O EN EL PANEL ADMINISTRATIVO: Render directo sin menú envolvente -->
+@if (isAuthRoute || isAdminRoute) {
   <router-outlet></router-outlet>
 }
 

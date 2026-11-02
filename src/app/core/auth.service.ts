@@ -96,10 +96,51 @@ export class AuthService {
         return role === 'ADMIN' || role === 'SUPERADMIN';
     }
 
+    isSuperAdmin(): boolean {
+        const payload = this.getDecodedToken();
+        if (!payload) return false;
+        const role = (payload['rol'] || payload['role'] || payload['rol_id'] || '').toString().toUpperCase();
+        return role === 'SUPERADMIN';
+    }
+
+    getUserRole(): 'USER' | 'ADMIN' | 'SUPERADMIN' | null {
+        const payload = this.getDecodedToken();
+        if (!payload) return null;
+        const role = (payload['rol'] || payload['role'] || payload['rol_id'] || '').toString().toUpperCase();
+        if (role === 'SUPERADMIN') return 'SUPERADMIN';
+        if (role === 'ADMIN') return 'ADMIN';
+        return 'USER';
+    }
+
+    getUserName(): string {
+        const payload = this.getDecodedToken();
+        if (!payload) return 'Usuario';
+        return payload['nombre_completo'] || payload['nombre'] || payload['sub'] || 'Administrador ITM';
+    }
+
+    getUserEmail(): string {
+        const payload = this.getDecodedToken();
+        if (!payload) return '';
+        return payload['correo'] || payload['email'] || payload['sub'] || '';
+    }
+
+    getUserSedeId(): string | null {
+        const payload = this.getDecodedToken();
+        if (!payload) return null;
+        return payload['sede_id'] || null;
+    }
+
+    getUserId(): string | null {
+        const payload = this.getDecodedToken();
+        if (!payload) return null;
+        return payload['usuario_id'] || payload['id'] || payload['sub'] || null;
+    }
+
     logout(): void {
         if (isPlatformBrowser(this.platformId)) {
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
+            localStorage.removeItem('admin_selected_sede_id');
         }
     }
 

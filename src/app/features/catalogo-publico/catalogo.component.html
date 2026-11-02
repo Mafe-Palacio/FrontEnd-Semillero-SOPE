@@ -1,118 +1,139 @@
 <div class="catalogo-wrapper">
 
-  <!-- Header Institucional ITM (Sede Fraternidad) -->
+  <!-- 1. Header / Banner Superior Institucional ITM (Compacto, Limpio, Alto Contraste) -->
   <header class="catalogo-header">
     <div class="header-container">
       <div class="header-branding">
-        <span class="sede-pill">Institución Universitaria ITM · Sede Fraternidad</span>
+        <span class="sede-badge">Institución Universitaria ITM · Sede Fraternidad</span>
         <h1 class="header-title">Muro Público de Objetos en Custodia</h1>
         <p class="header-subtitle">
-          Consulta los artículos encontrados dentro de las instalaciones del ITM (Bloques, Biblioteca, Cafetería y Aulas). Si reconoces tu pertenencia, inicia el proceso de validación seguro.
+          Consulta los artículos recuperados en las instalaciones del campus. Si reconoces tu pertenencia, inicia el proceso seguro de validación y entrega institucional.
         </p>
-      </div>
-
-      <div class="header-action-buttons">
-        <button type="button" class="action-card-btn btn-lost" (click)="abrirModalReportarPerdido()">
-          <div class="action-icon-box icon-red">
-            <mat-icon>search</mat-icon>
-          </div>
-          <div class="action-text-content">
-            <span class="action-title">Se me perdió un objeto</span>
-            <span class="action-desc">Reporta un objeto que hayas perdido</span>
-          </div>
-        </button>
-
-        <button type="button" class="action-card-btn btn-found" (click)="abrirModalRegistrarEncontrado()">
-          <div class="action-icon-box icon-green">
-            <mat-icon>add</mat-icon>
-          </div>
-          <div class="action-text-content">
-            <span class="action-title">Encontré un objeto</span>
-            <span class="action-desc">Registra un objeto que hayas encontrado</span>
-          </div>
-        </button>
       </div>
     </div>
   </header>
 
-  <!-- Barra de Búsqueda Reactiva y Filtros Dinámicos -->
-  <section class="filtros-section" [formGroup]="filtrosForm">
-    <div class="filtros-container">
+  <!-- Contenedor Principal del Catálogo (Fondo #F8F9FA, Espaciado Limpio 16px - 24px) -->
+  <div class="catalogo-main-container">
 
-      <div class="search-bar-row">
-        <div class="search-input-wrapper">
-          <mat-icon class="search-icon">search</mat-icon>
-          <input
-            type="text"
-            formControlName="termino"
-            placeholder="Buscar por categoría, bloque, biblioteca, código (ej: audífonos, calculadora, OP-001)..."
-            class="search-input"
-            aria-label="Buscar objetos encontrados en el ITM"
-          />
-          @if (filtrosForm.controls.termino.value) {
-            <button
-              type="button"
-              class="clear-search-btn"
-              (click)="filtrosForm.controls.termino.setValue('')"
-              aria-label="Limpiar búsqueda"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
-          }
-        </div>
-        <div class="selectors-row">
-          <div class="select-wrapper">
-            <label for="orden-select" class="select-label">Orden:</label>
-            <select id="orden-select" formControlName="orden" class="custom-select">
-              <option value="recientes">Más recientes primero</option>
-              <option value="antiguos">Más antiguos primero</option>
+    <!-- 2. Botones de Acción Rápida (Planos, 2 Columnas Balanceadas, Fondo Blanco, Bordes Sutiles #E5E7EB) -->
+    <section class="quick-actions-section" aria-label="Acciones rápidas de objetos perdidos y encontrados">
+      <div class="quick-actions-grid">
+        <button
+          type="button"
+          class="action-card"
+          (click)="abrirModalReportarPerdido()"
+          aria-label="Reportar que se me perdió un objeto"
+        >
+          <div class="action-icon-box action-icon-box--lost">
+            <mat-icon>search</mat-icon>
+          </div>
+          <div class="action-info">
+            <span class="action-title">Se me perdió un objeto</span>
+            <p class="action-desc">Registra las características de tu pertenencia extraviada para validar coincidencias en el ITM.</p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          class="action-card"
+          (click)="abrirModalRegistrarEncontrado()"
+          aria-label="Registrar que encontré un objeto"
+        >
+          <div class="action-icon-box action-icon-box--found">
+            <mat-icon>add</mat-icon>
+          </div>
+          <div class="action-info">
+            <span class="action-title">Encontré un objeto</span>
+            <p class="action-desc">Reporta un artículo que encontraste para entregarlo en custodia oficial en el campus.</p>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <!-- 3. Barra de Búsqueda y Filtros de Categorías (Fondo Blanco, Borde #E5E7EB, Minimalista) -->
+    <section class="filtros-section" [formGroup]="filtrosForm">
+      <div class="filtros-panel">
+
+        <!-- Fila de Búsqueda y Ordenamiento -->
+        <div class="search-sort-row">
+          <div class="search-input-box">
+            <mat-icon class="search-icon">search</mat-icon>
+            <input
+              type="text"
+              formControlName="termino"
+              placeholder="Buscar por artículo, bloque, categoría (ej. audífonos, termo, llaves, mochila)..."
+              class="search-input"
+              aria-label="Buscar objetos encontrados en el ITM"
+            />
+            @if (filtrosForm.controls.termino.value) {
+              <button
+                type="button"
+                class="clear-search-btn"
+                (click)="filtrosForm.controls.termino.setValue('')"
+                aria-label="Limpiar búsqueda"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </div>
+
+          <div class="sort-selector-box">
+            <label for="orden-select" class="sort-label">
+              <mat-icon>sort</mat-icon>
+              <span>Orden:</span>
+            </label>
+            <select id="orden-select" formControlName="orden" class="sort-select">
+              <option value="recientes">Más recientes</option>
+              <option value="antiguos">Más antiguos</option>
             </select>
           </div>
         </div>
-      </div>
 
-      <div class="categorias-scroll-container">
-        <div class="categorias-rail" role="tablist" aria-label="Filtrar por categoría">
-          @for (cat of categorias; track cat.id) {
-            <button
-              type="button"
-              class="cat-chip"
-              [class.active]="filtrosForm.controls.categoria.value === cat.id"
-              (click)="seleccionarCategoria(cat.id)"
-              role="tab"
-              [attr.aria-selected]="filtrosForm.controls.categoria.value === cat.id"
-            >
-              <mat-icon class="chip-icon">{{ cat.icono }}</mat-icon>
-              <span>{{ cat.etiqueta }}</span>
+        <!-- Chips de Categorías con Scroll Horizontal Limpio -->
+        <div class="categorias-container">
+          <div class="categorias-rail" role="tablist" aria-label="Filtrar por categoría">
+            @for (cat of categorias; track cat.id) {
+              <button
+                type="button"
+                class="cat-chip"
+                [class.active]="filtrosForm.controls.categoria.value === cat.id"
+                (click)="seleccionarCategoria(cat.id)"
+                role="tab"
+                [attr.aria-selected]="filtrosForm.controls.categoria.value === cat.id"
+              >
+                <mat-icon class="chip-icon">{{ cat.icono }}</mat-icon>
+                <span>{{ cat.etiqueta }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Barra de Estado / Contador de Resultados -->
+        <div class="filtros-feedback-bar">
+          <div class="feedback-info">
+            @if (cargando()) {
+              <span class="loading-text">
+                <mat-icon class="spin-icon">sync</mat-icon>
+                Actualizando catálogo institucional...
+              </span>
+            } @else {
+              <span class="count-text">
+                Mostrando <strong>{{ totalFiltrados() }}</strong> {{ totalFiltrados() === 1 ? 'objeto en custodia' : 'objetos en custodia' }}
+              </span>
+            }
+          </div>
+
+          @if (filtrosForm.controls.termino.value || filtrosForm.controls.categoria.value !== 'TODAS') {
+            <button type="button" class="reset-filters-btn" (click)="limpiarFiltros()">
+              <mat-icon>filter_alt_off</mat-icon>
+              <span>Restablecer filtros</span>
             </button>
           }
         </div>
+
       </div>
-
-      <div class="filtros-feedback-bar">
-        <div class="feedback-info">
-          @if (cargando()) {
-            <span class="loading-text">
-              <mat-icon class="spin-icon">sync</mat-icon>
-              Actualizando inventario de objetos...
-            </span>
-          } @else {
-            <span class="count-text">
-              Mostrando <strong>{{ totalFiltrados() }}</strong> objetos encontrados
-            </span>
-          }
-        </div>
-
-        @if (filtrosForm.controls.termino.value || filtrosForm.controls.categoria.value !== 'TODAS') {
-          <button type="button" class="reset-filters-btn" (click)="limpiarFiltros()">
-            <mat-icon>filter_alt_off</mat-icon>
-            <span>Limpiar filtros</span>
-          </button>
-        }
-      </div>
-
-    </div>
-  </section>
+    </section>
 
   <!-- Muro de Objetos (Grid de Tarjetas) -->
   <main class="catalogo-content">
@@ -206,6 +227,7 @@
 
     </div>
   </main>
+  </div>
 
   <!-- Modal de Reclamación y Validación de Seguridad (HU08, HU21, HU22) -->
   @if (modalReclamarAbierto() && objetoSeleccionado()) {

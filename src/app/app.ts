@@ -31,6 +31,7 @@ export class App {
   title = 'frontend-objetos-perdidos';
   isAuthRoute = false;
   isCatalogoRoute = true;
+  isAdminRoute = false;
   readonly isMobile = signal<boolean>(false);
 
   private readonly router = inject(Router);
@@ -47,6 +48,7 @@ export class App {
     ).subscribe((event: any) => {
       const url = event.urlAfterRedirects || event.url || '';
       this.isAuthRoute = url.includes('/auth');
+      this.isAdminRoute = url.startsWith('/admin') || url.includes('/admin');
       this.isCatalogoRoute = url.includes('/catalogo') || url === '/' || url === '';
     });
   }

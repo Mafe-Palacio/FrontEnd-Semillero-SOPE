@@ -4,12 +4,14 @@ import { Router } from '@angular/router';
 import { Observable, catchError, finalize, map, shareReplay, switchMap, throwError } from 'rxjs';
 import { API_URL } from './api.config';
 import { AuthService } from './auth.service';
+import { SedeAdminService } from './sede-admin.service';
 
 let refrescando$: Observable<string> | null = null;
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
     const auth = inject(AuthService);
     const router = inject(Router);
+    const sedeAdmin = inject(SedeAdminService);
 
     const esApi = req.url.startsWith(API_URL) || req.url.includes('ngrok');
     const esAuth = req.url.includes('/auth/');
@@ -20,6 +22,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         let headers = r.headers.set('ngrok-skip-browser-warning', 'true');
         if (token && !esAuth) {
             headers = headers.set('Authorization', `Bearer ${token}`);
+        }
+        const activeSedeId = sedeAdmin.selectedSedeId();
+        if (activeSedeId && !esAuth) {
+            headers = headers.set('X-Sede-Id', activeSedeId);
         }
         return r.clone({ headers });
     };

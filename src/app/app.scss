@@ -80,7 +80,7 @@ mat-sidenav-content {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     min-width: 0; // Vital: permite truncar y evita que empuje el botón derecho
     overflow: hidden;
 
@@ -95,9 +95,9 @@ mat-sidenav-content {
     .brand-link {
       color: #ffffff;
       text-decoration: none;
-      display: flex;
-      align-items: center;
+      display: block;
       min-width: 0;
+      max-width: 100%;
       overflow: hidden;
 
       &:hover {
@@ -189,22 +189,26 @@ mat-sidenav-content {
 }
 
 // ------------------------------------------------------------------
-// Adaptabilidad Móvil (max-width: 600px)
+// Adaptabilidad Móvil y Tablet (max-width: 768px)
 // ------------------------------------------------------------------
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .institucional-toolbar {
     padding: 8px 12px !important;
     gap: 8px !important;
-    min-height: 50px;
+    min-height: 52px;
 
     .brand-container {
       gap: 6px;
+      flex: 1 1 0% !important;
+      min-width: 0 !important;
+      overflow: hidden !important;
 
       .menu-toggle-btn {
         width: 32px;
         height: 32px;
         line-height: 32px;
         padding: 4px;
+        flex-shrink: 0;
 
         mat-icon {
           font-size: 20px;
@@ -213,24 +217,34 @@ mat-sidenav-content {
         }
       }
 
+      .brand-link {
+        width: 100%;
+        min-width: 0;
+        overflow: hidden;
+      }
+
       .toolbar-brand-title {
         font-size: 0.85rem;
         font-weight: 700;
         line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
 
-        // En pantallas móviles estrechas cambiamos a la versión compacta "OPE · ITM Fraternidad"
+        // En pantallas móviles cambiamos al título conciso oficial
         .brand-full {
-          display: none;
+          display: none !important;
         }
 
         .brand-compact {
-          display: inline;
+          display: inline !important;
         }
       }
     }
 
     .toolbar-actions {
-      gap: 6px;
+      gap: 4px;
+      flex: 0 0 auto !important;
 
       .nav-action-btn {
         padding: 6px 10px !important;
@@ -249,6 +263,26 @@ mat-sidenav-content {
         .action-label {
           font-size: 0.78rem;
         }
+      }
+    }
+  }
+}
+
+@media (max-width: 440px) {
+  .institucional-toolbar {
+    padding: 6px 10px !important;
+    gap: 6px !important;
+
+    .brand-container {
+      .toolbar-brand-title {
+        font-size: 0.8rem;
+      }
+    }
+
+    .toolbar-actions {
+      .nav-action-btn {
+        padding: 5px 8px !important;
+        font-size: 0.75rem !important;
       }
     }
   }
