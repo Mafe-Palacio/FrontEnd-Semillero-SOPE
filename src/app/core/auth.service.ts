@@ -6,7 +6,23 @@ import { API_URL } from './api.config';
 
 export interface TokenResponse {
     access_token: string;
+    refresh_token: string;
     token_type: string;
+}
+
+export interface RegistroPayload {
+    nombre_completo: string;
+    cedula: string;
+    tipo_vinculacion: string;
+    prefijo_correo: string;
+    dominio_personalizado: string | null;
+    password: string;
+}
+
+export interface RegistroRespuesta {
+    usuario_id: string;
+    correo: string;
+    mensaje: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -17,12 +33,37 @@ export class AuthService {
     login(correo: string, password: string): Observable<TokenResponse> {
         return this.http
             .post<TokenResponse>(`${API_URL}/auth/login`, { correo, password })
-            .pipe(tap((res) => this.guardarToken(res.access_token)));
+            .pipe(tap((res) => this.guardarTokens(res)));
+    }
+
+    registro(data: RegistroPayload): Observable<RegistroRespuesta> {
+        return this.http.post<RegistroRespuesta>(`${API_URL}/auth/registro`, data);
+    }
+
+    verificarRegistro(usuario_id: string, codigo: string): Observable<TokenResponse> {
+        return this.http
+            .post<TokenResponse>(`${API_URL}/auth/verificar-registro`, { usuario_id, codigo })
+            .pipe(tap((res) => this.guardarTokens(res)));
+    }
+
+    reenviarCodigo(correo: string): Observable<unknown> {
+        return this.http.post(`${API_URL}/auth/reenviar-codigo-registro`, { correo });
+    }
+
+    refresh(): Observable<TokenResponse> {
+        return this.http
+            .post<TokenResponse>(`${API_URL}/auth/refresh`, { refresh_token: this.getRefreshToken() })
+            .pipe(tap((res) => this.guardarTokens(res)));
     }
 
     getToken(): string | null {
         if (!isPlatformBrowser(this.platformId)) return null;
         return localStorage.getItem('access_token');
+    }
+
+    getRefreshToken(): string | null {
+        if (!isPlatformBrowser(this.platformId)) return null;
+        return localStorage.getItem('refresh_token');
     }
 
     isLoggedIn(): boolean {
@@ -35,8 +76,7 @@ export class AuthService {
         try {
             const parts = token.split('.');
             if (parts.length !== 3) return null;
-            const payload = parts[1];
-            const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+            const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
             const jsonPayload = decodeURIComponent(
                 atob(base64)
                     .split('')
@@ -59,12 +99,16 @@ export class AuthService {
     logout(): void {
         if (isPlatformBrowser(this.platformId)) {
             localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
         }
     }
 
-    private guardarToken(token: string): void {
+    private guardarTokens(res: TokenResponse): void {
         if (isPlatformBrowser(this.platformId)) {
-            localStorage.setItem('access_token', token);
+            localStorage.setItem('access_token', res.access_token);
+            if (res.refresh_token) {
+                localStorage.setItem('refresh_token', res.refresh_token);
+            }
         }
     }
 }

@@ -9,7 +9,7 @@ import {
   PLATFORM_ID
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Subject } from 'rxjs';
@@ -29,6 +29,12 @@ import { CATEGORIAS } from '../../core/categorias';
 import { mensajeDeError } from '../../core/api-error';
 import { ObjetosEnCustodiaService } from '../../api/api/objetosEnCustodia.service';
 import { PublicacionesEncontradasService } from '../../api/api/publicacionesEncontradas.service';
+import { ReclamosService } from '../../api/api/reclamos.service';
+import { UbicacionesService } from '../../api/api/ubicaciones.service';
+import { PuntosEntregaService } from '../../api/api/puntosEntrega.service';
+import { ReportesDePrdidaService } from '../../api/api/reportesDePrdida.service';
+import { UbicacionResponse } from '../../api/model/ubicacionResponse';
+import { PuntoEntregaResponse } from '../../api/model/puntoEntregaResponse';
 import { ObjetoEnCustodiaPublico } from '../../api/model/objetoEnCustodiaPublico';
 import { CategoriaObjeto } from '../../api/model/categoriaObjeto';
 import { EstadoCustodia } from '../../api/model/estadoCustodia';
@@ -79,6 +85,10 @@ export interface CategoriaFiltro {
 export class CatalogoComponent implements OnInit, OnDestroy {
   private readonly objetosService = inject(ObjetosEnCustodiaService);
   private readonly publicacionesService = inject(PublicacionesEncontradasService);
+  private readonly reclamosService = inject(ReclamosService);
+  private readonly ubicacionesService = inject(UbicacionesService);
+  private readonly puntosService = inject(PuntosEntregaService);
+  private readonly reportesService = inject(ReportesDePrdidaService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
@@ -100,6 +110,9 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   readonly modalRegistrarEncontradoAbierto = signal<boolean>(false);
   readonly reportePerdidoEnviado = signal<boolean>(false);
   readonly reporteEncontradoEnviado = signal<boolean>(false);
+  readonly ubicaciones = signal<UbicacionResponse[]>([]);
+  readonly puntosEntrega = signal<PuntoEntregaResponse[]>([]);
+  readonly enviando = signal<boolean>(false);
 
   // Formulario reactivo de búsqueda y filtros
   readonly filtrosForm = new FormGroup({
@@ -125,21 +138,20 @@ export class CatalogoComponent implements OnInit, OnDestroy {
 
   // Formulario "Se me perdió un objeto"
   readonly formReportePerdido = new FormGroup({
-    categoria: new FormControl<string>(CategoriaObjeto.Electronicos, { nonNullable: true }),
-    descripcion: new FormControl<string>('', { nonNullable: true }),
-    lugarExtravio: new FormControl<string>('Sede Fraternidad - Bloque M', { nonNullable: true }),
-    fechaExtravio: new FormControl<string>('', { nonNullable: true }),
-    contacto: new FormControl<string>('', { nonNullable: true })
+    categoria: new FormControl<string>(CategoriaObjeto.Electronicos, { nonNullable: true, validators: [Validators.required] }),
+    descripcion: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    lugarPerdidaId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    fechaExtravio: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] })
   });
 
   // Formulario "Encontré un objeto"
   readonly formReporteEncontrado = new FormGroup({
-    categoria: new FormControl<string>(CategoriaObjeto.Electronicos, { nonNullable: true }),
-    descripcion: new FormControl<string>('', { nonNullable: true }),
-    lugarHallazgo: new FormControl<string>('Sede Fraternidad', { nonNullable: true }),
-    lugarEntrega: new FormControl<string>('Oficina de Custodia - Sede Fraternidad', { nonNullable: true })
+    categoria: new FormControl<string>(CategoriaObjeto.Electronicos, { nonNullable: true, validators: [Validators.required] }),
+    descripcion: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    lugarHallazgoId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    lugarEntregaId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    fechaHallazgo: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] })
   });
-
   // Filtros de categoría: salen de core/categorias.ts (las mismas 11 categorías del backend)
   readonly categorias: CategoriaFiltro[] = [
     { id: 'TODAS', etiqueta: 'Todas las categorías', icono: 'apps' },
@@ -340,10 +352,10 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     this.formReportePerdido.reset({
       categoria: CategoriaObjeto.Electronicos,
       descripcion: '',
-      lugarExtravio: 'Sede Fraternidad - Bloque M',
-      fechaExtravio: new Date().toISOString().substring(0, 10),
-      contacto: ''
+      lugarPerdidaId: '',
+      fechaExtravio: new Date().toISOString().substring(0, 10)
     });
+    this.cargarLugares();
     this.modalReportarPerdidoAbierto.set(true);
   }
 
@@ -351,13 +363,53 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     this.modalReportarPerdidoAbierto.set(false);
   }
 
+  private cargarLugares(): void {
+    if (this.ubicaciones().length === 0) {
+      this.ubicacionesService
+        .obtenerTodasUbicacionesUbicacionesGet()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (lista) => this.ubicaciones.set(lista),
+          error: (err) =>
+            this.snackBar.open(mensajeDeError(err, 'No se pudieron cargar las ubicaciones.'), 'Cerrar', { duration: 5000 })
+        });
+    }
+    if (this.puntosEntrega().length === 0) {
+      this.puntosService
+        .obtenerTodosPuntosEntregaPuntosEntregaGet()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (lista) => this.puntosEntrega.set(lista),
+          error: (err) =>
+            this.snackBar.open(mensajeDeError(err, 'No se pudieron cargar los puntos de entrega.'), 'Cerrar', { duration: 5000 })
+        });
+    }
+  }
+
   enviarReportePerdido(): void {
-    if (this.formReportePerdido.invalid) {
-      this.snackBar.open('Por favor describe el objeto que perdiste.', 'Cerrar', { duration: 3000 });
+    if (this.formReportePerdido.invalid || this.enviando()) {
+      this.formReportePerdido.markAllAsTouched();
+      this.snackBar.open('Completa categoría, descripción, lugar y fecha.', 'Cerrar', { duration: 3000 });
       return;
     }
-    this.reportePerdidoEnviado.set(true);
-    this.snackBar.open('Reporte de extravío registrado en OPE Sede Fraternidad.', 'Entendido', { duration: 4000 });
+    const f = this.formReportePerdido.getRawValue();
+    this.enviando.set(true);
+    this.reportesService
+      .crearReportePerdidaReportesPerdidaPost({
+        categoria: f.categoria as CategoriaObjeto,
+        descripcion: f.descripcion.trim(),
+        lugar_perdida_id: f.lugarPerdidaId,
+        fecha_perdida: f.fechaExtravio
+      })
+      .pipe(finalize(() => this.enviando.set(false)), takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.reportePerdidoEnviado.set(true);
+          this.snackBar.open('Reporte de extravío registrado.', 'Entendido', { duration: 4000 });
+        },
+        error: (err) =>
+          this.snackBar.open(mensajeDeError(err, 'No se pudo registrar el reporte.'), 'Cerrar', { duration: 6000 })
+      });
   }
 
   /**
@@ -372,9 +424,11 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     this.formReporteEncontrado.reset({
       categoria: CategoriaObjeto.Electronicos,
       descripcion: '',
-      lugarHallazgo: 'Sede Fraternidad',
-      lugarEntrega: 'Oficina de Custodia - Sede Fraternidad'
+      lugarHallazgoId: '',
+      lugarEntregaId: '',
+      fechaHallazgo: new Date().toISOString().substring(0, 10)
     });
+    this.cargarLugares();
     this.modalRegistrarEncontradoAbierto.set(true);
   }
 
@@ -383,12 +437,30 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   }
 
   enviarReporteEncontrado(): void {
-    if (this.formReporteEncontrado.invalid) {
-      this.snackBar.open('Por favor ingresa la descripción del objeto encontrado.', 'Cerrar', { duration: 3000 });
+    if (this.formReporteEncontrado.invalid || this.enviando()) {
+      this.formReporteEncontrado.markAllAsTouched();
+      this.snackBar.open('Completa categoría, descripción, lugares y fecha.', 'Cerrar', { duration: 3000 });
       return;
     }
-    this.reporteEncontradoEnviado.set(true);
-    this.snackBar.open('¡Muchas gracias por reportar el hallazgo!', 'Entendido', { duration: 4000 });
+    const f = this.formReporteEncontrado.getRawValue();
+    this.enviando.set(true);
+    this.publicacionesService
+      .crearPublicacionEncontradaPublicacionesEncontradasPost({
+        categoria: f.categoria as CategoriaObjeto,
+        descripcion: f.descripcion.trim(),
+        lugar_hallazgo_id: f.lugarHallazgoId,
+        lugar_entrega_fisica_id: f.lugarEntregaId,
+        fecha_hallazgo: f.fechaHallazgo
+      })
+      .pipe(finalize(() => this.enviando.set(false)), takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.reporteEncontradoEnviado.set(true);
+          this.snackBar.open('¡Muchas gracias por reportar el hallazgo!', 'Entendido', { duration: 4000 });
+        },
+        error: (err) =>
+          this.snackBar.open(mensajeDeError(err, 'No se pudo registrar el hallazgo.'), 'Cerrar', { duration: 6000 })
+      });
   }
 
   /**

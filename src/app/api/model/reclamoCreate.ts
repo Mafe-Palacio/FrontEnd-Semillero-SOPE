@@ -12,9 +12,8 @@
 /**
  * Esquema utilizado para crear un nuevo Reclamo.
  */
-export interface ReclamoCreate { 
+export interface ReclamoCreate {
     objetoEnCustodia_id: string;
-    usuario_id: string;
     evidencia_url?: string | null;
     es_presencial: boolean;
 }

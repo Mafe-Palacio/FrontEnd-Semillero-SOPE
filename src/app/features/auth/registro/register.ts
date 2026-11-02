@@ -1,0 +1,128 @@
+import { Component, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { AuthService } from '../../../core/auth.service';
+import { mensajeDeError } from '../../../core/api-error';
+
+@Component({
+    selector: 'app-register',
+    standalone: true,
+    imports: [
+        RouterModule,
+        ReactiveFormsModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatSelectModule,
+        MatButtonModule,
+        MatSnackBarModule
+    ],
+    templateUrl: './register.html'
+})
+export class Register {
+    private fb = inject(FormBuilder);
+    private auth = inject(AuthService);
+    private router = inject(Router);
+    private snack = inject(MatSnackBar);
+
+    paso = signal<'datos' | 'codigo'>('datos');
+    cargando = signal(false);
+    hidePassword = true;
+
+    private usuarioId = '';
+    correoRegistrado = '';
+
+    readonly tipos = [
+        { valor: 'ESTUDIANTE', etiqueta: 'Estudiante', dominio: 'correo.itm.edu.co' },
+        { valor: 'PROFESOR', etiqueta: 'Profesor', dominio: 'correo.itm.edu.co' },
+        { valor: 'ADMINISTRATIVO', etiqueta: 'Administrativo', dominio: 'itm.edu.co' },
+        { valor: 'OFICIOS_VARIOS', etiqueta: 'Oficios varios', dominio: '' }
+    ];
+
+    form = this.fb.nonNullable.group({
+        nombre_completo: ['', Validators.required],
+        cedula: ['', Validators.required],
+        tipo_vinculacion: ['ESTUDIANTE', Validators.required],
+        prefijo_correo: ['', [Validators.required, Validators.pattern(/^[^@\s]+$/)]],
+        dominio_personalizado: [''],
+        password: ['', [Validators.required, Validators.minLength(8)]]
+    });
+
+    codigo = this.fb.nonNullable.control('', [Validators.required, Validators.pattern(/^\d{6}$/)]);
+
+    get esOficios(): boolean {
+        return this.form.controls.tipo_vinculacion.value === 'OFICIOS_VARIOS';
+    }
+
+    get dominioFijo(): string {
+        return this.tipos.find(t => t.valor === this.form.controls.tipo_vinculacion.value)?.dominio ?? '';
+    }
+
+    enviarRegistro(): void {
+        if (this.form.invalid || this.cargando()) {
+            this.form.markAllAsTouched();
+            return;
+        }
+        const v = this.form.getRawValue();
+        if (this.esOficios && !v.dominio_personalizado.trim()) {
+            this.snack.open('Indica el dominio de tu correo (lo que va después del @).', 'Cerrar', { duration: 5000 });
+            return;
+        }
+
+        this.cargando.set(true);
+        this.auth
+            .registro({
+                nombre_completo: v.nombre_completo.trim(),
+                cedula: v.cedula.trim(),
+                tipo_vinculacion: v.tipo_vinculacion,
+                prefijo_correo: v.prefijo_correo.trim().toLowerCase(),
+                dominio_personalizado: this.esOficios ? v.dominio_personalizado.trim() : null,
+                password: v.password
+            })
+            .subscribe({
+                next: (res) => {
+                    this.cargando.set(false);
+                    this.usuarioId = res.usuario_id;
+                    this.correoRegistrado = res.correo;
+                    this.paso.set('codigo');
+                    this.snack.open('Te enviamos un código de 6 dígitos a tu correo.', 'Aceptar', { duration: 5000 });
+                },
+                error: (err: HttpErrorResponse) => {
+                    this.cargando.set(false);
+                    this.snack.open(mensajeDeError(err, 'No se pudo completar el registro.'), 'Cerrar', { duration: 6000 });
+                }
+            });
+    }
+
+    verificarCodigo(): void {
+        if (this.codigo.invalid || this.cargando()) {
+            this.codigo.markAsTouched();
+            return;
+        }
+        this.cargando.set(true);
+        this.auth.verificarRegistro(this.usuarioId, this.codigo.value.trim()).subscribe({
+            next: () => {
+                this.cargando.set(false);
+                this.snack.open('¡Cuenta verificada!', 'Aceptar', { duration: 3000 });
+                this.router.navigateByUrl('/catalogo');
+            },
+            error: (err: HttpErrorResponse) => {
+                this.cargando.set(false);
+                this.snack.open(mensajeDeError(err, 'Código inválido o expirado.'), 'Cerrar', { duration: 6000 });
+            }
+        });
+    }
+
+    reenviarCodigo(): void {
+        this.auth.reenviarCodigo(this.correoRegistrado).subscribe({
+            next: () => this.snack.open('Código reenviado.', 'Aceptar', { duration: 4000 }),
+            error: (err: HttpErrorResponse) =>
+                this.snack.open(mensajeDeError(err, 'No se pudo reenviar el código.'), 'Cerrar', { duration: 6000 })
+        });
+    }
+}

@@ -1,0 +1,62 @@
+<div class="register-wrapper" style="max-width: 460px; margin: 32px auto; padding: 0 16px;">
+  <h1>Crear cuenta</h1>
+
+  @if (paso() === 'datos') {
+    <form [formGroup]="form" (ngSubmit)="enviarRegistro()" style="display:flex; flex-direction:column; gap:8px;">
+      <mat-form-field appearance="outline">
+        <mat-label>Nombre completo</mat-label>
+        <input matInput formControlName="nombre_completo" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Cédula</mat-label>
+        <input matInput formControlName="cedula" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Tipo de vinculación</mat-label>
+        <mat-select formControlName="tipo_vinculacion">
+          @for (t of tipos; track t.valor) {
+            <mat-option [value]="t.valor">{{ t.etiqueta }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Usuario del correo (antes del @)</mat-label>
+        <input matInput formControlName="prefijo_correo" />
+        @if (!esOficios) {
+          <span matTextSuffix>&#64;{{ dominioFijo }}</span>
+        }
+      </mat-form-field>
+
+      @if (esOficios) {
+        <mat-form-field appearance="outline">
+          <mat-label>Dominio del correo (después del @)</mat-label>
+          <input matInput formControlName="dominio_personalizado" />
+        </mat-form-field>
+      }
+
+      <mat-form-field appearance="outline">
+        <mat-label>Contraseña</mat-label>
+        <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" />
+        <button type="button" mat-icon-button matSuffix (click)="hidePassword = !hidePassword">
+          {{ hidePassword ? '👁' : '🙈' }}
+        </button>
+      </mat-form-field>
+
+      <button mat-flat-button type="submit" [disabled]="cargando()">Registrarme</button>
+      <a routerLink="/auth">Ya tengo cuenta</a>
+    </form>
+  } @else {
+    <p>Enviamos un código de 6 dígitos a <strong>{{ correoRegistrado }}</strong>. Expira en 15 minutos.</p>
+    <form (ngSubmit)="verificarCodigo()" style="display:flex; flex-direction:column; gap:8px;">
+      <mat-form-field appearance="outline">
+        <mat-label>Código de verificación</mat-label>
+        <input matInput [formControl]="codigo" maxlength="6" inputmode="numeric" />
+      </mat-form-field>
+      <button mat-flat-button type="submit" [disabled]="cargando()">Verificar cuenta</button>
+      <button mat-button type="button" (click)="reenviarCodigo()">Reenviar código</button>
+    </form>
+  }
+</div>

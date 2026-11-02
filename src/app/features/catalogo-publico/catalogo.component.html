@@ -38,8 +38,7 @@
   <!-- Barra de Búsqueda Reactiva y Filtros Dinámicos -->
   <section class="filtros-section" [formGroup]="filtrosForm">
     <div class="filtros-container">
-      
-      <!-- Fila superior: Input de búsqueda en tiempo real (debounce 300ms) -->
+
       <div class="search-bar-row">
         <div class="search-input-wrapper">
           <mat-icon class="search-icon">search</mat-icon>
@@ -61,10 +60,7 @@
             </button>
           }
         </div>
-
-        <!-- Selectores agrupados en una fila: Sede y Orden -->
         <div class="selectors-row">
-          <!-- Selector de Orden -->
           <div class="select-wrapper">
             <label for="orden-select" class="select-label">Orden:</label>
             <select id="orden-select" formControlName="orden" class="custom-select">
@@ -75,7 +71,6 @@
         </div>
       </div>
 
-      <!-- Fila inferior: Segmented Controls de Categorías -->
       <div class="categorias-scroll-container">
         <div class="categorias-rail" role="tablist" aria-label="Filtrar por categoría">
           @for (cat of categorias; track cat.id) {
@@ -94,7 +89,6 @@
         </div>
       </div>
 
-      <!-- Barra de resumen de resultados y botón de reset -->
       <div class="filtros-feedback-bar">
         <div class="feedback-info">
           @if (cargando()) {
@@ -124,7 +118,6 @@
   <main class="catalogo-content">
     <div class="content-container">
 
-      <!-- Estado: Cargando -->
       @if (cargando() && objetos().length === 0) {
         <div class="loading-state">
           <div class="spinner-institutional"></div>
@@ -132,7 +125,6 @@
         </div>
       }
 
-      <!-- Estado: Error con opción de reintentar -->
       @if (!cargando() && errorMensaje()) {
         <div class="error-banner">
           <mat-icon>error_outline</mat-icon>
@@ -146,13 +138,11 @@
         </div>
       }
 
-      <!-- Estado: Resultados en Grid -->
       @if (!cargando() && objetosFiltrados().length > 0) {
         <div class="cards-grid">
           @for (item of objetosFiltrados(); track item.id) {
             <article class="objeto-card" (click)="iniciarReclamo(item, $event)">
-              
-              <!-- Imagen / Visual Container con Fallback Seguro -->
+
               <div class="card-media">
                 @if (item.imagenUrl) {
                   <img
@@ -171,7 +161,6 @@
                 }
               </div>
 
-              <!-- Contenido de la Tarjeta: Solo Descripción y Botón (por seguridad del cliente) -->
               <div class="card-body">
                 <h3 class="card-title">{{ item.descripcion }}</h3>
 
@@ -193,7 +182,6 @@
         </div>
       }
 
-      <!-- Estado Vacío: Sin Coincidencias -->
       @if (!cargando() && objetosFiltrados().length === 0) {
         <div class="empty-state">
           <div class="empty-icon-box">
@@ -223,7 +211,7 @@
   @if (modalReclamarAbierto() && objetoSeleccionado()) {
     <div class="modal-backdrop" (click)="cerrarModalReclamo()">
       <div class="modal-card modal-card-claim" (click)="$event.stopPropagation()">
-        
+
         <div class="modal-header">
           <div class="modal-header-titles">
             <span class="modal-kicker">Validación de Titularidad ITM</span>
@@ -237,7 +225,7 @@
         @if (!reclamoEnviadoConExito()) {
           <form [formGroup]="reclamoForm" (ngSubmit)="enviarReclamo()" class="claim-form">
             <div class="modal-body">
-              
+
               <div class="notice-box">
                 <mat-icon>info</mat-icon>
                 <p>
@@ -335,7 +323,7 @@
   @if (modalReportarPerdidoAbierto()) {
     <div class="modal-backdrop" (click)="cerrarModalReportarPerdido()">
       <div class="modal-card modal-card-claim" (click)="$event.stopPropagation()">
-        
+
         <div class="modal-header">
           <div class="modal-header-titles">
             <span class="modal-kicker modal-kicker-red">Reporte de Extravío · Sede Fraternidad</span>
@@ -349,7 +337,7 @@
         @if (!reportePerdidoEnviado()) {
           <form [formGroup]="formReportePerdido" (ngSubmit)="enviarReportePerdido()" class="claim-form">
             <div class="modal-body">
-              
+
               <div class="notice-box notice-red">
                 <mat-icon>search</mat-icon>
                 <p>
@@ -382,17 +370,16 @@
 
               <div class="form-row-2">
                 <div class="form-group">
-                  <label for="lost-lugar" class="form-label">Lugar donde crees haberlo perdido:</label>
-                  <input
-                    id="lost-lugar"
-                    type="text"
-                    formControlName="lugarExtravio"
-                    class="form-input"
-                    placeholder="Ej: Biblioteca Bloque M, Cafetería, Aula 204..."
-                  />
+                  <label for="lost-lugar" class="form-label">Lugar donde crees haberlo perdido: *</label>
+                  <select id="lost-lugar" formControlName="lugarPerdidaId" class="form-input">
+                    <option value="" disabled>Selecciona una ubicación</option>
+                    @for (u of ubicaciones(); track u.ubicacion_id) {
+                      <option [value]="u.ubicacion_id">{{ u.nombre }}</option>
+                    }
+                  </select>
                 </div>
                 <div class="form-group">
-                  <label for="lost-fecha" class="form-label">Fecha aproximada:</label>
+                  <label for="lost-fecha" class="form-label">Fecha aproximada: *</label>
                   <input
                     id="lost-fecha"
                     type="date"
@@ -400,17 +387,6 @@
                     class="form-input"
                   />
                 </div>
-              </div>
-
-              <div class="form-group">
-                <label for="lost-contacto" class="form-label">Correo institucional de contacto:</label>
-                <input
-                  id="lost-contacto"
-                  type="email"
-                  formControlName="contacto"
-                  class="form-input"
-                  placeholder="ej: nombre.apellido@correo.itm.edu.co"
-                />
               </div>
 
             </div>
@@ -422,7 +398,7 @@
               <button
                 type="submit"
                 class="btn-primary-itm btn-danger-itm"
-                [disabled]="formReportePerdido.invalid"
+                [disabled]="formReportePerdido.invalid || enviando()"
               >
                 <mat-icon>send</mat-icon>
                 <span>Registrar Reporte de Pérdida</span>
@@ -454,7 +430,7 @@
   @if (modalRegistrarEncontradoAbierto()) {
     <div class="modal-backdrop" (click)="cerrarModalRegistrarEncontrado()">
       <div class="modal-card modal-card-claim" (click)="$event.stopPropagation()">
-        
+
         <div class="modal-header">
           <div class="modal-header-titles">
             <span class="modal-kicker modal-kicker-green">Solidaridad ITM · Sede Fraternidad</span>
@@ -468,7 +444,7 @@
         @if (!reporteEncontradoEnviado()) {
           <form [formGroup]="formReporteEncontrado" (ngSubmit)="enviarReporteEncontrado()" class="claim-form">
             <div class="modal-body">
-              
+
               <div class="notice-box notice-green">
                 <mat-icon>volunteer_activism</mat-icon>
                 <p>
@@ -501,25 +477,33 @@
 
               <div class="form-row-2">
                 <div class="form-group">
-                  <label for="found-lugar" class="form-label">Lugar donde lo encontraste:</label>
-                  <input
-                    id="found-lugar"
-                    type="text"
-                    formControlName="lugarHallazgo"
-                    class="form-input"
-                    placeholder="Ej: Pasillo Bloque M, Cafetería, Aula..."
-                  />
+                  <label for="found-lugar" class="form-label">Lugar donde lo encontraste: *</label>
+                  <select id="found-lugar" formControlName="lugarHallazgoId" class="form-input">
+                    <option value="" disabled>Selecciona una ubicación</option>
+                    @for (u of ubicaciones(); track u.ubicacion_id) {
+                      <option [value]="u.ubicacion_id">{{ u.nombre }}</option>
+                    }
+                  </select>
                 </div>
                 <div class="form-group">
-                  <label for="found-entrega" class="form-label">Punto de entrega en Sede Fraternidad:</label>
-                  <input
-                    id="found-entrega"
-                    type="text"
-                    formControlName="lugarEntrega"
-                    class="form-input"
-                    placeholder="Ej: Portería Principal, Bloque M, Biblioteca..."
-                  />
+                  <label for="found-entrega" class="form-label">Punto de entrega: *</label>
+                  <select id="found-entrega" formControlName="lugarEntregaId" class="form-input">
+                    <option value="" disabled>Selecciona un punto</option>
+                    @for (p of puntosEntrega(); track p.puntoEntrega_id) {
+                      <option [value]="p.puntoEntrega_id">{{ p.nombre }}</option>
+                    }
+                  </select>
                 </div>
+              </div>
+
+              <div class="form-group">
+                <label for="found-fecha" class="form-label">Fecha del hallazgo: *</label>
+                <input
+                  id="found-fecha"
+                  type="date"
+                  formControlName="fechaHallazgo"
+                  class="form-input"
+                />
               </div>
 
             </div>
@@ -531,7 +515,7 @@
               <button
                 type="submit"
                 class="btn-primary-itm btn-success-itm"
-                [disabled]="formReporteEncontrado.invalid"
+                [disabled]="formReporteEncontrado.invalid || enviando()"
               >
                 <mat-icon>check_circle</mat-icon>
                 <span>Registrar Objeto Encontrado</span>
