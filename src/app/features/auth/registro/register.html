@@ -1,62 +1,238 @@
-<div class="register-wrapper" style="max-width: 460px; margin: 32px auto; padding: 0 16px;">
-  <h1>Crear cuenta</h1>
+<div class="auth-bg">
+  <div class="split-card register-split-card">
 
-  @if (paso() === 'datos') {
-    <form [formGroup]="form" (ngSubmit)="enviarRegistro()" style="display:flex; flex-direction:column; gap:8px;">
-      <mat-form-field appearance="outline">
-        <mat-label>Nombre completo</mat-label>
-        <input matInput formControlName="nombre_completo" />
-      </mat-form-field>
+    <!-- Lado Izquierdo: Identidad Institucional ITM -->
+    <div class="card-left">
+      <div class="brand-showcase">
+        <img
+          src="https://www.grupolarabida.org/wp-content/uploads/2020/10/Colombia_InstitutoTecnologicoMetropolitano_ITM_81_.jpg"
+          alt="Institución Universitaria ITM"
+          referrerpolicy="no-referrer"
+        />
+        <div class="brand-caption">
+          <span class="chip">Plataforma OPE · ITM</span>
+          <p>Sistema Institucional de Objetos Perdidos y Encontrados</p>
+        </div>
+      </div>
+    </div>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Cédula</mat-label>
-        <input matInput formControlName="cedula" />
-      </mat-form-field>
+    <!-- Lado Derecho: Formulario de Registro / Verificación OTP -->
+    <div class="card-right">
+      <div class="back-link-box">
+        <a routerLink="/auth/login" class="back-to-catalog">
+          <mat-icon>arrow_back</mat-icon>
+          <span>Volver a Iniciar Sesión</span>
+        </a>
+      </div>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Tipo de vinculación</mat-label>
-        <mat-select formControlName="tipo_vinculacion">
-          @for (t of tipos; track t.valor) {
-            <mat-option [value]="t.valor">{{ t.etiqueta }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      @if (paso() === 'datos') {
+        <h2 class="form-title">Crear Cuenta Institucional</h2>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Usuario del correo (antes del @)</mat-label>
-        <input matInput formControlName="prefijo_correo" />
-        @if (!esOficios) {
-          <span matTextSuffix>&#64;{{ dominioFijo }}</span>
-        }
-      </mat-form-field>
+        <form [formGroup]="form" (ngSubmit)="enviarRegistro()" class="auth-form">
 
-      @if (esOficios) {
-        <mat-form-field appearance="outline">
-          <mat-label>Dominio del correo (después del @)</mat-label>
-          <input matInput formControlName="dominio_personalizado" />
-        </mat-form-field>
+          <!-- Fila 1: Nombre completo -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Nombre completo</mat-label>
+            <mat-icon matPrefix>person_outline</mat-icon>
+            <input
+              matInput
+              formControlName="nombre_completo"
+              placeholder="Ej. María Camila Gómez"
+              autocomplete="name"
+            />
+            @if (form.controls.nombre_completo.hasError('required') && form.controls.nombre_completo.touched) {
+              <mat-error>El nombre completo es obligatorio</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Fila 2: Cédula y Celular -->
+          <div class="form-grid-2">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Documento / Cédula</mat-label>
+              <mat-icon matPrefix>badge</mat-icon>
+              <input
+                matInput
+                formControlName="cedula"
+                inputmode="numeric"
+                placeholder="1000123456"
+              />
+              @if (form.controls.cedula.hasError('required') && form.controls.cedula.touched) {
+                <mat-error>La cédula es obligatoria</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Celular de contacto</mat-label>
+              <mat-icon matPrefix>phone_iphone</mat-icon>
+              <input
+                matInput
+                formControlName="celular"
+                inputmode="numeric"
+                placeholder="3001234567"
+              />
+              @if (form.controls.celular.hasError('required') && form.controls.celular.touched) {
+                <mat-error>El celular es obligatorio</mat-error>
+              }
+              @if (form.controls.celular.hasError('pattern') && form.controls.celular.touched) {
+                <mat-error>Ingresa entre 7 y 15 dígitos</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <!-- Fila 3: Tipo de vinculación y Carné -->
+          <div class="form-grid-2">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Tipo de vinculación</mat-label>
+              <mat-icon matPrefix>school</mat-icon>
+              <mat-select formControlName="tipo_vinculacion">
+                @for (t of tipos; track t.valor) {
+                  <mat-option [value]="t.valor">{{ t.etiqueta }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Carné ITM (opcional)</mat-label>
+              <mat-icon matPrefix>credit_card</mat-icon>
+              <input
+                matInput
+                formControlName="carnet"
+                placeholder="Ej. EST-2026-01"
+              />
+            </mat-form-field>
+          </div>
+
+          <!-- Fila 4: Usuario de correo y dominio -->
+          <div [class.form-grid-2]="esOficios">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Usuario del correo (antes del &#64;)</mat-label>
+              <mat-icon matPrefix>alternate_email</mat-icon>
+              <input
+                matInput
+                formControlName="prefijo_correo"
+                placeholder="nombre.apellido"
+              />
+              @if (!esOficios) {
+                <span matTextSuffix class="domain-suffix">&#64;{{ dominioFijo }}</span>
+              }
+              @if (form.controls.prefijo_correo.invalid && form.controls.prefijo_correo.touched) {
+                <mat-error>Ingresa solo el usuario sin &#64; ni espacios</mat-error>
+              }
+            </mat-form-field>
+
+            @if (esOficios) {
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Dominio (después del &#64;)</mat-label>
+                <mat-icon matPrefix>language</mat-icon>
+                <input
+                  matInput
+                  formControlName="dominio_personalizado"
+                  placeholder="gmail.com"
+                />
+              </mat-form-field>
+            }
+          </div>
+
+          <!-- Fila 5: Contraseña -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Contraseña segura</mat-label>
+            <mat-icon matPrefix>lock_outline</mat-icon>
+            <input
+              matInput
+              [type]="hidePassword ? 'password' : 'text'"
+              formControlName="password"
+              placeholder="Mín. 8 caracteres, mayúscula, número y símbolo"
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              mat-icon-button
+              matSuffix
+              (click)="hidePassword = !hidePassword"
+              aria-label="Mostrar u ocultar contraseña"
+            >
+              <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (form.controls.password.invalid && form.controls.password.touched) {
+              <mat-error>Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo (ej. !&#64;#)</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="info-box">
+            <span class="badge">Verificación Institucional</span>
+            <p>
+              Te enviaremos un código de seguridad de <strong>6 dígitos</strong> a tu correo para activar tu cuenta en la plataforma OPE.
+            </p>
+          </div>
+
+          <div class="actions-between">
+            <a routerLink="/auth/login" class="login-link">
+              ¿Ya tienes cuenta? <strong>Inicia sesión</strong>
+            </a>
+
+            <button
+              mat-flat-button
+              color="primary"
+              type="submit"
+              class="submit-button"
+              [disabled]="cargando()"
+            >
+              {{ cargando() ? 'Registrando...' : 'Crear Cuenta' }}
+            </button>
+          </div>
+
+        </form>
+      } @else {
+        <h2 class="form-title">Verificar Correo</h2>
+
+        <div class="info-box">
+          <span class="badge">Código OTP enviado</span>
+          <p>
+            Enviamos un código de 6 dígitos a <strong>{{ correoRegistrado }}</strong>.<br>
+            El código tiene una validez de <strong>15 minutos</strong>.
+          </p>
+        </div>
+
+        <form (ngSubmit)="verificarCodigo()" class="auth-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Código de verificación (6 dígitos)</mat-label>
+            <mat-icon matPrefix>verified_user</mat-icon>
+            <input
+              matInput
+              [formControl]="codigo"
+              maxlength="6"
+              inputmode="numeric"
+              placeholder="123456"
+            />
+            @if (codigo.invalid && codigo.touched) {
+              <mat-error>Ingresa el código numérico de 6 dígitos</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="actions-between">
+            <button
+              type="button"
+              class="resend-button"
+              (click)="reenviarCodigo()"
+              [disabled]="cargando()"
+            >
+              <mat-icon>refresh</mat-icon>
+              <span>Reenviar código</span>
+            </button>
+
+            <button
+              mat-flat-button
+              color="primary"
+              type="submit"
+              class="submit-button"
+              [disabled]="cargando()"
+            >
+              {{ cargando() ? 'Verificando...' : 'Activar Cuenta' }}
+            </button>
+          </div>
+        </form>
       }
 
-      <mat-form-field appearance="outline">
-        <mat-label>Contraseña</mat-label>
-        <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" />
-        <button type="button" mat-icon-button matSuffix (click)="hidePassword = !hidePassword">
-          {{ hidePassword ? '👁' : '🙈' }}
-        </button>
-      </mat-form-field>
-
-      <button mat-flat-button type="submit" [disabled]="cargando()">Registrarme</button>
-      <a routerLink="/auth">Ya tengo cuenta</a>
-    </form>
-  } @else {
-    <p>Enviamos un código de 6 dígitos a <strong>{{ correoRegistrado }}</strong>. Expira en 15 minutos.</p>
-    <form (ngSubmit)="verificarCodigo()" style="display:flex; flex-direction:column; gap:8px;">
-      <mat-form-field appearance="outline">
-        <mat-label>Código de verificación</mat-label>
-        <input matInput [formControl]="codigo" maxlength="6" inputmode="numeric" />
-      </mat-form-field>
-      <button mat-flat-button type="submit" [disabled]="cargando()">Verificar cuenta</button>
-      <button mat-button type="button" (click)="reenviarCodigo()">Reenviar código</button>
-    </form>
-  }
+    </div>
+  </div>
 </div>

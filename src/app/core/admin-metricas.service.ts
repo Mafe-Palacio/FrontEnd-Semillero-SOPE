@@ -37,7 +37,7 @@ export class AdminMetricasService {
     const sedeId = this.sedeAdmin.selectedSedeId();
     if (sedeId) params = params.set('sede_id', sedeId);
 
-    return this.http.get<MetricasResumen>(`${API_URL}metricas/resumen`, { params }).pipe(
+    return this.http.get<MetricasResumen>(`${API_URL}/metricas/resumen`, { params }).pipe(
       catchError(() => {
         // Respaldo representativo de la sede ITM seleccionada
         const sedeNombre = this.sedeAdmin.selectedSede()?.nombre || 'Sede Fraternidad';

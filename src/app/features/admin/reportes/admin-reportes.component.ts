@@ -493,7 +493,7 @@ export class AdminReportesComponent implements OnInit {
   }
 
   cargarActas(): void {
-    this.http.get<ActaItem[]>(`${API_URL}actas-entrega/`).subscribe({
+    this.http.get<ActaItem[]>(`${API_URL}/actas-entrega`).subscribe({
       next: (data) => {
         if (Array.isArray(data) && data.length > 0) {
           this.actas.set(data);

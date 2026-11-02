@@ -13,7 +13,12 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     const router = inject(Router);
     const sedeAdmin = inject(SedeAdminService);
 
-    const esApi = req.url.startsWith(API_URL) || req.url.includes('ngrok');
+    const baseLimpia = API_URL.replace(/\/+$/, '');
+    const esApi =
+        req.url.startsWith(baseLimpia) ||
+        req.url.includes('ngrok') ||
+        req.url.includes('localhost:8000') ||
+        req.url.includes('127.0.0.1:8000');
     const esAuth = req.url.includes('/auth/');
     const esPublico = req.url.includes('/catalogo') || req.url.includes('/buscar');
 
@@ -24,7 +29,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             headers = headers.set('Authorization', `Bearer ${token}`);
         }
         const activeSedeId = sedeAdmin.selectedSedeId();
-        if (activeSedeId && !esAuth) {
+        if (activeSedeId && !esAuth && auth.isSuperAdmin()) {
             headers = headers.set('X-Sede-Id', activeSedeId);
         }
         return r.clone({ headers });

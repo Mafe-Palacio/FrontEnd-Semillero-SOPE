@@ -24,7 +24,7 @@ export class AdminExportacionesService {
     const sedeId = this.sedeAdmin.selectedSedeId();
     if (sedeId) params = params.set('sede_id', sedeId);
 
-    return this.http.get(`${API_URL}exportaciones/${recurso}`, {
+    return this.http.get(`${API_URL}/exportaciones/${recurso}`, {
       params,
       responseType: 'blob',
       observe: 'response'

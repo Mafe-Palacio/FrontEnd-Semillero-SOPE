@@ -164,7 +164,7 @@ import { SedeAdminService } from '../../core/sede-admin.service';
                 </select>
               </div>
             } @else {
-              <span class="sede-static-badge">Sede Fraternidad</span>
+              <span class="sede-static-badge">{{ currentSedeNombre() }}</span>
             }
 
             <div class="user-pill">

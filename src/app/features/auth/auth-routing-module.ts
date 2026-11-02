@@ -1,11 +1,20 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { LoginComponent } from './login/login';
+import { Register } from './registro/register';
 
 const routes: Routes = [
   {
-    path: '', // Ruta por defecto cuando entran a /auth
+    path: '',
     component: LoginComponent
+  },
+  {
+    path: 'login',
+    component: LoginComponent
+  },
+  {
+    path: 'registro',
+    component: Register
   }
 ];
 

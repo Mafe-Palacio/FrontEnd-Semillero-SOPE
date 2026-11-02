@@ -287,3 +287,165 @@ mat-sidenav-content {
     }
   }
 }
+
+
+// ------------------------------------------------------------------
+// Modal de Perfil de Usuario
+// ------------------------------------------------------------------
+.perfil-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(1, 28, 91, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+.perfil-modal-card {
+  background: #ffffff;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 480px;
+  padding: 24px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+  font-family: $font-itm;
+}
+
+.perfil-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0;
+    color: $color-itm-blue;
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 0.82rem;
+    color: #4b5563;
+  }
+
+  .perfil-close-btn {
+    background: #f3f4f6;
+    border: none;
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #374151;
+  }
+}
+
+.perfil-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 10px;
+
+  button {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: #f3f4f6;
+    color: #374151;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+
+    &.active {
+      background: $color-itm-blue;
+      color: #ffffff;
+    }
+  }
+}
+
+.perfil-info-banner {
+  background: #eff6ff;
+  border-left: 4px solid $color-itm-blue;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #1e3a8a;
+  margin-bottom: 14px;
+}
+
+.perfil-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.perfil-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  input {
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+
+    &:focus {
+      border-color: $color-itm-blue;
+    }
+  }
+
+  .perfil-error {
+    color: #dc2626;
+    font-size: 0.76rem;
+  }
+}
+
+.perfil-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+
+  button {
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-secundario {
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  .btn-primario {
+    background: $color-itm-blue;
+    color: #ffffff;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}

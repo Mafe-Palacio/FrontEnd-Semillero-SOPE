@@ -24,7 +24,7 @@
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
         
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Correo institucional</mat-label>
+          <mat-label>Correo electrónico</mat-label>
           <mat-icon matPrefix>person_outline</mat-icon>
           <input
             matInput
@@ -34,10 +34,10 @@
             autocomplete="username"
           />
           @if (loginForm.controls.username.hasError('required') && loginForm.controls.username.touched) {
-            <mat-error>El correo institucional es obligatorio</mat-error>
+            <mat-error>El correo electrónico es obligatorio</mat-error>
           }
-          @if (loginForm.controls.username.hasError('institutionalDomain') && loginForm.controls.username.touched) {
-            <mat-error>Solo se permiten correos &#64;correo.itm.edu.co o &#64;itm.edu.co</mat-error>
+          @if (loginForm.controls.username.hasError('email') && loginForm.controls.username.touched) {
+            <mat-error>Ingresa un correo electrónico válido</mat-error>
           }
         </mat-form-field>
 
@@ -67,9 +67,9 @@
         <div class="info-box">
           <span class="badge">Autenticación ITM</span>
           <p>
-            Ingresa con tu correo institucional completo.<br>
-            <strong>Estudiantes:</strong> usuario&#64;correo.itm.edu.co<br>
-            <strong>Personal:</strong> usuario&#64;itm.edu.co
+            Ingresa con tu correo registrado.<br>
+            <strong>Estudiantes / Profesores:</strong> usuario&#64;correo.itm.edu.co<br>
+            <strong>Administrativos:</strong> usuario&#64;itm.edu.co
           </p>
         </div>
 
@@ -83,6 +83,13 @@
           >
             {{ isLoading ? 'Verificando...' : 'Ingresar a OPE' }}
           </button>
+        </div>
+
+        <div style="margin-top: 16px; text-align: center; font-size: 0.9rem;">
+          <span>¿No tienes una cuenta? </span>
+          <a routerLink="/auth/registro" style="color: #011C5B; font-weight: 600; text-decoration: none;">
+            Regístrate aquí
+          </a>
         </div>
 
       </form>

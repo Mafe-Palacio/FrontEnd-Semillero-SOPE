@@ -709,7 +709,7 @@ export class AdminAprobacionesComponent implements OnInit {
     if (!id || !tipo) return;
 
     const val = this.editarForm.value;
-    const url = `${API_URL}${tipo === 'perdido' ? 'reportes-perdida' : 'publicaciones-encontradas'}/${id}`;
+    const url = `${API_URL}/${tipo === 'perdido' ? 'reportes-perdida' : 'publicaciones-encontradas'}/${id}`;
     
     this.http.put(url, val).subscribe({
       next: () => {

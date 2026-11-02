@@ -16,6 +16,8 @@ export interface RegistroPayload {
     tipo_vinculacion: string;
     prefijo_correo: string;
     dominio_personalizado: string | null;
+    celular?: string | null;
+    carnet?: string | null;
     password: string;
 }
 
@@ -23,6 +25,18 @@ export interface RegistroRespuesta {
     usuario_id: string;
     correo: string;
     mensaje: string;
+}
+
+export interface PerfilUsuario {
+    usuario_id: string;
+    nombre_completo: string;
+    cedula: string;
+    correo: string;
+    celular?: string | null;
+    carnet?: string | null;
+    rol: string;
+    tipo_vinculacion: string;
+    sede_id?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -58,6 +72,18 @@ export class AuthService {
         return this.http
             .post<TokenResponse>(`${this.authBase}/auth/refresh`, { refresh_token: this.getRefreshToken() })
             .pipe(tap((res) => this.guardarTokens(res)));
+    }
+
+    obtenerMiPerfil(): Observable<PerfilUsuario> {
+        return this.http.get<PerfilUsuario>(`${this.authBase}/usuarios/me`);
+    }
+
+    actualizarMiPerfil(datos: { celular?: string | null; carnet?: string | null }): Observable<PerfilUsuario> {
+        return this.http.put<PerfilUsuario>(`${this.authBase}/usuarios/me`, datos);
+    }
+
+    cambiarMiPassword(datos: { password_actual: string; password_nueva: string }): Observable<{ mensaje: string; exito: boolean }> {
+        return this.http.put<{ mensaje: string; exito: boolean }>(`${this.authBase}/usuarios/me/password`, datos);
     }
 
     getToken(): string | null {
@@ -119,7 +145,7 @@ export class AuthService {
     getUserName(): string {
         const payload = this.getDecodedToken();
         if (!payload) return 'Usuario';
-        return payload['nombre_completo'] || payload['nombre'] || payload['sub'] || 'Administrador ITM';
+        return payload['nombre_completo'] || payload['nombre'] || payload['correo'] || payload['sub'] || 'Administrador ITM';
     }
 
     getUserEmail(): string {

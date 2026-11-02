@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,17 +9,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/auth.service';
 import { mensajeDeError } from '../../../core/api-error';
-
-/**
- * Validador de dominio institucional ITM conforme a HU30 (CU01)
- * Acepta @correo.itm.edu.co y @itm.edu.co
- */
-function institucionalEmailValidator(control: AbstractControl): ValidationErrors | null {
-  const email = (control.value || '').trim().toLowerCase();
-  if (!email) return null;
-  const esItm = email.endsWith('@correo.itm.edu.co') || email.endsWith('@itm.edu.co');
-  return esItm ? null : { institutionalDomain: true };
-}
 
 @Component({
   selector: 'app-login',
@@ -47,7 +36,7 @@ export class Login {
   isLoading = false;
 
   loginForm = this.fb.nonNullable.group({
-    username: ['', [Validators.required, Validators.email, institucionalEmailValidator]],
+    username: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(4)]]
   });
 
@@ -69,7 +58,7 @@ export class Login {
       },
       error: (err: HttpErrorResponse) => {
         this.isLoading = false;
-        const mensaje = mensajeDeError(err, 'No se pudo iniciar sesión. Verifique sus credenciales institucionales.');
+        const mensaje = mensajeDeError(err, 'No se pudo iniciar sesión. Verifique sus credenciales.');
         this.snack.open(mensaje, 'Cerrar', { duration: 6000 });
       }
     });

@@ -7,6 +7,13 @@ import { AuthService } from './auth.service';
 import { SedeResponse } from '../api/model/sedeResponse';
 
 const STORAGE_KEY_SEDE = 'admin_selected_sede_id';
+const SEDES_RESPALDO_IDS = new Set([
+  '11111111-1111-1111-1111-111111111111',
+  '22222222-2222-2222-2222-222222222222',
+  '33333333-3333-3333-3333-333333333333',
+  '44444444-4444-4444-4444-444444444444',
+  '55555555-5555-5555-5555-555555555555',
+]);
 
 @Injectable({ providedIn: 'root' })
 export class SedeAdminService {
@@ -19,7 +26,11 @@ export class SedeAdminService {
   private loadingSignal = signal<boolean>(false);
 
   readonly sedes = computed(() => this.sedesSignal());
-  readonly selectedSedeId = computed(() => this.selectedSedeIdSignal());
+  readonly selectedSedeId = computed(() => {
+    const id = this.selectedSedeIdSignal();
+    if (!id || SEDES_RESPALDO_IDS.has(id)) return null;
+    return id;
+  });
   readonly isLoading = computed(() => this.loadingSignal());
 
   readonly selectedSede = computed(() => {
@@ -31,25 +42,27 @@ export class SedeAdminService {
   /** Si es SUPERADMIN y aún no ha elegido sede, requiere selección */
   readonly requiereSeleccionSede = computed(() => {
     if (!this.auth.isSuperAdmin()) return false;
-    return !this.selectedSedeIdSignal();
+    return !this.selectedSedeId();
   });
 
   constructor() {
     if (isPlatformBrowser(this.platformId)) {
       const guardada = localStorage.getItem(STORAGE_KEY_SEDE);
-      if (guardada) {
+      if (guardada && !SEDES_RESPALDO_IDS.has(guardada)) {
         this.selectedSedeIdSignal.set(guardada);
+      } else if (guardada) {
+        localStorage.removeItem(STORAGE_KEY_SEDE);
       }
     }
   }
 
   /**
    * Carga las sedes activas de la institución.
-   * Si la API no responde o da 502, provee las sedes oficiales del ITM como respaldo.
+   * Si la API no responde o da 502, provee las sedes oficiales del ITM como respaldo visual.
    */
   cargarSedes(): Observable<SedeResponse[]> {
     this.loadingSignal.set(true);
-    return this.http.get<SedeResponse[]>(`${API_URL}sedes/`).pipe(
+    return this.http.get<SedeResponse[]>(`${API_URL}/sedes/`).pipe(
       tap((sedes) => {
         this.loadingSignal.set(false);
         if (Array.isArray(sedes) && sedes.length > 0) {
@@ -69,7 +82,7 @@ export class SedeAdminService {
 
   seleccionarSede(sedeId: string): void {
     this.selectedSedeIdSignal.set(sedeId);
-    if (isPlatformBrowser(this.platformId)) {
+    if (isPlatformBrowser(this.platformId) && !SEDES_RESPALDO_IDS.has(sedeId)) {
       localStorage.setItem(STORAGE_KEY_SEDE, sedeId);
     }
   }
@@ -93,9 +106,10 @@ export class SedeAdminService {
     // Pero si ya tenía una guardada y existe en la lista, la mantiene
     const actual = this.selectedSedeIdSignal();
     if (actual && !sedes.some(s => s.sede_id === actual)) {
-      // Si la sede guardada ya no existe, sugerir primera o resetear
-      if (!this.auth.isSuperAdmin() && sedes.length > 0) {
+      if (!this.auth.isSuperAdmin() && sedes.length > 0 && !SEDES_RESPALDO_IDS.has(sedes[0].sede_id)) {
         this.seleccionarSede(sedes[0].sede_id);
+      } else {
+        this.limpiarSedeSeleccionada();
       }
     }
   }
@@ -145,6 +159,5 @@ export class SedeAdminService {
     ];
 
     this.sedesSignal.set(sedesRespaldo);
-    this.autoSeleccionarSiEsAdmin(sedesRespaldo);
   }
 }

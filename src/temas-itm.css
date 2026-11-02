@@ -42,6 +42,16 @@ img { max-width: 100%; height: auto; }
   --mdc-outlined-text-field-focus-label-text-color: var(--ing-2);
   --mat-form-field-focus-select-arrow-color: var(--ing-2);
   --mdc-text-button-label-text-color: var(--ing-2);
+  /* Variables para Snackbar con fondo blanco sólido y letras negras */
+  --mdc-snackbar-container-color: #ffffff;
+  --mdc-snackbar-supporting-text-color: #000000;
+  --mat-snack-bar-button-color: var(--ing-1);
+  /* Variables para Select desplegable con fondo blanco sólido */
+  --mat-select-panel-background-color: #ffffff;
+  --mat-option-label-text-color: #000000;
+  --mat-option-selected-state-label-text-color: var(--ing-1);
+  --mat-option-hover-state-layer-color: rgba(16, 45, 105, 0.08);
+  --mat-option-selected-state-layer-color: rgba(41, 171, 226, 0.14);
 }
 
 /* Botones */
@@ -115,4 +125,83 @@ a:hover { color: var(--ing-1); text-decoration: underline; }
   .login-card, .auth-card { grid-template-columns: 1fr; }
   .login-logo, .auth-logo, .logo-panel { padding: 20px; }
   .login-form, .auth-form { padding: 28px 20px; }
+}
+
+/* ==========================================================================
+   Notificaciones / Mensajes Emergentes (MatSnackBar) y Paneles Desplegables
+   Fondo Blanco Sólido (#FFFFFF), Letras Negras (#000000) y Alineados a la Derecha
+   ========================================================================== */
+.cdk-global-overlay-wrapper {
+  display: flex;
+  pointer-events: none;
+}
+
+.mat-mdc-snack-bar-container {
+  margin: 20px 24px !important;
+  max-width: 440px !important;
+  min-width: 300px !important;
+  pointer-events: auto !important;
+}
+
+.mat-mdc-snack-bar-container .mdc-snackbar__surface,
+.mat-mdc-snack-bar-container .mat-mdc-snack-bar-surface {
+  background-color: #ffffff !important;
+  color: var(--itm-negro) !important;
+  border: 1px solid #d1d5db !important;
+  border-left: 6px solid var(--ing-1) !important;
+  border-radius: var(--itm-radio) !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24) !important;
+  padding: 6px 14px !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+}
+
+.mat-mdc-snack-bar-container .mdc-snackbar__label,
+.mat-mdc-snack-bar-container .mat-mdc-snack-bar-label {
+  color: var(--itm-negro) !important;
+  font-family: 'Montserrat', 'Lato', Arial, sans-serif !important;
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+}
+
+.mat-mdc-snack-bar-container .mat-mdc-snack-bar-actions .mat-mdc-snack-bar-action,
+.mat-mdc-snack-bar-container button.mat-mdc-button {
+  background: var(--ing-1) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 0.8rem !important;
+  border-radius: 999px !important;
+  padding: 6px 16px !important;
+  margin-left: 8px !important;
+  min-height: 32px !important;
+}
+
+.mat-mdc-snack-bar-container .mat-mdc-snack-bar-actions .mat-mdc-snack-bar-action:hover {
+  background: var(--ing-2) !important;
+}
+
+/* Paneles desplegables de Angular Material (mat-select) con fondo blanco sólido */
+.mat-mdc-select-panel,
+.cdk-overlay-pane .mat-mdc-select-panel {
+  background-color: #ffffff !important;
+  color: var(--itm-negro) !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: var(--itm-radio) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18) !important;
+  opacity: 1 !important;
+}
+
+.mat-mdc-option {
+  background-color: #ffffff !important;
+  color: var(--itm-negro) !important;
+  font-family: 'Montserrat', 'Lato', Arial, sans-serif !important;
+  font-size: 0.9rem !important;
+}
+
+.mat-mdc-option:hover:not(.mdc-list-item--disabled),
+.mat-mdc-option.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+  background-color: #f0f6fc !important;
+  color: var(--ing-1) !important;
+  font-weight: 600 !important;
 }
