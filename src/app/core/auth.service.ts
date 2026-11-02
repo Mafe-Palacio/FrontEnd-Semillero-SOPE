@@ -30,29 +30,33 @@ export class AuthService {
     private http = inject(HttpClient);
     private platformId = inject(PLATFORM_ID);
 
+    private get authBase(): string {
+        return API_URL.replace(/\/+$/, '');
+    }
+
     login(correo: string, password: string): Observable<TokenResponse> {
         return this.http
-            .post<TokenResponse>(`${API_URL}/auth/login`, { correo, password })
+            .post<TokenResponse>(`${this.authBase}/auth/login`, { correo, password })
             .pipe(tap((res) => this.guardarTokens(res)));
     }
 
     registro(data: RegistroPayload): Observable<RegistroRespuesta> {
-        return this.http.post<RegistroRespuesta>(`${API_URL}/auth/registro`, data);
+        return this.http.post<RegistroRespuesta>(`${this.authBase}/auth/registro`, data);
     }
 
     verificarRegistro(usuario_id: string, codigo: string): Observable<TokenResponse> {
         return this.http
-            .post<TokenResponse>(`${API_URL}/auth/verificar-registro`, { usuario_id, codigo })
+            .post<TokenResponse>(`${this.authBase}/auth/verificar-registro`, { usuario_id, codigo })
             .pipe(tap((res) => this.guardarTokens(res)));
     }
 
     reenviarCodigo(correo: string): Observable<unknown> {
-        return this.http.post(`${API_URL}/auth/reenviar-codigo-registro`, { correo });
+        return this.http.post(`${this.authBase}/auth/reenviar-codigo-registro`, { correo });
     }
 
     refresh(): Observable<TokenResponse> {
         return this.http
-            .post<TokenResponse>(`${API_URL}/auth/refresh`, { refresh_token: this.getRefreshToken() })
+            .post<TokenResponse>(`${this.authBase}/auth/refresh`, { refresh_token: this.getRefreshToken() })
             .pipe(tap((res) => this.guardarTokens(res)));
     }
 

@@ -63,7 +63,7 @@ export class Login {
     this.auth.login(username.trim().toLowerCase(), password).subscribe({
       next: () => {
         this.isLoading = false;
-        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/catalogo';
+        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || (this.auth.isAdmin() ? '/admin/dashboard' : '/catalogo');
         this.snack.open('¡Sesión iniciada correctamente!', 'Aceptar', { duration: 3000 });
         this.router.navigateByUrl(returnUrl);
       },

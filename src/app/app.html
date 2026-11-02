@@ -19,7 +19,7 @@
       <div class="toolbar-actions">
         @if (isLoggedIn()) {
           @if (isAdmin()) {
-            <a mat-button routerLink="/admin" class="nav-action-btn">
+            <a mat-button routerLink="/admin/dashboard" class="nav-action-btn">
               <mat-icon>dashboard</mat-icon>
               <span class="action-label">Panel</span>
             </a>
@@ -65,7 +65,7 @@
 
       <mat-nav-list>
         <a mat-list-item routerLink="/catalogo" (click)="isMobile() && sidenav.close()"><mat-icon matListItemIcon>travel_explore</mat-icon><div matListItemTitle>Catálogo Público</div></a>
-        <a mat-list-item routerLink="/admin" (click)="isMobile() && sidenav.close()"><mat-icon matListItemIcon>dashboard</mat-icon><div matListItemTitle>Panel Admin</div></a>
+        <a mat-list-item routerLink="/admin/dashboard" (click)="isMobile() && sidenav.close()"><mat-icon matListItemIcon>dashboard</mat-icon><div matListItemTitle>Panel Admin</div></a>
         <a mat-list-item routerLink="/reclamaciones" (click)="isMobile() && sidenav.close()"><mat-icon matListItemIcon>assignment</mat-icon><div matListItemTitle>Reclamaciones</div></a>
         <a mat-list-item routerLink="/reportes" (click)="isMobile() && sidenav.close()"><mat-icon matListItemIcon>post_add</mat-icon><div matListItemTitle>Reportes</div></a>
       </mat-nav-list>

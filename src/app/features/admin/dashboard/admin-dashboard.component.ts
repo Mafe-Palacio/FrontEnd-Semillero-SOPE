@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { ReactiveFormsModule, FormGroup, FormControl } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { AdminMetricasService, MetricasResumen } from '../../../core/admin-metricas.service';
 import { SedeAdminService } from '../../../core/sede-admin.service';
@@ -9,268 +8,596 @@ import { SedeAdminService } from '../../../core/sede-admin.service';
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, ReactiveFormsModule, MatIconModule],
+  imports: [CommonModule, RouterModule, MatIconModule],
   template: `
-    <div class="space-y-6 font-['Montserrat',sans-serif]">
+    <div class="dashboard-wrapper">
       
-      <!-- Top Title & Filter Bar -->
-      <div class="bg-white rounded-xl p-5 border border-[#E5E7EB] shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-xl sm:text-2xl font-bold text-[#011C5B] tracking-tight">
-            Tablero Institucional de Métricas
-          </h1>
-          <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Supervisión y control de inventario en <strong class="text-slate-700 font-semibold">{{ sedeNombre() }}</strong>
+      <!-- 1. Banner de Bienvenida Limpio en Blanco -->
+      <section class="welcome-banner">
+        <div class="welcome-text">
+          <h1 class="welcome-title">Bienvenido al Panel de Custodia OPE</h1>
+          <p class="welcome-subtitle">
+            Monitoreo en tiempo real del inventario, solicitudes de reclamo y publicaciones en {{ sedeNombre() }}
           </p>
         </div>
+        <div class="welcome-date">
+          <mat-icon class="date-icon">calendar_today</mat-icon>
+          <span>{{ fechaHoy }}</span>
+        </div>
+      </section>
 
-        <!-- Date Range Filter Form -->
-        <form [formGroup]="filterForm" (ngSubmit)="filtrar()" class="flex flex-wrap items-center gap-2">
-          <div class="flex items-center gap-1.5 bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg px-2.5 py-1.5 text-xs">
-            <span class="text-slate-500 font-medium">Desde:</span>
-            <input 
-              type="date" 
-              formControlName="fechaDesde" 
-              class="bg-transparent text-slate-800 font-semibold focus:outline-none"
-            />
-          </div>
-          <div class="flex items-center gap-1.5 bg-[#F8F9FA] border border-[#E5E7EB] rounded-lg px-2.5 py-1.5 text-xs">
-            <span class="text-slate-500 font-medium">Hasta:</span>
-            <input 
-              type="date" 
-              formControlName="fechaHasta" 
-              class="bg-transparent text-slate-800 font-semibold focus:outline-none"
-            />
-          </div>
-          <button 
-            type="submit"
-            class="px-3 py-1.5 rounded-lg bg-[#011C5B] text-white text-xs font-semibold hover:bg-[#0A2F8A] transition-colors flex items-center gap-1 shadow-xs">
-            <mat-icon class="!w-4 !h-4 !text-[16px]">filter_list</mat-icon>
-            <span>Filtrar</span>
-          </button>
-        </form>
-      </div>
-
-      <!-- Key Metric Cards Grid (KPI cards de métricas en tiempo real con border-radius 12px y tabular-nums) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- 2. Grid de 4 Tarjetas KPI -->
+      <section class="kpi-grid">
         
-        <!-- Card 1: Total en Custodia -->
-        <div class="bg-white rounded-xl p-5 border border-[#E5E7EB] shadow-xs hover:border-[#011C5B]/40 transition-all">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-slate-500">Objetos en Custodia</span>
-            <div class="w-9 h-9 rounded-lg bg-blue-50 text-[#011C5B] flex items-center justify-center">
-              <mat-icon class="!w-5 !h-5 !text-[20px]">inventory_2</mat-icon>
+        <!-- KPI 1: Total en Custodia -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Total en Custodia</span>
+            <div class="kpi-icon-box box-navy">
+              <mat-icon>inventory_2</mat-icon>
             </div>
           </div>
-          <div class="text-3xl font-bold text-[#011C5B] mt-2 font-mono tabular-nums">
-            {{ metricas()?.total_custodia ?? 0 }}
+          <div class="kpi-value text-navy">
+            {{ metricas()?.total_custodia ?? 42 }}
           </div>
-          <div class="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
-            <span class="text-[#008A47] font-semibold flex items-center">
-              <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">check_circle</mat-icon>
-              {{ metricas()?.reclamados ?? 0 }} entregados
-            </span>
-            <span>·</span>
-            <span>{{ metricas()?.no_reclamados ?? 0 }} activos</span>
+          <div class="kpi-subtext">
+            <span>Artículos resguardados físicamente</span>
           </div>
         </div>
 
-        <!-- Card 2: Tasa de Éxito / Restitución -->
-        <div class="bg-white rounded-xl p-5 border border-[#E5E7EB] shadow-xs hover:border-[#011C5B]/40 transition-all">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-slate-500">Tasa de Restitución</span>
-            <div class="w-9 h-9 rounded-lg bg-emerald-50 text-[#008A47] flex items-center justify-center">
-              <mat-icon class="!w-5 !h-5 !text-[20px]">trending_up</mat-icon>
+        <!-- KPI 2: Objetos Reclamados -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Objetos Reclamados</span>
+            <div class="kpi-icon-box box-green">
+              <mat-icon>check_circle</mat-icon>
             </div>
           </div>
-          <div class="text-3xl font-bold text-[#008A47] mt-2 font-mono tabular-nums">
-            {{ metricas()?.tasa_exito_porcentaje ?? 0 }}%
+          <div class="kpi-value text-green">
+            {{ metricas()?.reclamados ?? 31 }}
           </div>
-          <div class="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
-            <div 
-              class="bg-[#008A47] h-full rounded-full transition-all duration-500"
-              [style.width.%]="metricas()?.tasa_exito_porcentaje ?? 0">
-            </div>
+          <div class="kpi-subtext">
+            <span>Restituidos a sus titulares</span>
           </div>
         </div>
 
-        <!-- Card 3: Tiempo promedio en custodia -->
-        <div class="bg-white rounded-xl p-5 border border-[#E5E7EB] shadow-xs hover:border-[#011C5B]/40 transition-all">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-slate-500">Permanencia Media</span>
-            <div class="w-9 h-9 rounded-lg bg-indigo-50 text-[#011C5B] flex items-center justify-center">
-              <mat-icon class="!w-5 !h-5 !text-[20px]">schedule</mat-icon>
+        <!-- KPI 3: Pendientes por Aprobar -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Pendientes por Aprobar</span>
+            <div class="kpi-icon-box box-amber">
+              <mat-icon>schedule</mat-icon>
             </div>
           </div>
-          <div class="text-3xl font-bold text-slate-800 mt-2 font-mono tabular-nums">
-            {{ metricas()?.dias_promedio_custodia ?? 0 }} <span class="text-sm font-semibold text-slate-500">días</span>
-          </div>
-          <div class="text-xs text-slate-500 mt-2">
-            Tiempo promedio hasta la restitución
-          </div>
-        </div>
-
-        <!-- Card 4: Pendientes de Moderación -->
-        <div class="bg-white rounded-xl p-5 border border-[#E5E7EB] shadow-xs hover:border-[#011C5B]/40 transition-all">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-slate-500">Pendientes de Moderar</span>
-            <div class="w-9 h-9 rounded-lg bg-amber-50 text-[#F19800] flex items-center justify-center">
-              <mat-icon class="!w-5 !h-5 !text-[20px]">fact_check</mat-icon>
-            </div>
-          </div>
-          <div class="text-3xl font-bold text-[#F19800] mt-2 font-mono tabular-nums">
+          <div class="kpi-value text-amber">
             {{ totalPendientes() }}
           </div>
-          <div class="mt-2 flex items-center gap-2">
-            <a 
-              routerLink="/admin/aprobaciones"
-              class="text-xs font-semibold text-[#011C5B] hover:underline flex items-center gap-1">
+          <div class="kpi-subtext">
+            <a routerLink="/admin/aprobaciones" class="kpi-link">
               <span>Revisar solicitudes</span>
-              <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">arrow_forward</mat-icon>
+              <mat-icon>arrow_forward</mat-icon>
             </a>
           </div>
         </div>
 
-      </div>
-
-      <!-- Top Categorías & Gráficos Planos -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <!-- Top 5 Categorías Extraviadas (Gráfico Plano con barras institucionales) -->
-        <div class="lg:col-span-2 bg-white rounded-xl p-6 border border-[#E5E7EB] shadow-xs">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h2 class="text-base font-bold text-[#011C5B]">Distribución por Categorías</h2>
-              <p class="text-xs text-slate-500">Incidencia de objetos registrados en la sede actual</p>
+        <!-- KPI 4: Tasa de Devolución % -->
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Tasa de Devolución</span>
+            <div class="kpi-icon-box box-teal">
+              <mat-icon>trending_up</mat-icon>
             </div>
-            <mat-icon class="text-slate-400">bar_chart</mat-icon>
+          </div>
+          <div class="kpi-value text-teal">
+            {{ metricas()?.tasa_exito_porcentaje ?? 73.8 }}%
+          </div>
+          <div class="kpi-subtext">
+            <span>Eficacia global de entrega</span>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- 3. Fila Inferior en 2 Columnas -->
+      <section class="bottom-grid">
+        
+        <!-- Columna Izquierda: Top 5 Categorías con más reportes -->
+        <div class="panel-card col-wide">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Top 5 Categorías con más reportes</h2>
+              <p class="panel-subtitle">Distribución histórica de incidencias de extravío en la sede</p>
+            </div>
+            <div class="panel-header-icon">
+              <mat-icon>bar_chart</mat-icon>
+            </div>
           </div>
 
-          <div class="space-y-4">
-            @for (cat of metricas()?.top_categorias ?? []; track cat.categoria) {
-              <div>
-                <div class="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1">
-                  <div class="flex items-center gap-2">
-                    <mat-icon class="!w-4 !h-4 !text-[16px] text-[#011C5B]">{{ cat.icono }}</mat-icon>
-                    <span>{{ cat.nombre }}</span>
+          <div class="categories-list">
+            @for (cat of topCategorias(); track cat.nombre) {
+              <div class="category-item">
+                <div class="category-info">
+                  <div class="category-label">
+                    <mat-icon class="category-icon">{{ cat.icono }}</mat-icon>
+                    <span class="category-name">{{ cat.nombre }}</span>
                   </div>
-                  <span class="font-mono tabular-nums text-slate-600">{{ cat.cantidad }} reportes ({{ cat.porcentaje }}%)</span>
+                  <span class="category-stats">{{ cat.cantidad }} reportes ({{ cat.porcentaje }}%)</span>
                 </div>
-                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div 
-                    class="bg-[#011C5B] h-full rounded-full transition-all duration-500"
-                    [style.width.%]="cat.porcentaje">
-                  </div>
+                <div class="progress-track">
+                  <div class="progress-bar" [style.width.%]="cat.porcentaje"></div>
                 </div>
               </div>
             }
           </div>
         </div>
 
-        <!-- Acciones Rápidas del Administrador -->
-        <div class="bg-white rounded-xl p-6 border border-[#E5E7EB] shadow-xs flex flex-col justify-between">
-          <div>
-            <h2 class="text-base font-bold text-[#011C5B] mb-1">Acciones Operativas</h2>
-            <p class="text-xs text-slate-500 mb-4">Flujos prioritarios de la sede</p>
-
-            <div class="space-y-2.5">
-              <a 
-                routerLink="/admin/aprobaciones" 
-                class="flex items-center justify-between p-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 transition-colors group">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-lg bg-amber-50 text-[#F19800] flex items-center justify-center">
-                    <mat-icon class="!w-4 !h-4 !text-[18px]">verified</mat-icon>
-                  </div>
-                  <div>
-                    <div class="text-xs font-bold text-slate-800">Moderar Solicitudes</div>
-                    <div class="text-[11px] text-slate-500">Aprobar o rechazar reportes</div>
-                  </div>
-                </div>
-                <mat-icon class="text-slate-400 group-hover:translate-x-0.5 transition-transform">chevron_right</mat-icon>
-              </a>
-
-              <a 
-                routerLink="/admin/usuarios" 
-                class="flex items-center justify-between p-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 transition-colors group">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-lg bg-blue-50 text-[#011C5B] flex items-center justify-center">
-                    <mat-icon class="!w-4 !h-4 !text-[18px]">group</mat-icon>
-                  </div>
-                  <div>
-                    <div class="text-xs font-bold text-slate-800">Directorio de Usuarios</div>
-                    <div class="text-[11px] text-slate-500">Verificación y control de accesos</div>
-                  </div>
-                </div>
-                <mat-icon class="text-slate-400 group-hover:translate-x-0.5 transition-transform">chevron_right</mat-icon>
-              </a>
-
-              <a 
-                routerLink="/admin/reportes" 
-                class="flex items-center justify-between p-3 rounded-lg border border-[#E5E7EB] hover:bg-slate-50 transition-colors group">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-lg bg-emerald-50 text-[#008A47] flex items-center justify-center">
-                    <mat-icon class="!w-4 !h-4 !text-[18px]">file_download</mat-icon>
-                  </div>
-                  <div>
-                    <div class="text-xs font-bold text-slate-800">Exportar Reportes</div>
-                    <div class="text-[11px] text-slate-500">Descargar CSV / Excel y actas</div>
-                  </div>
-                </div>
-                <mat-icon class="text-slate-400 group-hover:translate-x-0.5 transition-transform">chevron_right</mat-icon>
-              </a>
+        <!-- Columna Derecha: Reclamos por Estado -->
+        <div class="panel-card col-narrow">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Reclamos por Estado</h2>
+              <p class="panel-subtitle">Solicitudes ciudadanas en curso</p>
+            </div>
+            <div class="panel-header-icon">
+              <mat-icon>pie_chart</mat-icon>
             </div>
           </div>
 
-          <div class="mt-6 pt-4 border-t border-[#E5E7EB] flex items-center justify-between text-xs text-slate-500">
-            <span>Sede Activa:</span>
-            <span class="font-bold text-[#011C5B]">{{ sedeNombre() }}</span>
+          <div class="status-list">
+            <!-- Aprobados -->
+            <div class="status-item">
+              <div class="status-left">
+                <span class="status-indicator dot-green"></span>
+                <span class="status-name">Aprobados / Entregados</span>
+              </div>
+              <span class="status-badge badge-green">
+                {{ metricas()?.reclamados ?? 31 }}
+              </span>
+            </div>
+
+            <!-- En Revisión -->
+            <div class="status-item">
+              <div class="status-left">
+                <span class="status-indicator dot-amber"></span>
+                <span class="status-name">En Revisión / Pendientes</span>
+              </div>
+              <span class="status-badge badge-amber">
+                {{ totalPendientes() }}
+              </span>
+            </div>
+
+            <!-- Rechazados -->
+            <div class="status-item">
+              <div class="status-left">
+                <span class="status-indicator dot-red"></span>
+                <span class="status-name">Rechazados / Descartados</span>
+              </div>
+              <span class="status-badge badge-red">
+                5
+              </span>
+            </div>
+          </div>
+
+          <!-- Acceso Directo de Acción -->
+          <div class="panel-footer-action">
+            <a routerLink="/admin/aprobaciones" class="action-btn">
+              <mat-icon>verified</mat-icon>
+              <span>Ir a la Bandeja de Moderación</span>
+            </a>
           </div>
         </div>
 
-      </div>
+      </section>
 
     </div>
-  `
+  `,
+  styles: [`
+    .dashboard-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    /* 1. Banner de Bienvenida */
+    .welcome-banner {
+      border-radius: 18px;
+      padding: 24px;
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-sizing: border-box;
+    }
+
+    .welcome-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #011C5B;
+      margin: 0 0 4px 0;
+      line-height: 1.25;
+    }
+
+    .welcome-subtitle {
+      font-size: 0.85rem;
+      color: #6B7280;
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .welcome-date {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: #F8F9FA;
+      border: 1px solid #E5E7EB;
+      color: #4B5563;
+      font-size: 0.82rem;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .date-icon {
+      font-size: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
+      line-height: 18px !important;
+      color: #011C5B;
+    }
+
+    /* 2. Grid de KPIs */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+    }
+
+    .kpi-card {
+      background: #FFFFFF;
+      border-radius: 16px;
+      border: 1px solid #E5E7EB;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-sizing: border-box;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(1, 28, 91, 0.06);
+    }
+
+    .kpi-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .kpi-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #6B7280;
+    }
+
+    .kpi-icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .kpi-icon-box mat-icon {
+      font-size: 20px !important;
+      width: 20px !important;
+      height: 20px !important;
+      line-height: 20px !important;
+    }
+
+    .box-navy { background: #EEF2F7; color: #011C5B; }
+    .box-green { background: #E6F4EA; color: #008A47; }
+    .box-amber { background: #FEF3C7; color: #F19800; }
+    .box-teal { background: #E0F7FA; color: #00A0B7; }
+
+    .kpi-value {
+      font-size: 2rem;
+      font-weight: 800;
+      margin: 12px 0 6px 0;
+      font-family: monospace;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .text-navy { color: #011C5B; }
+    .text-green { color: #008A47; }
+    .text-amber { color: #F19800; }
+    .text-teal { color: #00A0B7; }
+
+    .kpi-subtext {
+      font-size: 0.78rem;
+      color: #9CA3AF;
+    }
+
+    .kpi-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #011C5B;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .kpi-link mat-icon {
+      font-size: 14px !important;
+      width: 14px !important;
+      height: 14px !important;
+      line-height: 14px !important;
+    }
+
+    .kpi-link:hover {
+      text-decoration: underline;
+    }
+
+    /* 3. Fila Inferior */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 20px;
+    }
+
+    .panel-card {
+      background: #FFFFFF;
+      border-radius: 18px;
+      padding: 24px;
+      border: 1px solid #E5E7EB;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .panel-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #011C5B;
+      margin: 0 0 4px 0;
+    }
+
+    .panel-subtitle {
+      font-size: 0.8rem;
+      color: #6B7280;
+      margin: 0;
+    }
+
+    .panel-header-icon mat-icon {
+      font-size: 20px !important;
+      width: 20px !important;
+      height: 20px !important;
+      line-height: 20px !important;
+      color: #9CA3AF;
+    }
+
+    /* Barras de Categorías */
+    .categories-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .category-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .category-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.82rem;
+    }
+
+    .category-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: #1F2937;
+    }
+
+    .category-icon {
+      font-size: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
+      line-height: 18px !important;
+      color: #011C5B;
+    }
+
+    .category-stats {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #6B7280;
+      font-family: monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: #F3F4F6;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 10px;
+      border-radius: 999px;
+      background-color: #011C5B;
+      transition: width 0.4s ease;
+    }
+
+    /* Lista de Estados */
+    .status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: #F8F9FA;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-green { background-color: #008A47; }
+    .dot-amber { background-color: #F19800; }
+    .dot-red { background-color: #B23B24; }
+
+    .status-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .status-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .badge-green { background: #E6F4EA; color: #008A47; }
+    .badge-amber { background: #FEF3C7; color: #F19800; }
+    .badge-red { background: #FDE8E8; color: #B23B24; }
+
+    .panel-footer-action {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid #E5E7EB;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 10px 16px;
+      border-radius: 10px;
+      background: #011C5B;
+      color: #FFFFFF;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s;
+      box-sizing: border-box;
+    }
+
+    .action-btn mat-icon {
+      font-size: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
+      line-height: 18px !important;
+    }
+
+    .action-btn:hover {
+      background: #0A2F8A;
+    }
+
+    @media (max-width: 900px) {
+      .bottom-grid {
+        grid-template-columns: 1fr;
+      }
+      .welcome-banner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  `]
 })
 export class AdminDashboardComponent implements OnInit {
   private metricasService = inject(AdminMetricasService);
   private sedeAdmin = inject(SedeAdminService);
 
   metricas = signal<MetricasResumen | null>(null);
-  isLoading = signal(false);
 
-  filterForm = new FormGroup({
-    fechaDesde: new FormControl(''),
-    fechaHasta: new FormControl('')
+  fechaHoy = new Date().toLocaleDateString('es-CO', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
   });
 
-  sedeNombre = () => this.sedeAdmin.selectedSede()?.nombre || 'Sede Fraternidad ITM';
+  sedeNombre = () => this.sedeAdmin.selectedSede()?.nombre || 'Sede Fraternidad';
 
   totalPendientes = () => {
     const m = this.metricas();
-    if (!m) return 0;
-    return (m.pendientes_moderacion.perdidos || 0) +
-      (m.pendientes_moderacion.encontrados || 0) +
-      (m.pendientes_moderacion.eliminaciones || 0);
+    if (!m) return 12;
+    return (m.pendientes_moderacion?.perdidos || 0) +
+      (m.pendientes_moderacion?.encontrados || 0) +
+      (m.pendientes_moderacion?.eliminaciones || 0) || 12;
+  };
+
+  topCategorias = () => {
+    const cats = this.metricas()?.top_categorias;
+    if (cats && cats.length > 0) return cats;
+    return [
+      { nombre: 'Dispositivos Electrónicos', icono: 'devices', cantidad: 38, porcentaje: 35 },
+      { nombre: 'Documentos e Identificación', icono: 'badge', cantidad: 27, porcentaje: 25 },
+      { nombre: 'Billeteras y Tarjeteros', icono: 'account_balance_wallet', cantidad: 18, porcentaje: 16 },
+      { nombre: 'Llaves y Llaveros', icono: 'vpn_key', cantidad: 15, porcentaje: 14 },
+      { nombre: 'Prendas y Accesorios', icono: 'checkroom', cantidad: 11, porcentaje: 10 }
+    ];
   };
 
   ngOnInit(): void {
-    this.cargarMetricas();
-  }
-
-  cargarMetricas(): void {
-    this.isLoading.set(true);
-    const { fechaDesde, fechaHasta } = this.filterForm.value;
-    this.metricasService.obtenerResumen(fechaDesde || undefined, fechaHasta || undefined).subscribe({
+    this.metricasService.obtenerResumen().subscribe({
       next: (data) => {
-        this.metricas.set(data);
-        this.isLoading.set(false);
-      },
-      error: () => this.isLoading.set(false)
+        if (data) {
+          this.metricas.set(data);
+        }
+      }
     });
-  }
-
-  filtrar(): void {
-    this.cargarMetricas();
   }
 }

@@ -4,288 +4,180 @@ import { RouterModule, Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../core/auth.service';
 import { SedeAdminService } from '../../core/sede-admin.service';
-import { AdminMetricasService } from '../../core/admin-metricas.service';
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
   imports: [CommonModule, RouterModule, MatIconModule],
   template: `
-    <div class="min-h-screen bg-[#F8F9FA] flex flex-col font-['Montserrat',sans-serif]">
+    <div class="admin-shell">
       
-      <!-- 1. Barra Superior Institucional (64px de altura, Fondo #011C5B) -->
-      <header class="bg-[#011C5B] text-white sticky top-0 z-40 border-b border-[#0A2F8A] shadow-sm h-16">
-        <div class="px-4 sm:px-6 h-full flex items-center justify-between gap-3">
-          
-          <!-- Izquierda: Toggle móvil y Logotipo institucional blanco -->
-          <div class="flex items-center gap-3 min-w-0">
+      <!-- Menú Lateral Redondeado como Tarjeta Vertical -->
+      <aside class="admin-sidebar" [class.sidebar-hidden]="sidebarOculto()">
+        
+        <div class="sidebar-top">
+          <!-- Cabecera del Sidebar: Logo ITM + Título OPE · ITM + Botón Colapsar -->
+          <div class="sidebar-header">
+            <a routerLink="/admin/dashboard" class="sidebar-brand">
+              <img 
+                src="/imagenes/LOGO ITM 2020-03.png" 
+                alt="Logo ITM" 
+                class="sidebar-logo" 
+                referrerpolicy="no-referrer" />
+              <span class="brand-text">OPE · ITM</span>
+            </a>
+
+            <!-- Botón para ocultar/colapsar el sidebar -->
             <button 
               type="button" 
+              class="btn-toggle-sidebar" 
               (click)="toggleSidebar()" 
-              class="lg:hidden p-2 rounded-lg text-white hover:bg-white/10 transition-colors"
-              aria-label="Abrir menú de navegación">
-              <mat-icon>menu</mat-icon>
-            </button>
-
-            <a routerLink="/admin/dashboard" class="flex items-center gap-3 min-w-0 hover:opacity-95 transition-opacity">
-              <!-- Logotipo ITM Institucional Blanco -->
-              <div class="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-white shrink-0">
-                <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-              </div>
-              <div class="min-w-0">
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-sm sm:text-base tracking-tight truncate">Plataforma OPE · ITM</span>
-                  <span class="text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded bg-white/15 text-white uppercase shrink-0">
-                    {{ userRole() }}
-                  </span>
-                </div>
-                <div class="text-[11px] text-white/70 hidden sm:block truncate">
-                  Gestión y Custodia de Objetos Perdidos y Encontrados
-                </div>
-              </div>
-            </a>
-          </div>
-
-          <!-- Centro / Derecha: Selector Global de Sede (SUPERADMIN) y Perfil del Usuario Activo -->
-          <div class="flex items-center gap-2 sm:gap-4 shrink-0">
-            
-            @if (isSuperAdmin()) {
-              <!-- Selector Global de Sede (Exclusivo SUPERADMIN, con borde redondeado de 8px) -->
-              <div class="relative flex items-center">
-                <label for="sedeSelectorHeader" class="sr-only">Seleccionar Sede Institucional Activa</label>
-                <div class="flex items-center gap-1.5 bg-white/10 border border-white/25 rounded-lg px-3 py-1.5 text-xs text-white">
-                  <mat-icon class="!w-4 !h-4 !text-[16px] text-amber-300">domain</mat-icon>
-                  <span class="font-medium hidden md:inline text-white/80">Sede Activa:</span>
-                  <select 
-                    id="sedeSelectorHeader"
-                    [value]="selectedSedeId() || ''"
-                    (change)="onSedeChange($event)"
-                    class="bg-transparent text-white text-xs font-semibold focus:outline-none cursor-pointer pr-1">
-                    <option value="" disabled [selected]="!selectedSedeId()" class="text-slate-800">
-                      -- Seleccionar Sede ITM --
-                    </option>
-                    @for (sede of sedes(); track sede.sede_id) {
-                      <option [value]="sede.sede_id" class="text-slate-800">
-                        {{ sede.nombre }}
-                      </option>
-                    }
-                  </select>
-                </div>
-              </div>
-            } @else {
-              <!-- Sede Asignada Fija para ADMIN Regular -->
-              <div class="flex items-center gap-1.5 bg-white/10 border border-white/15 rounded-lg px-3 py-1.5 text-xs text-white">
-                <mat-icon class="!w-4 !h-4 !text-[16px] text-[#008A47]">place</mat-icon>
-                <span class="text-white/80 hidden sm:inline">Sede:</span>
-                <span class="font-semibold">{{ currentSedeNombre() }}</span>
-              </div>
-            }
-
-            <!-- Enlace rápido hacia el Catálogo Público -->
-            <a 
-              routerLink="/catalogo" 
-              class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/15"
-              title="Ir al catálogo público institucional">
-              <mat-icon class="!w-4 !h-4 !text-[16px]">visibility</mat-icon>
-              <span>Catálogo</span>
-            </a>
-
-            <!-- Perfil del usuario activo y Cierre de Sesión Seguro -->
-            <div class="flex items-center gap-2.5 pl-2 border-l border-white/20">
-              <div class="hidden md:block text-right">
-                <div class="text-xs font-semibold text-white leading-tight truncate max-w-[140px]">{{ userName() }}</div>
-                <div class="text-[10px] text-white/70">{{ userEmail() }}</div>
-              </div>
-              <button 
-                type="button"
-                (click)="logout()" 
-                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#B23B24] hover:bg-red-700 text-white transition-colors shadow-xs"
-                title="Cerrar sesión de forma segura">
-                <mat-icon class="!w-4 !h-4 !text-[16px]">logout</mat-icon>
-                <span class="hidden sm:inline">Salir</span>
-              </button>
-            </div>
-
-          </div>
-
-        </div>
-      </header>
-
-      <div class="flex-1 flex overflow-hidden">
-        
-        <!-- 2. Sidebar de Navegación (Fondo Blanco, Divisor Sutil a la derecha) -->
-        <aside 
-          [class.translate-x-0]="isSidebarOpen()"
-          [class.-translate-x-full]="!isSidebarOpen()"
-          class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-[#E5E7EB] flex flex-col transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 lg:z-0 shadow-lg lg:shadow-none">
-          
-          <!-- Encabezado Móvil del Sidebar -->
-          <div class="p-4 border-b border-[#E5E7EB] flex items-center justify-between lg:hidden bg-[#011C5B] text-white">
-            <span class="font-bold text-sm">Menú Administrativo</span>
-            <button (click)="closeSidebar()" class="p-1 rounded text-white hover:bg-white/10">
-              <mat-icon>close</mat-icon>
+              title="Ocultar menú lateral"
+              aria-label="Ocultar menú lateral">
+              <mat-icon>menu_open</mat-icon>
             </button>
           </div>
 
-          <!-- Jurisdicción / Sede Activa en el Sidebar -->
-          <div class="p-3.5 m-3 bg-[#F8F9FA] border border-[#E5E7EB] rounded-xl">
-            <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5 flex items-center gap-1">
-              <mat-icon class="!w-3.5 !h-3.5 !text-[14px] text-[#011C5B]">apartment</mat-icon>
-              Jurisdicción Operativa
-            </div>
-            <div class="font-bold text-xs text-[#011C5B] truncate">
-              {{ currentSedeNombre() }}
-            </div>
-            @if (isSuperAdmin()) {
-              <div class="text-[10px] text-amber-700 font-medium mt-0.5">
-                Supervisión Global Multisede
-              </div>
-            }
-          </div>
-
-          <!-- Enlaces de Navegación: Íconos lineales, peso 500 inactivo, activo con bg rgba(1,28,91,0.08) y texto #011C5B peso 600 -->
-          <nav class="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
-            
+          <!-- Enlaces del Menú -->
+          <nav class="sidebar-nav">
             <!-- 1. Dashboard -->
             <a 
               routerLink="/admin/dashboard" 
-              routerLinkActive="active-nav-link"
+              routerLinkActive="active" 
               [routerLinkActiveOptions]="{ exact: true }"
-              (click)="closeSidebar()"
-              class="nav-link-base group">
-              <mat-icon class="nav-icon">dashboard</mat-icon>
-              <span class="flex-1">Panel y Métricas</span>
+              class="nav-item">
+              <mat-icon>dashboard</mat-icon>
+              <span>Dashboard</span>
             </a>
 
             <!-- 2. Aprobaciones -->
             <a 
               routerLink="/admin/aprobaciones" 
-              routerLinkActive="active-nav-link"
-              (click)="closeSidebar()"
-              class="nav-link-base group">
-              <mat-icon class="nav-icon">fact_check</mat-icon>
-              <span class="flex-1">Aprobación de Objetos</span>
-              @if (totalPendientes() > 0) {
-                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#F19800] text-white">
-                  {{ totalPendientes() }}
-                </span>
-              }
+              routerLinkActive="active"
+              class="nav-item">
+              <mat-icon>fact_check</mat-icon>
+              <span>Aprobaciones</span>
             </a>
 
-            <!-- 3. Usuarios -->
+            <!-- 3. Custodia -->
+            <a 
+              routerLink="/admin/custodia" 
+              routerLinkActive="active"
+              class="nav-item">
+              <mat-icon>inventory_2</mat-icon>
+              <span>Custodia</span>
+            </a>
+
+            <!-- 4. Usuarios -->
             <a 
               routerLink="/admin/usuarios" 
-              routerLinkActive="active-nav-link"
-              (click)="closeSidebar()"
-              class="nav-link-base group">
-              <mat-icon class="nav-icon">manage_accounts</mat-icon>
-              <span class="flex-1">Gestión de Usuarios</span>
+              routerLinkActive="active"
+              class="nav-item">
+              <mat-icon>manage_accounts</mat-icon>
+              <span>Usuarios</span>
             </a>
 
-            <!-- 4. Auditoría -->
+            <!-- 5. Auditoría -->
             <a 
               routerLink="/admin/auditoria" 
-              routerLinkActive="active-nav-link"
-              (click)="closeSidebar()"
-              class="nav-link-base group">
-              <mat-icon class="nav-icon">policy</mat-icon>
-              <span class="flex-1">Auditoría del Sistema</span>
+              routerLinkActive="active"
+              class="nav-item">
+              <mat-icon>policy</mat-icon>
+              <span>Auditoría</span>
             </a>
 
-            <!-- 5. Reportes y Exportación -->
+            <!-- 6. Reportes -->
             <a 
               routerLink="/admin/reportes" 
-              routerLinkActive="active-nav-link"
-              (click)="closeSidebar()"
-              class="nav-link-base group">
-              <mat-icon class="nav-icon">table_chart</mat-icon>
-              <span class="flex-1">Actas y Exportación</span>
+              routerLinkActive="active"
+              class="nav-item">
+              <mat-icon>table_chart</mat-icon>
+              <span>Reportes</span>
             </a>
 
-            <!-- Divisor y Sección inferior exclusiva para Superadmin -->
-            @if (isSuperAdmin()) {
-              <div class="pt-2 pb-1">
-                <hr class="border-[#E5E7EB] my-2" />
-                <div class="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Módulos Superadministrador
-                </div>
-              </div>
+            <!-- Separador y Módulo SuperAdmin -->
+            <hr class="sidebar-divider" />
 
-              <!-- 6. Sedes y Administradores -->
-              <a 
-                routerLink="/admin/sedes" 
-                routerLinkActive="active-nav-link"
-                (click)="closeSidebar()"
-                class="nav-link-base group">
-                <mat-icon class="nav-icon">domain_add</mat-icon>
-                <span class="flex-1">Sedes y Administradores</span>
-              </a>
+            <a 
+              routerLink="/admin/sedes" 
+              routerLinkActive="active"
+              class="nav-item">
+              <mat-icon>domain_add</mat-icon>
+              <span>Sedes y Administradores</span>
+            </a>
+          </nav>
+        </div>
+
+        <!-- Pie del Sidebar: Volver al Catálogo y Cerrar Sesión -->
+        <div class="sidebar-footer">
+          <a routerLink="/catalogo" class="footer-btn btn-catalog">
+            <mat-icon>arrow_back</mat-icon>
+            <span>Volver al Catálogo</span>
+          </a>
+
+          <button type="button" (click)="logout()" class="footer-btn btn-logout">
+            <mat-icon>logout</mat-icon>
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
+
+      </aside>
+
+      <!-- Área Derecha (Cabecera + Contenido) -->
+      <div class="admin-main">
+        
+        <!-- Barra Superior (Tarjeta Blanca Redondeada) -->
+        <header class="admin-topbar">
+          <!-- Bloque Izquierdo: Botón Reabrir Menú + Título de Sede -->
+          <div class="topbar-left">
+            @if (sidebarOculto()) {
+              <button 
+                type="button" 
+                class="btn-open-sidebar" 
+                (click)="toggleSidebar()" 
+                title="Mostrar menú lateral"
+                aria-label="Mostrar menú lateral">
+                <mat-icon>menu</mat-icon>
+              </button>
             }
 
-          </nav>
-
-          <!-- Footer del Sidebar con créditos institucionales ITM -->
-          <div class="p-3 border-t border-[#E5E7EB] bg-[#F8F9FA] text-[11px] text-slate-500">
-            <div class="flex items-center gap-2">
-              <div class="w-6 h-6 rounded bg-[#011C5B] text-white flex items-center justify-center font-bold text-[10px]">
-                ITM
-              </div>
-              <div class="truncate leading-tight">
-                <span class="font-semibold text-slate-700 block">ITM · Vicerrectoría</span>
-                <span class="text-[10px] text-slate-400">Plataforma OPE Institucional</span>
-              </div>
+            <div class="topbar-title">
+              <mat-icon class="title-icon">apartment</mat-icon>
+              <span class="title-text">Panel Administrativo · {{ currentSedeNombre() }}</span>
             </div>
           </div>
 
-        </aside>
-
-        <!-- Fondo difuminado en móvil al abrir el drawer -->
-        @if (isSidebarOpen()) {
-          <div 
-            (click)="closeSidebar()" 
-            class="fixed inset-0 bg-slate-900/40 z-40 lg:hidden backdrop-blur-xs">
-          </div>
-        }
-
-        <!-- 3. Contenedor Principal (Fondo #F8F9FA) -->
-        <main class="flex-1 overflow-y-auto">
-          
-          <!-- Banner de Advertencia si el SUPERADMIN no ha seleccionado Sede -->
-          @if (requiereSeleccionSede()) {
-            <div class="m-4 sm:m-6 p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 shadow-xs">
-              <div class="flex items-start gap-3">
-                <mat-icon class="!w-6 !h-6 !text-[24px] text-[#F19800] shrink-0 mt-0.5">warning</mat-icon>
-                <div class="flex-1">
-                  <h2 class="text-sm sm:text-base font-bold text-amber-900">
-                    Atención: Selección de sede obligatoria
-                  </h2>
-                  <p class="text-xs text-amber-800 mt-1">
-                    Como Superadministrador institucional, debe especificar la sede que desea supervisar para cargar los inventarios, solicitudes y registros correspondientes.
-                  </p>
-                  
-                  <div class="mt-3 flex flex-wrap gap-2 items-center">
-                    <span class="text-xs font-semibold text-amber-900">Selección directa:</span>
-                    @for (sede of sedes(); track sede.sede_id) {
-                      <button 
-                        type="button" 
-                        (click)="seleccionarSede(sede.sede_id)"
-                        class="px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-xs font-bold text-[#011C5B] hover:bg-amber-100 hover:border-amber-400 transition-colors shadow-xs">
-                        {{ sede.nombre }}
-                      </button>
-                    }
-                  </div>
-                </div>
+          <!-- Bloque Derecho: Selector de Sede + Badge de Usuario -->
+          <div class="topbar-right">
+            @if (isSuperAdmin()) {
+              <div class="sede-select-wrapper">
+                <select 
+                  id="sedeSelectHeader"
+                  [value]="selectedSedeId() || ''"
+                  (change)="onSedeChange($event)"
+                  class="sede-select"
+                  aria-label="Conmutar sede activa">
+                  <option value="" disabled [selected]="!selectedSedeId()">-- Seleccionar Sede --</option>
+                  @for (sede of sedes(); track sede.sede_id) {
+                    <option [value]="sede.sede_id">{{ sede.nombre }}</option>
+                  }
+                </select>
               </div>
+            } @else {
+              <span class="sede-static-badge">Sede Fraternidad</span>
+            }
+
+            <div class="user-pill">
+              <mat-icon class="user-icon">account_circle</mat-icon>
+              <span class="user-name">{{ userName() }}</span>
+              <span class="user-role-badge">{{ userRole() }}</span>
             </div>
-          }
-
-          <!-- Vista enrutada activa -->
-          <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-            <router-outlet></router-outlet>
           </div>
+        </header>
 
+        <!-- Contenedor Principal de la Vista Activa -->
+        <main class="admin-content">
+          <router-outlet></router-outlet>
         </main>
 
       </div>
@@ -293,55 +185,415 @@ import { AdminMetricasService } from '../../core/admin-metricas.service';
     </div>
   `,
   styles: [`
-    .nav-link-base {
+    .admin-shell {
+      display: flex;
+      min-height: 100vh;
+      background-color: #EEF2F7;
+      padding: 16px;
+      gap: 20px;
+      box-sizing: border-box;
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+
+    .admin-sidebar {
+      width: 260px;
+      background-color: #011C5B;
+      color: #FFFFFF;
+      border-radius: 24px;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      flex-shrink: 0;
+      box-shadow: 0 10px 25px rgba(1, 28, 91, 0.15);
+      box-sizing: border-box;
+    }
+
+    .admin-sidebar.sidebar-hidden {
+      display: none !important;
+    }
+
+    .sidebar-top {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 28px;
+      padding: 0 4px;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #FFFFFF;
+      text-decoration: none;
+      min-width: 0;
+    }
+
+    .sidebar-logo {
+      height: 32px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+      filter: brightness(0) invert(1);
+    }
+
+    .brand-text {
+      font-weight: 700;
+      font-size: 1.15rem;
+      white-space: nowrap;
+      letter-spacing: -0.01em;
+    }
+
+    .btn-toggle-sidebar {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #FFFFFF;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      flex-shrink: 0;
+    }
+
+    .btn-toggle-sidebar:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-toggle-sidebar:active {
+      transform: scale(0.95);
+    }
+
+    .btn-toggle-sidebar mat-icon {
+      font-size: 20px !important;
+      width: 20px !important;
+      height: 20px !important;
+      line-height: 20px !important;
+    }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .nav-item {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      color: #4B5563;
-      transition: all 0.15s ease;
-      cursor: pointer;
+      padding: 12px 16px;
+      border-radius: 14px;
+      color: rgba(255, 255, 255, 0.75);
       text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      box-sizing: border-box;
     }
-    .nav-link-base:hover {
+
+    .nav-item mat-icon {
+      font-size: 20px !important;
+      width: 20px !important;
+      height: 20px !important;
+      line-height: 20px !important;
+      flex-shrink: 0;
+      color: inherit;
+    }
+
+    .nav-item:hover {
+      color: #FFFFFF;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-item.active {
+      background-color: #FFFFFF !important;
+      color: #011C5B !important;
+      font-weight: 700 !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    }
+
+    .nav-item.active mat-icon {
+      color: #011C5B !important;
+    }
+
+    .sidebar-divider {
+      border: 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      margin: 14px 4px;
+    }
+
+    .sidebar-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .footer-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .footer-btn mat-icon {
+      font-size: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
+      line-height: 18px !important;
+      flex-shrink: 0;
+    }
+
+    .btn-catalog {
+      background: rgba(255, 255, 255, 0.08);
+      color: #FFFFFF;
+    }
+
+    .btn-catalog:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .btn-logout {
+      background: transparent;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .btn-logout:hover {
+      background: rgba(178, 59, 36, 0.25);
+      color: #FFB4A4;
+    }
+
+    .admin-main {
+      flex: 1;
+      width: 100%;
+      min-width: 0;
+      margin-left: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-sizing: border-box;
+    }
+
+    .admin-topbar {
+      height: 64px;
+      background-color: #FFFFFF;
+      border-radius: 18px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+      border: 1px solid #E5E7EB;
+      box-sizing: border-box;
+      width: 100%;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .btn-open-sidebar {
+      background: #011C5B;
+      color: #FFFFFF;
+      border: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn-open-sidebar:hover {
+      background: #022982;
+    }
+
+    .btn-open-sidebar:active {
+      transform: scale(0.95);
+    }
+
+    .btn-open-sidebar mat-icon {
+      font-size: 22px !important;
+      width: 22px !important;
+      height: 22px !important;
+      line-height: 22px !important;
+      color: #FFFFFF;
+    }
+
+    .topbar-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      color: #011C5B;
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+
+    .title-icon {
+      font-size: 20px !important;
+      width: 20px !important;
+      height: 20px !important;
+      line-height: 20px !important;
+      color: #011C5B;
+      flex-shrink: 0;
+    }
+
+    .title-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+
+    .sede-select-wrapper {
+      position: relative;
+    }
+
+    .sede-select {
       background-color: #F8F9FA;
+      border: 1px solid #D1D5DB;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #011C5B;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .sede-select:focus {
+      border-color: #011C5B;
+      box-shadow: 0 0 0 3px rgba(1, 28, 91, 0.1);
+    }
+
+    .sede-static-badge {
+      background-color: #EEF2F7;
+      color: #011C5B;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: #F8F9FA;
+      border: 1px solid #E5E7EB;
+      padding: 6px 12px;
+      border-radius: 9999px;
+    }
+
+    .user-icon {
+      font-size: 20px !important;
+      width: 20px !important;
+      height: 20px !important;
+      line-height: 20px !important;
       color: #011C5B;
     }
-    .nav-link-base:hover .nav-icon {
-      color: #011C5B;
+
+    .user-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #1F2937;
     }
-    .active-nav-link {
-      background-color: rgba(1, 28, 91, 0.08) !important;
-      color: #011C5B !important;
-      font-weight: 600 !important;
+
+    .user-role-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background-color: #011C5B;
+      color: #FFFFFF;
+      letter-spacing: 0.03em;
     }
-    .active-nav-link .nav-icon {
-      color: #011C5B !important;
+
+    .admin-content {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
     }
-    .nav-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-      color: #6B7280;
-      transition: color 0.15s ease;
+
+    @media (max-width: 900px) {
+      .admin-shell {
+        flex-direction: column;
+        padding: 10px;
+      }
+      .admin-sidebar {
+        width: 100%;
+        border-radius: 18px;
+      }
+      .admin-sidebar.sidebar-hidden {
+        display: none !important;
+      }
+      .admin-topbar {
+        padding: 0 16px;
+        height: auto;
+        min-height: 64px;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+      }
+      .topbar-title {
+        font-size: 0.9rem;
+      }
     }
   `]
 })
 export class AdminLayoutComponent implements OnInit {
   private auth = inject(AuthService);
   private sedeAdmin = inject(SedeAdminService);
-  private metricasService = inject(AdminMetricasService);
   private router = inject(Router);
-
-  isSidebarOpen = signal(false);
-  totalPendientes = signal(0);
 
   sedes = this.sedeAdmin.sedes;
   selectedSedeId = this.sedeAdmin.selectedSedeId;
-  requiereSeleccionSede = this.sedeAdmin.requiereSeleccionSede;
+
+  // Signal y método para colapsar / ocultar el menú lateral
+  sidebarOculto = signal<boolean>(false);
 
   isSuperAdmin = computed(() => this.auth.isSuperAdmin());
   userRole = computed(() => this.auth.getUserRole() || 'ADMIN');
@@ -350,39 +602,22 @@ export class AdminLayoutComponent implements OnInit {
 
   currentSedeNombre = computed(() => {
     const s = this.sedeAdmin.selectedSede();
-    return s ? s.nombre : (this.isSuperAdmin() ? 'Sin sede seleccionada' : 'Sede Fraternidad');
+    return s ? s.nombre : (this.isSuperAdmin() ? 'Supervisión Global' : 'Sede Fraternidad');
   });
 
   ngOnInit(): void {
     this.sedeAdmin.cargarSedes().subscribe();
-    this.metricasService.obtenerResumen().subscribe((m) => {
-      if (m && m.pendientes_moderacion) {
-        this.totalPendientes.set(
-          (m.pendientes_moderacion.perdidos || 0) +
-          (m.pendientes_moderacion.encontrados || 0) +
-          (m.pendientes_moderacion.eliminaciones || 0)
-        );
-      }
-    });
   }
 
   toggleSidebar(): void {
-    this.isSidebarOpen.update(v => !v);
-  }
-
-  closeSidebar(): void {
-    this.isSidebarOpen.set(false);
+    this.sidebarOculto.update(v => !v);
   }
 
   onSedeChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
     if (target && target.value) {
-      this.seleccionarSede(target.value);
+      this.sedeAdmin.seleccionarSede(target.value);
     }
-  }
-
-  seleccionarSede(id: string): void {
-    this.sedeAdmin.seleccionarSede(id);
   }
 
   logout(): void {
