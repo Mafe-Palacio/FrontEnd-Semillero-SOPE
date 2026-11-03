@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, input } from '@angular/core';
+import { Component, OnInit, effect, inject, signal, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormArray, FormGroup, FormControl, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -8,6 +8,7 @@ import { finalize } from 'rxjs/operators';
 import { API_URL } from '../../../core/api.config';
 import { mensajeDeError } from '../../../core/api-error';
 import { PreguntaSeguridadResponse } from '../../../api/model/preguntaSeguridadResponse';
+import { ObjetoEnCustodiaResponse } from '../../../api/model/objetoEnCustodiaResponse';
 
 @Component({
   selector: 'app-custodia-preguntas',
@@ -18,9 +19,25 @@ import { PreguntaSeguridadResponse } from '../../../api/model/preguntaSeguridadR
 
       <!-- Barra de Selección de Objeto -->
       <div class="itm-filter-bar questions-top-bar">
-        <div class="object-picker-form">
-          <div class="itm-field" style="flex: 1; max-width: 480px;">
-            <label for="inputObjId" class="itm-label">Identificador del Objeto en Custodia (UUID)</label>
+        <div class="object-picker-form" style="display: flex; flex-wrap: wrap; gap: 14px; flex: 1; align-items: flex-end;">
+          <div class="itm-field" style="flex: 1 1 280px;">
+            <label for="selectObjCustodia" class="itm-label">Seleccionar Objeto del Inventario</label>
+            <select
+              id="selectObjCustodia"
+              [value]="objetoIdActual()"
+              (change)="seleccionarObjeto($any($event.target).value)"
+              class="itm-select">
+              <option value="">-- Elige un objeto en custodia --</option>
+              @for (obj of objetosDisponibles(); track obj.objetoEnCustodia_id) {
+                <option [value]="obj.objetoEnCustodia_id">
+                  OP-{{ obj.objetoEnCustodia_id.slice(-6).toUpperCase() }} · {{ obj.categoria }} · {{ obj.descripcion }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="itm-field" style="flex: 1 1 260px;">
+            <label for="inputObjId" class="itm-label">O buscar por UUID del Objeto</label>
             <div style="display: flex; gap: 8px;">
               <input
                 id="inputObjId"
@@ -44,7 +61,7 @@ import { PreguntaSeguridadResponse } from '../../../api/model/preguntaSeguridadR
 
         @if (objetoIdActual() && preguntas().length > 0) {
           <div class="top-actions">
-            @if (preguntas().length < 3) {
+            @if (preguntas().length < 10) {
               <button
                 type="button"
                 (click)="abrirModalCrearPregunta()"
@@ -69,7 +86,7 @@ import { PreguntaSeguridadResponse } from '../../../api/model/preguntaSeguridadR
       <div class="notice-card">
         <mat-icon class="notice-icon">admin_panel_settings</mat-icon>
         <div class="notice-body">
-          <h4>Cuestionario de Validación de Titularidad (HU08, HU20, HU21)</h4>
+          <h4>Cuestionario de Validación de Titularidad (HU04, HU08, HU20)</h4>
           <p>
             Las <strong>respuestas correctas</strong> registradas son de uso <strong>estrictamente confidencial del administrador</strong> para evaluar reclamaciones. Los usuarios en el catálogo público solo verán las preguntas sin ninguna pista de respuesta.
           </p>
@@ -97,9 +114,9 @@ import { PreguntaSeguridadResponse } from '../../../api/model/preguntaSeguridadR
             <div class="itm-empty-icon">
               <mat-icon>quiz</mat-icon>
             </div>
-            <h3 style="margin: 8px 0 0; font-size: 1.05rem;">Ingresa el ID del objeto para ver su cuestionario</h3>
+            <h3 style="margin: 8px 0 0; font-size: 1.05rem;">Selecciona un objeto para ver o configurar su cuestionario</h3>
             <p style="margin: 0; font-size: 0.85rem; color: #6b7280;">
-              También puedes pulsar el botón de preguntas en cualquier fila de la pestaña de Inventario.
+              Puedes elegirlo del selector superior o pulsar el botón de preguntas en cualquier fila de la pestaña de Inventario.
             </p>
           </div>
         } @else if (cargando()) {
@@ -117,7 +134,7 @@ import { PreguntaSeguridadResponse } from '../../../api/model/preguntaSeguridadR
             </div>
             <h3 style="margin: 8px 0 0; font-size: 1.05rem;">Este objeto no tiene preguntas de seguridad configuradas</h3>
             <p style="margin: 0; font-size: 0.85rem; color: #6b7280; max-width: 440px;">
-              Los reclamos para este artículo se resolverán únicamente de forma presencial a menos que definas de 1 a 3 preguntas de validación.
+              Los reclamos para este artículo se resolverán únicamente de forma presencial a menos que definas entre 1 y 10 preguntas de validación.
             </p>
             <button
               type="button"
@@ -125,7 +142,7 @@ import { PreguntaSeguridadResponse } from '../../../api/model/preguntaSeguridadR
               class="itm-btn itm-btn-primary"
               style="margin-top: 14px;">
               <mat-icon>add</mat-icon>
-              <span>Configurar Preguntas (1 a 3)</span>
+              <span>Configurar Preguntas de Seguridad</span>
             </button>
           </div>
         } @else {
@@ -177,7 +194,7 @@ import { PreguntaSeguridadResponse } from '../../../api/model/preguntaSeguridadR
 
     </div>
 
-    <!-- Modal Crear Preguntas (1 a 3) -->
+    <!-- Modal Crear Preguntas (1 a 10) -->
     @if (modalCrearAbierto()) {
       <div class="itm-modal-backdrop">
         <div class="itm-modal-card wide">
@@ -194,7 +211,7 @@ import { PreguntaSeguridadResponse } from '../../../api/model/preguntaSeguridadR
           <form [formGroup]="formCrear" (ngSubmit)="guardarPreguntas()">
             <div class="itm-modal-body">
               <p style="margin: 0; font-size: 0.84rem; color: #4b5563;">
-                Define entre 1 y 3 preguntas clave (color exacto, contenido interior, contraseña o seña particular no visible en la foto pública):
+                Define preguntas clave sobre señas particulares no visibles en la foto pública (color interior, llavero, adhesivo, marca específica):
               </p>
 
               <div formArrayName="preguntas" class="preguntas-form-list">
@@ -233,14 +250,14 @@ import { PreguntaSeguridadResponse } from '../../../api/model/preguntaSeguridadR
                 }
               </div>
 
-              @if (preguntasFormArray.length < 3) {
+              @if (preguntasFormArray.length < 10) {
                 <button
                   type="button"
                   (click)="agregarFilaPregunta()"
                   class="itm-btn itm-btn-outline"
                   style="align-self: flex-start;">
                   <mat-icon>add</mat-icon>
-                  <span>Agregar otra pregunta (Máx. 3)</span>
+                  <span>Agregar otra pregunta</span>
                 </button>
               }
             </div>
@@ -540,6 +557,7 @@ export class CustodiaPreguntasComponent implements OnInit {
 
   objetoIdExterno = input<string | null>(null);
 
+  objetosDisponibles = signal<ObjetoEnCustodiaResponse[]>([]);
   objetoIdActual = signal<string>('');
   preguntas = signal<PreguntaSeguridadResponse[]>([]);
   cargando = signal<boolean>(false);
@@ -559,11 +577,22 @@ export class CustodiaPreguntasComponent implements OnInit {
     respuesta_correcta: new FormControl<string>('', [Validators.required, Validators.minLength(2)])
   });
 
+  constructor() {
+    effect(() => {
+      const extId = this.objetoIdExterno();
+      if (extId) {
+        this.objetoIdActual.set(extId);
+        this.cargarPreguntas();
+      }
+    });
+  }
+
   get preguntasFormArray(): FormArray<FormGroup> {
     return this.formCrear.controls.preguntas as FormArray<FormGroup>;
   }
 
   ngOnInit(): void {
+    this.cargarObjetosDisponibles();
     const extId = this.objetoIdExterno();
     if (extId) {
       this.objetoIdActual.set(extId);
@@ -571,9 +600,20 @@ export class CustodiaPreguntasComponent implements OnInit {
     }
   }
 
+  cargarObjetosDisponibles(): void {
+    this.http.get<ObjetoEnCustodiaResponse[]>(`${API_URL}/objetos-custodia/?limit=100`).subscribe({
+      next: (objs) => this.objetosDisponibles.set(Array.isArray(objs) ? objs : []),
+      error: () => this.objetosDisponibles.set([])
+    });
+  }
+
   seleccionarObjeto(id: string): void {
     this.objetoIdActual.set(id.trim());
-    this.cargarPreguntas();
+    if (id.trim()) {
+      this.cargarPreguntas();
+    } else {
+      this.preguntas.set([]);
+    }
   }
 
   actualizarInputId(val: string): void {
@@ -613,7 +653,7 @@ export class CustodiaPreguntasComponent implements OnInit {
   }
 
   agregarFilaPregunta(): void {
-    if (this.preguntasFormArray.length >= 3) return;
+    if (this.preguntasFormArray.length >= 10) return;
     this.preguntasFormArray.push(
       new FormGroup({
         pregunta: new FormControl<string>('', [Validators.required, Validators.minLength(4)]),

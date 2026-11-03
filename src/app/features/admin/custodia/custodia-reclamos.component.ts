@@ -7,7 +7,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { finalize } from 'rxjs/operators';
 import { API_URL } from '../../../core/api.config';
 import { mensajeDeError } from '../../../core/api-error';
-import { EstadoReclamo } from '../../../api/model/estadoReclamo';
 import { ReclamoResponse } from '../../../api/model/reclamoResponse';
 import { RespuestaSeguridadResponse } from '../../../api/model/respuestaSeguridadResponse';
 import { PreguntaSeguridadResponse } from '../../../api/model/preguntaSeguridadResponse';
@@ -17,6 +16,14 @@ export interface ComparacionRespuesta {
   preguntaTexto: string;
   respuestaUsuario: string;
   respuestaCorrecta: string;
+}
+
+export interface UsuarioReclamanteInfo {
+  usuario_id: string;
+  nombre_completo: string;
+  correo: string;
+  celular?: string | null;
+  carnet?: string | null;
 }
 
 @Component({
@@ -113,6 +120,7 @@ export interface ComparacionRespuesta {
                   <th>Código Reclamo</th>
                   <th>Objeto Asociado</th>
                   <th>Modalidad</th>
+                  <th>Cita Programada</th>
                   <th>Fecha de Envío</th>
                   <th>Estado</th>
                   <th style="text-align: center;">Acciones</th>
@@ -145,6 +153,17 @@ export interface ComparacionRespuesta {
                           <mat-icon style="font-size: 14px; width: 14px; height: 14px;">quiz</mat-icon>
                           Virtual (Preguntas)
                         </span>
+                      }
+                    </td>
+
+                    <td style="font-size: 0.8rem; color: #374151; white-space: nowrap;">
+                      @if (r.fecha_cita) {
+                        <span style="display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: #102d69;">
+                          <mat-icon style="font-size: 15px; width: 15px; height: 15px;">event</mat-icon>
+                          {{ formatearSoloFecha(r.fecha_cita) }} {{ r.horario_cita || '' }}
+                        </span>
+                      } @else {
+                        <span style="color: #9ca3af;">Sin agendar</span>
                       }
                     </td>
 
@@ -262,6 +281,17 @@ export interface ComparacionRespuesta {
               </div>
             </div>
 
+            <!-- Datos del Reclamante si están disponibles -->
+            @if (usuarioReclamante(); as u) {
+              <div class="claimant-box">
+                <mat-icon class="claimant-icon">person</mat-icon>
+                <div class="claimant-details">
+                  <strong>{{ u.nombre_completo }}</strong>
+                  <span>{{ u.correo }} · Celular: {{ u.celular || 'No registrado' }} · Carné: {{ u.carnet || 'No registrado' }}</span>
+                </div>
+              </div>
+            }
+
             <!-- Evidencia Adjunta si existe -->
             @if (rec.evidencia_url) {
               <div class="evidence-box">
@@ -279,14 +309,16 @@ export interface ComparacionRespuesta {
               <div class="answers-section">
                 <div class="answers-header">
                   <h4 style="margin: 0; font-size: 0.95rem; color: #102d69;">Cotejo de Preguntas de Seguridad</h4>
-                  <button
-                    type="button"
-                    (click)="validarRespuestasAutomaticamente(rec.reclamo_id)"
-                    [disabled]="validando()"
-                    class="itm-btn itm-btn-outline compact">
-                    <mat-icon [class.spin-icon]="validando()">auto_fix_high</mat-icon>
-                    <span>Validar Respuestas Automáticamente</span>
-                  </button>
+                  @if (rec.estado === 'ENVIADO' || rec.estado === 'EN_REVISION') {
+                    <button
+                      type="button"
+                      (click)="validarRespuestasAutomaticamente(rec.reclamo_id)"
+                      [disabled]="validando()"
+                      class="itm-btn itm-btn-outline compact">
+                      <mat-icon [class.spin-icon]="validando()">auto_fix_high</mat-icon>
+                      <span>Validar Respuestas Automáticamente</span>
+                    </button>
+                  }
                 </div>
 
                 @if (cargandoRespuestas()) {
@@ -316,19 +348,21 @@ export interface ComparacionRespuesta {
             }
 
             <!-- Acciones de Gestión según el Estado -->
-            @if (rec.estado === 'ENVIADO' || rec.estado === 'EN_REVISION') {
+            @if (rec.estado === 'ENVIADO' || rec.estado === 'EN_REVISION' || rec.estado === 'APROBADO') {
               <div class="management-section">
-                <h4 style="margin: 0 0 10px; font-size: 0.95rem; color: #102d69;">Gestión del Reclamo</h4>
+                <h4 style="margin: 0 0 10px; font-size: 0.95rem; color: #102d69;">Gestión del Reclamo y Agendamiento de Cita</h4>
 
                 <div class="management-actions">
-                  <button
-                    type="button"
-                    (click)="aprobarReclamo(rec.reclamo_id)"
-                    [disabled]="guardando()"
-                    class="itm-btn itm-btn-primary">
-                    <mat-icon>check</mat-icon>
-                    <span>Aprobar Reclamo</span>
-                  </button>
+                  @if (rec.estado === 'ENVIADO' || rec.estado === 'EN_REVISION') {
+                    <button
+                      type="button"
+                      (click)="aprobarReclamo(rec.reclamo_id)"
+                      [disabled]="guardando()"
+                      class="itm-btn itm-btn-primary">
+                      <mat-icon>check</mat-icon>
+                      <span>Aprobar Reclamo</span>
+                    </button>
+                  }
 
                   <button
                     type="button"
@@ -338,19 +372,21 @@ export interface ComparacionRespuesta {
                     <span>Agendar Cita de Retiro</span>
                   </button>
 
-                  <button
-                    type="button"
-                    (click)="mostrarFormRechazo.set(!mostrarFormRechazo())"
-                    class="itm-btn itm-btn-outline itm-btn-danger">
-                    <mat-icon>close</mat-icon>
-                    <span>Rechazar</span>
-                  </button>
+                  @if (rec.estado === 'ENVIADO' || rec.estado === 'EN_REVISION') {
+                    <button
+                      type="button"
+                      (click)="mostrarFormRechazo.set(!mostrarFormRechazo())"
+                      class="itm-btn itm-btn-outline itm-btn-danger">
+                      <mat-icon>close</mat-icon>
+                      <span>Rechazar</span>
+                    </button>
+                  }
                 </div>
 
                 <!-- Formulario Agendar Cita -->
                 @if (mostrarFormCita()) {
                   <div class="sub-form-card">
-                    <h5 style="margin: 0 0 8px; font-size: 0.88rem; color: #102d69;">Programar Cita en Sede (Estado LISTO_PARA_RECOGER)</h5>
+                    <h5 style="margin: 0 0 8px; font-size: 0.88rem; color: #102d69;">Programar Cita Presencial en Sede (Estado LISTO_PARA_RECOGER)</h5>
                     <div class="form-row-2">
                       <div class="itm-field">
                         <label class="itm-label">Fecha de Cita *</label>
@@ -368,7 +404,7 @@ export interface ComparacionRespuesta {
                       class="itm-btn itm-btn-primary"
                       style="margin-top: 10px;">
                       <mat-icon>save</mat-icon>
-                      <span>Guardar Cita y Notificar</span>
+                      <span>Guardar Cita y Notificar por Correo</span>
                     </button>
                   </div>
                 }
@@ -404,10 +440,10 @@ export interface ComparacionRespuesta {
               <div class="acta-cta-banner">
                 <div>
                   <h4 style="margin: 0 0 4px; color: #047857; font-size: 0.96rem;">
-                    Reclamo Aprobado · Listo para Legalizar Entrega
+                    Reclamo Autorizado · Listo para Legalizar Entrega
                   </h4>
                   <p style="margin: 0; font-size: 0.82rem; color: #065f46;">
-                    Al formalizar el acta se registrará la firma del reclamante y el objeto pasará a estado RECLAMADO.
+                    Al formalizar el acta se registrará la firma del reclamante y tanto el objeto como el reclamo pasarán a estado RECLAMADO.
                   </p>
                 </div>
                 <button
@@ -627,6 +663,28 @@ export interface ComparacionRespuesta {
       color: #1f2937;
     }
 
+    .claimant-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      color: #1e3a8a;
+    }
+
+    .claimant-icon {
+      color: #102d69;
+    }
+
+    .claimant-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.84rem;
+    }
+
     .evidence-box {
       background: #f8fafc;
       border: 1px solid #e5e7eb;
@@ -844,6 +902,7 @@ export class CustodiaReclamosComponent implements OnInit {
 
   modalDetalleAbierto = signal<boolean>(false);
   reclamoSeleccionado = signal<ReclamoResponse | null>(null);
+  usuarioReclamante = signal<UsuarioReclamanteInfo | null>(null);
   comparacionesRespuestas = signal<ComparacionRespuesta[]>([]);
   cargandoRespuestas = signal<boolean>(false);
   validando = signal<boolean>(false);
@@ -928,9 +987,17 @@ export class CustodiaReclamosComponent implements OnInit {
 
   abrirDetalleReclamo(rec: ReclamoResponse): void {
     this.reclamoSeleccionado.set(rec);
+    this.usuarioReclamante.set(null);
     this.mostrarFormCita.set(false);
     this.mostrarFormRechazo.set(false);
     this.modalDetalleAbierto.set(true);
+
+    if (rec.usuario_id) {
+      this.http.get<UsuarioReclamanteInfo>(`${API_URL}/usuarios/${rec.usuario_id}`).subscribe({
+        next: (u) => this.usuarioReclamante.set(u),
+        error: () => this.usuarioReclamante.set(null)
+      });
+    }
 
     if (!rec.es_presencial) {
       this.cargarComparativaRespuestas(rec);
@@ -940,6 +1007,7 @@ export class CustodiaReclamosComponent implements OnInit {
   cerrarDetalleReclamo(): void {
     this.modalDetalleAbierto.set(false);
     this.reclamoSeleccionado.set(null);
+    this.usuarioReclamante.set(null);
     this.comparacionesRespuestas.set([]);
   }
 
@@ -947,7 +1015,6 @@ export class CustodiaReclamosComponent implements OnInit {
     this.cargandoRespuestas.set(true);
     this.comparacionesRespuestas.set([]);
 
-    // Cargar respuestas del usuario y preguntas del objeto
     this.http.get<RespuestaSeguridadResponse[]>(`${API_URL}/respuestas-seguridad/reclamo/${rec.reclamo_id}`)
       .subscribe({
         next: (respuestasUsuario) => {
@@ -1010,10 +1077,11 @@ export class CustodiaReclamosComponent implements OnInit {
     const hora = this.horarioCitaControl.value;
     if (!fecha || !hora) return;
 
+    const fechaHoraIso = `${fecha}T${hora}:00`;
     this.guardando.set(true);
     this.http.put<ReclamoResponse>(`${API_URL}/reclamos/${reclamoId}`, {
       estado: 'LISTO_PARA_RECOGER',
-      fecha_cita: fecha,
+      fecha_cita: fechaHoraIso,
       horario_cita: hora
     })
       .pipe(finalize(() => this.guardando.set(false)))
@@ -1021,7 +1089,7 @@ export class CustodiaReclamosComponent implements OnInit {
         next: (actualizado) => {
           this.reclamoSeleccionado.set(actualizado);
           this.mostrarFormCita.set(false);
-          this.snack.open('Cita programada. Estado cambiado a LISTO PARA RECOGER.', 'Cerrar', { duration: 4500 });
+          this.snack.open('Cita programada y notificada. Estado cambiado a LISTO PARA RECOGER.', 'Cerrar', { duration: 4500 });
           this.cargarReclamos();
         },
         error: (err) => {
@@ -1056,13 +1124,14 @@ export class CustodiaReclamosComponent implements OnInit {
   abrirModalActa(rec: ReclamoResponse): void {
     this.firmaUrl.set(null);
     this.subiendoFirma.set(false);
+    const u = this.usuarioReclamante();
     this.actaForm.reset({
       reclamo_id: rec.reclamo_id,
-      nombre_reclamante: '',
+      nombre_reclamante: u?.nombre_completo || '',
       cedula_reclamante: '',
-      correo_reclamante: '',
-      celular_reclamante: '',
-      carnet_reclamante: '',
+      correo_reclamante: u?.correo || '',
+      celular_reclamante: u?.celular || '',
+      carnet_reclamante: u?.carnet || '',
       validacion_verbal: true
     });
     this.modalActaAbierto.set(true);
@@ -1135,7 +1204,7 @@ export class CustodiaReclamosComponent implements OnInit {
           this.actaGenerada.emit();
         },
         error: (err) => {
-          this.snack.open(mensajeDeError(err, 'Error 422: Asegúrate de completar todos los campos del acta y subir la firma.'), 'Cerrar', { duration: 6000 });
+          this.snack.open(mensajeDeError(err, 'Asegúrate de completar todos los campos del acta y subir la firma.'), 'Cerrar', { duration: 6000 });
         }
       });
   }
@@ -1144,5 +1213,11 @@ export class CustodiaReclamosComponent implements OnInit {
     if (!ts) return '';
     const d = new Date(ts);
     return isNaN(d.getTime()) ? ts : d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  formatearSoloFecha(ts: string | undefined): string {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return isNaN(d.getTime()) ? ts : d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 }

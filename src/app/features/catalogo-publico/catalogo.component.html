@@ -5,18 +5,18 @@
     <div class="header-container">
       <div class="header-branding">
         <span class="sede-badge">Institución Universitaria ITM · Sistema Oficial de Custodia</span>
-        <h1 class="header-title">Muro Público de Objetos en Custodia</h1>
+        <h1 class="header-title">Muro Público de Objetos en Custodia y Perdidos</h1>
         <p class="header-subtitle">
-          Consulta los artículos recuperados en las instalaciones del campus. Si reconoces tu pertenencia, inicia el proceso seguro de validación y entrega institucional.
+          Consulta los artículos recuperados en el campus o explora los objetos reportados como extraviados por la comunidad ITM.
         </p>
       </div>
     </div>
   </header>
 
-  <!-- Contenedor Principal del Catálogo (Fondo #F8F9FA, Espaciado Limpio 16px - 24px) -->
+  <!-- Contenedor Principal del Catálogo -->
   <div class="catalogo-main-container">
 
-    <!-- 2. Botones de Acción Rápida (Planos, 2 Columnas Balanceadas, Fondo Blanco, Bordes Sutiles #E5E7EB) -->
+    <!-- 2. Botones de Acción Rápida (2 Columnas Balanceadas) -->
     <section class="quick-actions-section" aria-label="Acciones rápidas de objetos perdidos y encontrados">
       <div class="quick-actions-grid">
         <button
@@ -51,7 +51,30 @@
       </div>
     </section>
 
-    <!-- 3. Barra de Búsqueda y Filtros de Categorías (Fondo Blanco, Borde #E5E7EB, Minimalista) -->
+    <!-- Selector Principal de Vista del Muro Público -->
+    <section class="muro-tabs-section" aria-label="Cambiar entre objetos en custodia y objetos reportados como perdidos">
+      <div class="muro-tabs">
+        <button
+          type="button"
+          class="muro-tab-btn"
+          [class.active]="vistaActiva() === 'custodia'"
+          (click)="cambiarVistaMuro('custodia')">
+          <mat-icon>inventory_2</mat-icon>
+          <span>Objetos en Custodia Oficial ({{ objetos().length }})</span>
+        </button>
+
+        <button
+          type="button"
+          class="muro-tab-btn muro-tab-btn--lost"
+          [class.active]="vistaActiva() === 'perdidos'"
+          (click)="cambiarVistaMuro('perdidos')">
+          <mat-icon>person_search</mat-icon>
+          <span>Reportados como Perdidos ({{ perdidosPublicos().length }})</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 3. Barra de Búsqueda y Filtros de Categorías -->
     <section class="filtros-section" [formGroup]="filtrosForm">
       <div class="filtros-panel">
 
@@ -62,9 +85,9 @@
             <input
               type="text"
               formControlName="termino"
-              placeholder="Buscar por artículo, punto de custodia, categoría o código (ej. audífonos, termo, llaves)..."
+              placeholder="Buscar por artículo, punto de custodia, ubicación o categoría (ej. audífonos, termo, llaves)..."
               class="search-input"
-              aria-label="Buscar objetos encontrados en el ITM"
+              aria-label="Buscar objetos en el catálogo ITM"
             />
             @if (filtrosForm.controls.termino.value) {
               <button
@@ -112,14 +135,18 @@
         <!-- Barra de Estado / Contador de Resultados -->
         <div class="filtros-feedback-bar">
           <div class="feedback-info">
-            @if (cargando()) {
+            @if (cargando() && vistaActiva() === 'custodia') {
               <span class="loading-text">
                 <mat-icon class="spin-icon">sync</mat-icon>
                 Actualizando catálogo institucional...
               </span>
-            } @else {
+            } @else if (vistaActiva() === 'custodia') {
               <span class="count-text">
                 Mostrando <strong>{{ totalFiltrados() }}</strong> {{ totalFiltrados() === 1 ? 'objeto en custodia' : 'objetos en custodia' }}
+              </span>
+            } @else {
+              <span class="count-text">
+                Mostrando <strong>{{ totalPerdidosFiltrados() }}</strong> {{ totalPerdidosFiltrados() === 1 ? 'reporte de extravío aprobado' : 'reportes de extravío aprobados' }}
               </span>
             }
           </div>
@@ -135,144 +162,209 @@
       </div>
     </section>
 
-  <!-- Muro de Objetos (Grid de Tarjetas) -->
-  <main class="catalogo-content">
-    <div class="content-container">
+    <!-- Muro de Objetos (Grid de Tarjetas según Vista Activa) -->
+    <main class="catalogo-content">
+      <div class="content-container">
 
-      @if (cargando() && objetos().length === 0) {
-        <div class="loading-state">
-          <div class="spinner-institutional"></div>
-          <p>Cargando objetos bajo custodia institucional...</p>
-        </div>
-      }
+        <!-- VISTA 1: OBJETOS EN CUSTODIA OFICIAL -->
+        @if (vistaActiva() === 'custodia') {
+          @if (cargando() && objetos().length === 0) {
+            <div class="loading-state">
+              <div class="spinner-institutional"></div>
+              <p>Cargando objetos bajo custodia institucional...</p>
+            </div>
+          }
 
-      @if (!cargando() && errorMensaje()) {
-        <div class="error-banner">
-          <mat-icon>error_outline</mat-icon>
-          <div class="error-text">
-            <h4>No fue posible sincronizar el catálogo</h4>
-            <p>{{ errorMensaje() }}</p>
-          </div>
-          <button type="button" mat-stroked-button (click)="cargarCatalogo()">
-            Reintentar
-          </button>
-        </div>
-      }
+          @if (!cargando() && errorMensaje()) {
+            <div class="error-banner">
+              <mat-icon>error_outline</mat-icon>
+              <div class="error-text">
+                <h4>No fue posible sincronizar el catálogo</h4>
+                <p>{{ errorMensaje() }}</p>
+              </div>
+              <button type="button" mat-stroked-button (click)="cargarCatalogo()">
+                Reintentar
+              </button>
+            </div>
+          }
 
-      @if (!cargando() && objetosFiltrados().length > 0) {
-        <div class="cards-grid">
-          @for (item of objetosFiltrados(); track item.id) {
-            <article class="objeto-card" (click)="iniciarReclamo(item, $event)">
+          @if (!cargando() && objetosFiltrados().length > 0) {
+            <div class="cards-grid">
+              @for (item of objetosFiltrados(); track item.id) {
+                <article class="objeto-card" (click)="iniciarReclamo(item, $event)">
 
-              <div class="card-media">
-                @if (item.imagenUrl) {
-                  <img
-                    [src]="item.imagenUrl"
-                    [alt]="item.descripcion"
-                    class="media-img"
-                    referrerpolicy="no-referrer"
-                    (error)="onImageError(item)"
-                  />
-                } @else {
-                  <div class="media-fallback">
-                    <div class="fallback-icon-ring">
-                      <mat-icon>{{ getIconoPorCategoria(item.categoria) }}</mat-icon>
+                  <div class="card-media">
+                    @if (item.imagenUrl) {
+                      <img
+                        [src]="item.imagenUrl"
+                        [alt]="item.descripcion"
+                        class="media-img"
+                        referrerpolicy="no-referrer"
+                        (error)="onImageError(item)"
+                      />
+                    } @else {
+                      <div class="media-fallback">
+                        <div class="fallback-icon-ring">
+                          <mat-icon>{{ getIconoPorCategoria(item.categoria) }}</mat-icon>
+                        </div>
+                      </div>
+                    }
+
+                    <div class="card-media-badges">
+                      <span class="badge-categoria">
+                        <mat-icon>{{ getIconoPorCategoria(item.categoria) }}</mat-icon>
+                        {{ item.categoriaEtiqueta }}
+                      </span>
+                      @if (item.estado === 'POR_VENCER') {
+                        <span class="badge-estado badge-estado--warning">Por Vencer</span>
+                      }
                     </div>
                   </div>
-                }
 
-                <div class="card-media-badges">
-                  <span class="badge-categoria">
-                    <mat-icon>{{ getIconoPorCategoria(item.categoria) }}</mat-icon>
-                    {{ item.categoriaEtiqueta }}
-                  </span>
-                  @if (item.estado === 'POR_VENCER') {
-                    <span class="badge-estado badge-estado--warning">Por Vencer</span>
-                  }
-                </div>
-              </div>
+                  <div class="card-body">
+                    <div class="card-top-meta">
+                      <span class="card-code">{{ item.codigoPublico }}</span>
+                      <span class="card-date">
+                        <mat-icon>calendar_today</mat-icon>
+                        {{ item.fechaFormateada }}
+                      </span>
+                    </div>
 
-              <div class="card-body">
-                <div class="card-top-meta">
-                  <span class="card-code">{{ item.codigoPublico }}</span>
-                  <span class="card-date">
-                    <mat-icon>calendar_today</mat-icon>
-                    {{ item.fechaFormateada }}
-                  </span>
-                </div>
+                    <h3 class="card-title">{{ item.descripcion }}</h3>
 
-                <h3 class="card-title">{{ item.descripcion }}</h3>
+                    <div class="card-location">
+                      <mat-icon>place</mat-icon>
+                      <span>{{ item.lugarGeneral }}</span>
+                    </div>
 
-                <div class="card-location">
-                  <mat-icon>place</mat-icon>
-                  <span>{{ item.lugarGeneral }}</span>
-                </div>
+                    <div class="card-footer">
+                      <button
+                        type="button"
+                        class="btn-claim"
+                        (click)="iniciarReclamo(item, $event)"
+                        aria-label="Reclamar pertenencia de este objeto"
+                      >
+                        <mat-icon>person_check</mat-icon>
+                        <span>¿Es tuyo? Reclamar</span>
+                      </button>
+                    </div>
+                  </div>
 
-                <div class="card-footer">
-                  <button
-                    type="button"
-                    class="btn-claim"
-                    (click)="iniciarReclamo(item, $event)"
-                    aria-label="Reclamar pertenencia de este objeto"
-                  >
-                    <mat-icon>person_check</mat-icon>
-                    <span>¿Es tuyo? Reclamar</span>
-                  </button>
-                </div>
-              </div>
-
-            </article>
+                </article>
+              }
+            </div>
           }
-        </div>
-      }
 
-      @if (!cargando() && objetosFiltrados().length === 0) {
-        <div class="empty-state">
-          <div class="empty-icon-box">
-            <mat-icon>search_off</mat-icon>
-          </div>
-          <h3 class="empty-title">No se encontraron objetos que coincidan</h3>
-          <p class="empty-desc">
-            No hay registros con los criterios seleccionados actualmente. Intenta buscar con otros términos o borrar los filtros aplicados.
-          </p>
-          <div class="empty-actions">
-            <button type="button" class="btn-primary-itm" (click)="limpiarFiltros()">
-              <mat-icon>restart_alt</mat-icon>
-              <span>Ver todos los objetos</span>
-            </button>
-            <button type="button" class="btn-secondary-itm" (click)="abrirModalReportarPerdido()">
-              <mat-icon>post_add</mat-icon>
-              <span>Reportar objeto perdido</span>
-            </button>
-          </div>
-        </div>
-      }
+          @if (!cargando() && objetosFiltrados().length === 0) {
+            <div class="empty-state">
+              <div class="empty-icon-box">
+                <mat-icon>search_off</mat-icon>
+              </div>
+              <h3 class="empty-title">No se encontraron objetos en custodia que coincidan</h3>
+              <p class="empty-desc">
+                No hay registros con los criterios seleccionados actualmente. Intenta buscar con otros términos o reportar tu objeto perdido.
+              </p>
+              <div class="empty-actions">
+                <button type="button" class="btn-primary-itm" (click)="limpiarFiltros()">
+                  <mat-icon>restart_alt</mat-icon>
+                  <span>Ver todos los objetos</span>
+                </button>
+                <button type="button" class="btn-secondary-itm" (click)="abrirModalReportarPerdido()">
+                  <mat-icon>post_add</mat-icon>
+                  <span>Reportar objeto perdido</span>
+                </button>
+              </div>
+            </div>
+          }
+        }
 
-      <!-- Objetos reportados como perdidos (aprobados por un administrador) -->
-      @if (perdidosPublicos().length > 0) {
-        <section class="perdidos-section" aria-label="Objetos reportados como perdidos">
-          <h2 class="perdidos-title">Reportados como perdidos</h2>
-          <p class="perdidos-sub">¿Encontraste alguno de estos objetos? Entrégalo en la oficina de objetos perdidos de tu sede.</p>
-          <div class="perdidos-grid">
-            @for (p of perdidosPublicos(); track p.reportePerdida_id) {
-              <article class="perdido-card">
-                @if (p.imagen_url) {
-                  <img [src]="p.imagen_url" [alt]="p.descripcion" class="perdido-img" referrerpolicy="no-referrer" />
-                }
-                <span class="perdido-cat">{{ etiquetaCategoria(p.categoria) }}</span>
-                <h3 class="perdido-desc">{{ p.descripcion }}</h3>
-                <div class="perdido-meta">
-                  <span>{{ p.lugar_perdida_nombre || 'Lugar no indicado' }}</span>
-                  <span>{{ p.fecha_perdida }}</span>
-                </div>
-              </article>
-            }
-          </div>
-        </section>
-      }
+        <!-- VISTA 2: REPORTADOS COMO PERDIDOS POR LA COMUNIDAD -->
+        @if (vistaActiva() === 'perdidos') {
+          @if (perdidosFiltrados().length > 0) {
+            <div class="cards-grid">
+              @for (p of perdidosFiltrados(); track p.reportePerdida_id) {
+                <article class="objeto-card objeto-card--lost">
+                  <div class="card-media card-media--lost">
+                    @if (p.imagen_url) {
+                      <img
+                        [src]="p.imagen_url"
+                        [alt]="p.descripcion"
+                        class="media-img"
+                        referrerpolicy="no-referrer"
+                      />
+                    } @else {
+                      <div class="media-fallback">
+                        <div class="fallback-icon-ring fallback-icon-ring--lost">
+                          <mat-icon>{{ getIconoPorCategoria(p.categoria) }}</mat-icon>
+                        </div>
+                      </div>
+                    }
 
-    </div>
-  </main>
+                    <div class="card-media-badges">
+                      <span class="badge-categoria">
+                        <mat-icon>{{ getIconoPorCategoria(p.categoria) }}</mat-icon>
+                        {{ etiquetaCategoria(p.categoria) }}
+                      </span>
+                      <span class="badge-estado badge-estado--lost">Extraviado</span>
+                    </div>
+                  </div>
+
+                  <div class="card-body">
+                    <div class="card-top-meta">
+                      <span class="card-code card-code--lost">REP-{{ p.reportePerdida_id.slice(-6).toUpperCase() }}</span>
+                      <span class="card-date">
+                        <mat-icon>calendar_today</mat-icon>
+                        {{ p.fecha_perdida }}
+                      </span>
+                    </div>
+
+                    <h3 class="card-title">{{ p.descripcion }}</h3>
+
+                    <div class="card-location">
+                      <mat-icon>place</mat-icon>
+                      <span>{{ p.lugar_perdida_nombre || 'Campus ITM' }}</span>
+                    </div>
+
+                    <div class="card-footer">
+                      <button
+                        type="button"
+                        class="btn-claim btn-claim--found"
+                        (click)="abrirModalRegistrarEncontrado(p.categoria)"
+                        aria-label="Reportar que encontraste este objeto"
+                      >
+                        <mat-icon>volunteer_activism</mat-icon>
+                        <span>¿Lo encontraste? Reportar hallazgo</span>
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <div class="empty-state">
+              <div class="empty-icon-box">
+                <mat-icon>person_search</mat-icon>
+              </div>
+              <h3 class="empty-title">No hay reportes de extravío que coincidan</h3>
+              <p class="empty-desc">
+                Si perdiste una pertenencia en el campus, regístrala para que la comunidad y la oficina de custodia puedan ayudarte a encontrarla.
+              </p>
+              <div class="empty-actions">
+                <button type="button" class="btn-primary-itm" (click)="abrirModalReportarPerdido()">
+                  <mat-icon>post_add</mat-icon>
+                  <span>Reportar objeto perdido</span>
+                </button>
+                <button type="button" class="btn-secondary-itm" (click)="cambiarVistaMuro('custodia')">
+                  <mat-icon>inventory_2</mat-icon>
+                  <span>Ver objetos en custodia</span>
+                </button>
+              </div>
+            </div>
+          }
+        }
+
+      </div>
+    </main>
   </div>
 
   <!-- Modal Real de Reclamación y Validación de Seguridad (HU08, HU20, HU21, HU22) -->

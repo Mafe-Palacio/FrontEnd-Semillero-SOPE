@@ -113,6 +113,9 @@ export class CatalogoComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
+  // Pestaña activa del muro público: Objetos en Custodia vs Reportados como Perdidos
+  readonly vistaActiva = signal<'custodia' | 'perdidos'>('custodia');
+
   // Estado reactivo con Signals
   readonly cargando = signal<boolean>(true);
   readonly errorMensaje = signal<string | null>(null);
@@ -193,10 +196,10 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     }))
   ];
 
-  // Objetos filtrados reactivamente en base a búsqueda, categoría y orden
+  // Objetos en custodia filtrados reactivamente
   readonly objetosFiltrados = computed(() => {
     const lista = this.objetos();
-    this.filtros(); // dependencia reactiva de los filtros
+    this.filtros();
     const f = this.filtrosForm.getRawValue();
     const query = f.termino.trim().toLowerCase();
     const cat = f.categoria;
@@ -204,12 +207,10 @@ export class CatalogoComponent implements OnInit, OnDestroy {
 
     return lista
       .filter((item) => {
-        // Filtro por categoría
         if (cat !== 'TODAS' && item.categoria !== cat) {
           return false;
         }
 
-        // Filtro por texto reactivo (coincide con descripción pública, categoría, punto de custodia o código)
         if (query) {
           const coincideDescripcion = item.descripcion.toLowerCase().includes(query);
           const coincideCategoria = item.categoriaEtiqueta.toLowerCase().includes(query);
@@ -229,14 +230,52 @@ export class CatalogoComponent implements OnInit, OnDestroy {
       });
   });
 
+  // Reportes de pérdida públicos filtrados reactivamente
+  readonly perdidosFiltrados = computed(() => {
+    const lista = this.perdidosPublicos();
+    this.filtros();
+    const f = this.filtrosForm.getRawValue();
+    const query = f.termino.trim().toLowerCase();
+    const cat = f.categoria;
+    const orden = f.orden;
+
+    return lista
+      .filter((item) => {
+        if (cat !== 'TODAS' && item.categoria !== cat) {
+          return false;
+        }
+
+        if (query) {
+          const etiq = this.etiquetaCategoria(item.categoria).toLowerCase();
+          const desc = (item.descripcion || '').toLowerCase();
+          const lugar = (item.lugar_perdida_nombre || '').toLowerCase();
+          if (!desc.includes(query) && !etiq.includes(query) && !lugar.includes(query)) {
+            return false;
+          }
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        const timeA = new Date(a.fecha_perdida).getTime();
+        const timeB = new Date(b.fecha_perdida).getTime();
+        return orden === 'recientes' ? timeB - timeA : timeA - timeB;
+      });
+  });
+
   // Métricas del catálogo
   readonly totalDisponibles = computed(() => this.objetos().length);
   readonly totalFiltrados = computed(() => this.objetosFiltrados().length);
+  readonly totalPerdidosFiltrados = computed(() => this.perdidosFiltrados().length);
 
   ngOnInit(): void {
     this.suscribirCambiosFiltros();
     this.cargarCatalogo();
     this.cargarPerdidosPublicos();
+  }
+
+  cambiarVistaMuro(vista: 'custodia' | 'perdidos'): void {
+    this.vistaActiva.set(vista);
   }
 
   cargarPerdidosPublicos(): void {
@@ -258,9 +297,6 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  /**
-   * Suscribe a cambios en el término de búsqueda con debounceTime de 300ms
-   */
   private suscribirCambiosFiltros(): void {
     this.filtrosForm.controls.termino.valueChanges
       .pipe(
@@ -268,15 +304,9 @@ export class CatalogoComponent implements OnInit, OnDestroy {
         distinctUntilChanged(),
         takeUntil(this.destroy$)
       )
-      .subscribe(() => {
-        // El computed signal `objetosFiltrados` se recalcula automáticamente
-      });
+      .subscribe(() => {});
   }
 
-  /**
-   * Carga el catálogo público desde la API FastAPI (GET /objetos-custodia/catalogo).
-   * Solo muestra datos reales: si la API falla se muestra el error y "Reintentar".
-   */
   cargarCatalogo(): void {
     this.cargando.set(true);
     this.errorMensaje.set(null);
@@ -297,10 +327,6 @@ export class CatalogoComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * Mapea un objeto del esquema de FastAPI a la tarjeta pública (HU01).
-   * Incluye la descripción pública del objeto sin exponer detalles_internos.
-   */
   private mapearObjetoPublico(item: ObjetoEnCustodiaPublico): ObjetoCatalogoItem {
     const fecha = item.fecha_ingreso ? new Date(item.fecha_ingreso) : new Date();
     const diasEnCustodia = Math.ceil(Math.abs(Date.now() - fecha.getTime()) / (1000 * 60 * 60 * 24));
@@ -333,16 +359,10 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     return date.toLocaleDateString('es-CO', opciones);
   }
 
-  /**
-   * Manejador de selección de categoría rápida desde los botones
-   */
   seleccionarCategoria(categoriaId: string): void {
     this.filtrosForm.patchValue({ categoria: categoriaId });
   }
 
-  /**
-   * Limpia todos los filtros y restablece la búsqueda
-   */
   limpiarFiltros(): void {
     this.filtrosForm.setValue({
       termino: '',
@@ -351,9 +371,6 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Abre el modal de detalle del objeto (sin información sensible)
-   */
   abrirDetalle(item: ObjetoCatalogoItem): void {
     this.objetoSeleccionado.set(item);
     this.modalDetalleAbierto.set(true);
@@ -363,10 +380,6 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     this.modalDetalleAbierto.set(false);
   }
 
-  /**
-   * Inicia el flujo real de reclamación (HU08, HU20, HU21, HU22)
-   * Valida si el usuario está autenticado y consulta las preguntas de seguridad configuradas.
-   */
   iniciarReclamo(item: ObjetoCatalogoItem, event?: MouseEvent): void {
     if (event) {
       event.stopPropagation();
@@ -411,7 +424,6 @@ export class CatalogoComponent implements OnInit, OnDestroy {
           }
         },
         error: () => {
-          // Si el objeto aún no tiene cuestionario configurado (404), habilitamos modalidad presencial
           this.preguntasSeguridad.set([]);
           this.modalidadReclamo.set('presencial');
         }
@@ -455,9 +467,6 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     this.modalReclamarAbierto.set(false);
   }
 
-  /**
-   * Métodos para modal "Se me perdió un objeto"
-   */
   abrirModalReportarPerdido(): void {
     if (!this.authService.isLoggedIn()) {
       this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/catalogo' } });
@@ -620,10 +629,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * Métodos para modal "Encontré un objeto"
-   */
-  abrirModalRegistrarEncontrado(): void {
+  abrirModalRegistrarEncontrado(categoriaPreseleccionada?: string): void {
     if (!this.authService.isLoggedIn()) {
       this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/catalogo' } });
       return;
@@ -633,7 +639,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     this.imagenEncontradoNombre.set(null);
     this.subiendoImagenEncontrado.set(false);
     this.formReporteEncontrado.reset({
-      categoria: CategoriaObjeto.Electronicos,
+      categoria: (categoriaPreseleccionada as CategoriaObjeto) || CategoriaObjeto.Electronicos,
       descripcion: '',
       lugarHallazgoId: '',
       lugarEntregaId: '',
@@ -675,10 +681,6 @@ export class CatalogoComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * Envía la solicitud real de reclamo al backend (POST /reclamos) y registra las
-   * respuestas de seguridad (POST /respuestas-seguridad/) cuando es virtual (HU08, HU20, HU21, HU22).
-   */
   enviarReclamo(): void {
     const item = this.objetoSeleccionado();
     if (!item || this.enviandoReclamo()) return;
@@ -747,14 +749,10 @@ export class CatalogoComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * Fallback visual cuando la imagen no puede cargarse
-   */
   onImageError(item: ObjetoCatalogoItem): void {
     item.imagenUrl = null;
   }
 
-  /** Ícono representativo por categoría */
   getIconoPorCategoria(categoria: CategoriaObjeto | string): string {
     return CATEGORIAS[categoria as CategoriaObjeto]?.icon ?? 'inventory_2';
   }

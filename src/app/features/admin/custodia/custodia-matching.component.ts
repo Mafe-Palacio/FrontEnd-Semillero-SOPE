@@ -35,10 +35,11 @@ export interface PosibleCoincidenciaItem {
           <div class="itm-field">
             <label for="filtroScore" class="itm-label">Score Mínimo (%)</label>
             <select id="filtroScore" formControlName="score_minimo" class="itm-select">
-              <option value="">Cualquier afinidad (0%+)</option>
-              <option value="0.5">Media o superior (50%+)</option>
-              <option value="0.7">Alta afinidad (70%+)</option>
-              <option value="0.85">Muy alta afinidad (85%+)</option>
+              <option value="">Cualquier afinidad (50%+)</option>
+              <option value="50">Media o superior (50%+)</option>
+              <option value="65">Buena afinidad (65%+)</option>
+              <option value="80">Alta afinidad (80%+)</option>
+              <option value="100">Exacta / Muy alta (100%)</option>
             </select>
           </div>
 
@@ -80,9 +81,9 @@ export interface PosibleCoincidenciaItem {
       <div class="match-info-card">
         <mat-icon class="match-info-icon">psychology</mat-icon>
         <div>
-          <h4>Cotejo Algorítmico de Coincidencias (Smart Match)</h4>
+          <h4>Cotejo Algorítmico de Coincidencias (Smart Match · HU25)</h4>
           <p>
-            Compara de manera cruzada las descripciones, categorías y ubicaciones de los <strong>objetos físicos en custodia</strong> contra los <strong>reportes de pérdida ciudadanos</strong> para alertar oportunamente a los legítimos propietarios.
+            Compara de manera cruzada las categorías, sedes y ventana temporal (-7 a +60 días) de los <strong>objetos físicos en custodia</strong> contra los <strong>reportes de pérdida ciudadanos aprobados</strong> para alertar oportunamente a los legítimos propietarios.
           </p>
         </div>
       </div>
@@ -130,7 +131,7 @@ export interface PosibleCoincidenciaItem {
                 <div class="match-header">
                   <div class="score-display">
                     <span class="score-percent" [style.color]="obtenerColorScore(item.score)">
-                      {{ (item.score * 100).toFixed(0) }}%
+                      {{ normalizarPorcentaje(item.score) }}%
                     </span>
                     <span class="score-label">Nivel de Afinidad</span>
                   </div>
@@ -139,7 +140,7 @@ export interface PosibleCoincidenciaItem {
                     <div class="score-track">
                       <div
                         class="score-fill"
-                        [style.width.%]="item.score * 100"
+                        [style.width.%]="normalizarPorcentaje(item.score)"
                         [style.background-color]="obtenerColorScore(item.score)">
                       </div>
                     </div>
@@ -576,9 +577,16 @@ export class CustodiaMatchingComponent implements OnInit {
       });
   }
 
+  normalizarPorcentaje(score: number): number {
+    if (score === null || score === undefined || isNaN(score)) return 0;
+    const pct = score <= 1 ? Math.round(score * 100) : Math.round(score);
+    return Math.min(100, Math.max(0, pct));
+  }
+
   obtenerColorScore(score: number): string {
-    if (score >= 0.8) return '#008a47'; // Verde institucional
-    if (score >= 0.5) return '#f19800'; // Ámbar institucional
+    const pct = this.normalizarPorcentaje(score);
+    if (pct >= 80) return '#008a47'; // Verde institucional
+    if (pct >= 60) return '#f19800'; // Ámbar institucional
     return '#29abe2'; // Cian ITM
   }
 
