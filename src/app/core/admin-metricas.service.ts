@@ -1,15 +1,39 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { API_URL } from './api.config';
-import { SedeAdminService } from './sede-admin.service';
+import { CATEGORIAS } from './categorias';
+import { CategoriaObjeto } from '../api/model/categoriaObjeto';
+
+export interface MetricasBackendResponse {
+  total_objetos: number;
+  objetos_por_estado: Record<string, number>;
+  reclamados: number;
+  sin_reclamar: number;
+  sin_dueno_definitivo: number;
+  porcentaje_devueltos: number;
+  dias_promedio_custodia: number | null;
+  categorias_mas_perdidas: Array<{
+    categoria: string;
+    total: number;
+  }>;
+  reclamos_por_estado: Record<string, number>;
+  pendientes_aprobacion: {
+    reportes_perdida: number;
+    publicaciones_encontradas: number;
+    solicitudes_eliminacion: number;
+  };
+  generado_en: string;
+}
 
 export interface MetricasResumen {
+  total_objetos: number;
   total_custodia: number;
   reclamados: number;
   no_reclamados: number;
+  sin_dueno_definitivo: number;
   tasa_exito_porcentaje: number;
-  dias_promedio_custodia: number;
+  dias_promedio_custodia: number | null;
   pendientes_moderacion: {
     perdidos: number;
     encontrados: number;
@@ -23,54 +47,58 @@ export interface MetricasResumen {
     porcentaje: number;
   }>;
   por_estado: Record<string, number>;
+  reclamos_por_estado: Record<string, number>;
 }
 
 @Injectable({ providedIn: 'root' })
 export class AdminMetricasService {
   private http = inject(HttpClient);
-  private sedeAdmin = inject(SedeAdminService);
 
   obtenerResumen(fechaDesde?: string, fechaHasta?: string): Observable<MetricasResumen> {
     let params = new HttpParams();
     if (fechaDesde) params = params.set('fecha_desde', fechaDesde);
     if (fechaHasta) params = params.set('fecha_hasta', fechaHasta);
-    const sedeId = this.sedeAdmin.selectedSedeId();
-    if (sedeId) params = params.set('sede_id', sedeId);
 
-    return this.http.get<MetricasResumen>(`${API_URL}/metricas/resumen`, { params }).pipe(
-      catchError(() => {
-        // Respaldo representativo de la sede ITM seleccionada
-        const sedeNombre = this.sedeAdmin.selectedSede()?.nombre || 'Sede Fraternidad';
-        return of(this.generarMetricasSimuladas(sedeNombre));
-      })
+    return this.http.get<MetricasBackendResponse>(`${API_URL}/metricas/resumen`, { params }).pipe(
+      map((raw) => this.normalizarMetricas(raw))
     );
   }
 
-  private generarMetricasSimuladas(sedeNombre: string): MetricasResumen {
+  private normalizarMetricas(raw: MetricasBackendResponse): MetricasResumen {
+    const porEstado = raw.objetos_por_estado ?? {};
+    const enCustodiaActiva = (porEstado['EN_CUSTODIA'] ?? 0) + (porEstado['POR_VENCER'] ?? 0);
+    const categoriasRaw = raw.categorias_mas_perdidas ?? [];
+    const totalReportesCat = categoriasRaw.reduce((acc, item) => acc + (item.total || 0), 0);
+
+    const topCategorias = categoriasRaw.map((item) => {
+      const catMeta = CATEGORIAS[item.categoria as CategoriaObjeto];
+      const cantidad = item.total || 0;
+      const porcentaje = totalReportesCat > 0 ? Math.round((cantidad * 100) / totalReportesCat) : 0;
+      return {
+        categoria: item.categoria,
+        nombre: catMeta?.label ?? item.categoria,
+        icono: catMeta?.icon ?? 'inventory_2',
+        cantidad,
+        porcentaje
+      };
+    });
+
     return {
-      total_custodia: 42,
-      reclamados: 31,
-      no_reclamados: 11,
-      tasa_exito_porcentaje: 73.8,
-      dias_promedio_custodia: 4.6,
+      total_objetos: raw.total_objetos ?? 0,
+      total_custodia: enCustodiaActiva,
+      reclamados: raw.reclamados ?? 0,
+      no_reclamados: raw.sin_reclamar ?? 0,
+      sin_dueno_definitivo: raw.sin_dueno_definitivo ?? 0,
+      tasa_exito_porcentaje: raw.porcentaje_devueltos ?? 0,
+      dias_promedio_custodia: raw.dias_promedio_custodia ?? null,
       pendientes_moderacion: {
-        perdidos: 6,
-        encontrados: 4,
-        eliminaciones: 2
+        perdidos: raw.pendientes_aprobacion?.reportes_perdida ?? 0,
+        encontrados: raw.pendientes_aprobacion?.publicaciones_encontradas ?? 0,
+        eliminaciones: raw.pendientes_aprobacion?.solicitudes_eliminacion ?? 0
       },
-      top_categorias: [
-        { categoria: 'DOCUMENTOS', nombre: 'Documentos y Carnets', icono: 'badge', cantidad: 18, porcentaje: 42 },
-        { categoria: 'DISPOSITIVOS_ELECTRONICOS', nombre: 'Electrónicos y Celulares', icono: 'devices', cantidad: 12, porcentaje: 28 },
-        { categoria: 'LLAVES', nombre: 'Llaves y Llaveros', icono: 'key', cantidad: 6, porcentaje: 14 },
-        { categoria: 'ROPA_Y_ACCESORIOS', nombre: 'Prendas y Accesorios', icono: 'checkroom', cantidad: 4, porcentaje: 10 },
-        { categoria: 'OTROS', nombre: 'Otros Objetos', icono: 'category', cantidad: 2, porcentaje: 6 }
-      ],
-      por_estado: {
-        EN_CUSTODIA: 42,
-        ENTREGADO: 31,
-        DONADO: 3,
-        DISPUESTO: 1
-      }
+      top_categorias: topCategorias,
+      por_estado: porEstado,
+      reclamos_por_estado: raw.reclamos_por_estado ?? {}
     };
   }
 }

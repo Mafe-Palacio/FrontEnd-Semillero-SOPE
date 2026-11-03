@@ -1,231 +1,223 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HttpClient } from '@angular/common/http';
 import { API_URL } from '../../../core/api.config';
+import { mensajeDeError } from '../../../core/api-error';
 import { SedesService } from '../../../api/api/sedes.service';
 import { UsuariosService } from '../../../api/api/usuarios.service';
 import { SedeResponse } from '../../../api/model/sedeResponse';
 import { UsuarioResponse } from '../../../api/model/usuarioResponse';
-import { AuthService } from '../../../core/auth.service';
 import { SedeAdminService } from '../../../core/sede-admin.service';
 
 @Component({
   selector: 'app-admin-sedes',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatIconModule],
+  imports: [CommonModule, ReactiveFormsModule, MatIconModule, MatSnackBarModule],
   template: `
-    <div class="space-y-6 font-['Montserrat',sans-serif]">
+    <div class="itm-admin-page">
       
-      <!-- Top Title Bar -->
-      <div class="bg-white rounded-xl p-5 border border-[#E5E7EB] shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <!-- Encabezado Principal -->
+      <div class="itm-admin-header">
         <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-xl sm:text-2xl font-bold text-[#011C5B] tracking-tight">
-              Sedes y Administradores Institucionales
-            </h1>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-[#F19800] uppercase">
-              Exclusivo Superadmin
-            </span>
+          <div class="sede-header-badges">
+            <h1 class="itm-admin-title">Sedes y Administradores Institucionales</h1>
+            <span class="itm-badge itm-badge-warning">Exclusivo Superadmin</span>
           </div>
-          <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Parametrización de sedes universitarias ITM y asignación de personal administrador
+          <p class="itm-admin-subtitle">
+            Parametrización oficial de sedes universitarias ITM y asignación de personal administrador
           </p>
         </div>
 
-        <div class="flex items-center gap-2 self-start sm:self-auto">
-          <button 
-            type="button" 
-            (click)="abrirModalCrearSede()" 
-            class="px-3.5 py-2 rounded-lg bg-[#011C5B] text-white text-xs font-semibold hover:bg-[#0A2F8A] transition-colors flex items-center gap-1.5 shadow-xs">
-            <mat-icon class="!w-4 !h-4 !text-[16px]">add_business</mat-icon>
-            <span>Nueva Sede</span>
+        <div class="sede-header-actions">
+          <button type="button" (click)="abrirModalCrearAdmin()" class="itm-btn itm-btn-outline">
+            <mat-icon>person_add</mat-icon>
+            <span>Nuevo Administrador</span>
+          </button>
+
+          <button type="button" (click)="abrirModalCrearSede()" class="itm-btn itm-btn-primary">
+            <mat-icon>add_business</mat-icon>
+            <span>Nueva Sede ITM</span>
           </button>
         </div>
       </div>
 
-      <!-- Feedback Banner -->
-      @if (mensajeFeedback()) {
-        <div 
-          [class.bg-emerald-50]="tipoFeedback() === 'exito'"
-          [class.border-emerald-200]="tipoFeedback() === 'exito'"
-          [class.text-[#008A47]]="tipoFeedback() === 'exito'"
-          [class.bg-red-50]="tipoFeedback() === 'error'"
-          [class.border-red-200]="tipoFeedback() === 'error'"
-          [class.text-[#B23B24]]="tipoFeedback() === 'error'"
-          class="p-4 rounded-xl border flex items-center justify-between text-xs font-medium animate-fadeIn">
-          <div class="flex items-center gap-2">
-            <mat-icon class="!w-4 !h-4 !text-[18px]">
-              {{ tipoFeedback() === 'exito' ? 'check_circle' : 'error' }}
-            </mat-icon>
-            <span>{{ mensajeFeedback() }}</span>
-          </div>
-          <button (click)="mensajeFeedback.set(null)">
-            <mat-icon class="!w-4 !h-4 !text-[16px]">close</mat-icon>
-          </button>
-        </div>
-      }
-
-      <!-- Grid: Sedes y Administradores -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Grid de Dos Columnas: Sedes y Administradores -->
+      <div class="sede-two-col">
         
-        <!-- Bloque 1: Sedes ITM -->
-        <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-xs overflow-hidden flex flex-col">
-          <div class="p-4 border-b border-[#E5E7EB] bg-[#F8F9FA] flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <mat-icon class="text-[#011C5B] !w-5 !h-5 !text-[20px]">apartment</mat-icon>
-              <h2 class="text-sm font-bold text-slate-800">Sedes Registradas ({{ sedes().length }})</h2>
+        <!-- Columna 1: Sedes Registradas -->
+        <div class="itm-table-card">
+          <div class="sede-panel-header">
+            <div class="sede-panel-title">
+              <div class="sede-panel-icon">
+                <mat-icon>apartment</mat-icon>
+              </div>
+              <div>
+                <h2>Sedes Universitarias ITM ({{ sedes().length }})</h2>
+                <p>Campus habilitados para recepción y custodia</p>
+              </div>
             </div>
-            <button (click)="cargarSedes()" class="text-slate-400 hover:text-slate-700">
-              <mat-icon class="!w-4 !h-4 !text-[16px]">refresh</mat-icon>
+
+            <button type="button" (click)="cargarSedes()" class="itm-icon-btn" title="Actualizar sedes">
+              <mat-icon>refresh</mat-icon>
             </button>
           </div>
 
-          <div class="p-4 divide-y divide-[#E5E7EB] overflow-y-auto max-h-[500px]">
-            @for (s of sedes(); track s.sede_id) {
-              <div class="py-3 flex items-center justify-between gap-3">
-                <div class="min-w-0">
-                  <div class="flex items-center gap-2">
-                    <span class="font-bold text-xs text-slate-900 truncate">{{ s.nombre }}</span>
-                    <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                      {{ s.codigo }}
-                    </span>
-                    @if (s.activa) {
-                      <span class="px-2 py-0.2 rounded text-[10px] font-bold bg-[#008A47]/10 text-[#008A47]">
-                        Activa
-                      </span>
-                    } @else {
-                      <span class="px-2 py-0.2 rounded text-[10px] font-bold bg-[#B23B24]/10 text-[#B23B24]">
-                        Inactiva
-                      </span>
-                    }
+          @if (sedes().length === 0) {
+            <div class="itm-empty-state" style="border: none;">
+              <div class="itm-empty-icon">
+                <mat-icon>domain_disabled</mat-icon>
+              </div>
+              <h3 style="margin: 8px 0 0; font-size: 1rem;">No hay sedes registradas</h3>
+              <p style="margin: 0; font-size: 0.82rem; color: #6b7280;">Cree la primera sede institucional con el botón superior.</p>
+            </div>
+          } @else {
+            <div class="sede-list">
+              @for (s of sedes(); track s.sede_id) {
+                <div class="sede-item">
+                  <div class="sede-item-info">
+                    <div class="sede-item-top">
+                      <span class="sede-item-name">{{ s.nombre }}</span>
+                      <span class="itm-badge itm-badge-primary">{{ s.codigo }}</span>
+                      @if (s.activa) {
+                        <span class="itm-badge itm-badge-success">Activa</span>
+                      } @else {
+                        <span class="itm-badge itm-badge-danger">Inactiva</span>
+                      }
+                    </div>
+                    <div class="sede-item-id">UUID: {{ s.sede_id }}</div>
                   </div>
-                  <div class="text-[11px] text-slate-500 truncate mt-0.5">
-                    ID: <span class="font-mono text-[10px]">{{ s.sede_id }}</span>
-                  </div>
-                </div>
 
-                <div class="flex items-center gap-1 shrink-0">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     (click)="abrirModalEditarSede(s)"
-                    class="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
-                    title="Editar sede">
-                    <mat-icon class="!w-4 !h-4 !text-[16px]">edit</mat-icon>
+                    class="itm-btn itm-btn-outline"
+                    style="padding: 6px 12px !important; font-size: 0.78rem !important;">
+                    <mat-icon style="font-size: 16px; width: 16px; height: 16px;">edit</mat-icon>
+                    <span>Editar</span>
                   </button>
                 </div>
-              </div>
-            }
-          </div>
+              }
+            </div>
+          }
         </div>
 
-        <!-- Bloque 2: Administradores y Asignación -->
-        <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-xs overflow-hidden flex flex-col">
-          <div class="p-4 border-b border-[#E5E7EB] bg-[#F8F9FA] flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <mat-icon class="text-[#011C5B] !w-5 !h-5 !text-[20px]">admin_panel_settings</mat-icon>
-              <h2 class="text-sm font-bold text-slate-800">Administradores Asignados</h2>
+        <!-- Columna 2: Administradores Asignados -->
+        <div class="itm-table-card">
+          <div class="sede-panel-header">
+            <div class="sede-panel-title">
+              <div class="sede-panel-icon cyan">
+                <mat-icon>admin_panel_settings</mat-icon>
+              </div>
+              <div>
+                <h2>Equipo Administrador ({{ administradores().length }})</h2>
+                <p>Funcionarios con permisos de moderación y custodia</p>
+              </div>
             </div>
-            <button 
-              type="button" 
-              (click)="abrirModalCrearAdmin()" 
-              class="px-2.5 py-1 rounded-lg bg-blue-50 text-[#011C5B] hover:bg-blue-100 text-xs font-semibold transition-colors flex items-center gap-1">
-              <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">person_add</mat-icon>
-              <span>Crear Admin</span>
+
+            <button type="button" (click)="cargarAdministradores()" class="itm-icon-btn" title="Actualizar administradores">
+              <mat-icon>refresh</mat-icon>
             </button>
           </div>
 
-          <div class="p-4 divide-y divide-[#E5E7EB] overflow-y-auto max-h-[500px]">
-            @for (adm of administradores(); track adm.usuario_id) {
-              <div class="py-3 flex items-center justify-between gap-3">
-                <div class="min-w-0">
-                  <div class="flex items-center gap-2">
-                    <span class="font-bold text-xs text-slate-900 truncate">{{ adm.nombre_completo }}</span>
-                    <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-50 text-[#011C5B]">
-                      {{ adm.rol }}
-                    </span>
+          @if (administradores().length === 0) {
+            <div class="itm-empty-state" style="border: none;">
+              <div class="itm-empty-icon">
+                <mat-icon>manage_accounts</mat-icon>
+              </div>
+              <h3 style="margin: 8px 0 0; font-size: 1rem;">No se encontraron administradores</h3>
+              <p style="margin: 0; font-size: 0.82rem; color: #6b7280;">Habilite un nuevo administrador para las sedes del ITM.</p>
+            </div>
+          } @else {
+            <div class="sede-list">
+              @for (adm of administradores(); track adm.usuario_id) {
+                <div class="sede-item">
+                  <div class="sede-item-info">
+                    <div class="sede-item-top">
+                      <span class="sede-item-name">{{ adm.nombre_completo }}</span>
+                      <span
+                        class="itm-badge"
+                        [class.itm-badge-primary]="String(adm.rol) === 'SUPERADMIN'"
+                        [class.itm-badge-cyan]="String(adm.rol) === 'ADMIN'">
+                        {{ adm.rol }}
+                      </span>
+                    </div>
+                    <div class="sede-item-email">{{ adm.correo }} · C.C. {{ adm.cedula }}</div>
+                    <div class="sede-item-loc">
+                      <mat-icon>location_on</mat-icon>
+                      <span>{{ obtenerNombreSede(adm.sede_id) }}</span>
+                    </div>
                   </div>
-                  <div class="text-[11px] text-slate-500 truncate">{{ adm.correo }}</div>
-                  <div class="text-[11px] text-[#011C5B] font-semibold mt-0.5 flex items-center gap-1">
-                    <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">location_on</mat-icon>
-                    <span>{{ obtenerNombreSede(adm.sede_id) }}</span>
-                  </div>
-                </div>
 
-                <div class="flex items-center gap-1 shrink-0">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     (click)="abrirModalAsignarSede(adm)"
-                    class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-[#011C5B] hover:bg-slate-50 text-xs font-semibold transition-colors flex items-center gap-1"
-                    title="Asignar o cambiar de sede">
-                    <mat-icon class="!w-3.5 !h-3.5 !text-[14px]">swap_horiz</mat-icon>
+                    class="itm-btn itm-btn-outline"
+                    style="padding: 6px 12px !important; font-size: 0.78rem !important;">
+                    <mat-icon style="font-size: 16px; width: 16px; height: 16px;">swap_horiz</mat-icon>
                     <span>Asignar Sede</span>
                   </button>
                 </div>
-              </div>
-            }
-          </div>
+              }
+            </div>
+          }
         </div>
 
       </div>
 
       <!-- Modal Crear / Editar Sede -->
       @if (modalSedeAbierto()) {
-        <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-200 animate-fadeIn">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div class="flex items-center gap-2 font-bold text-sm text-[#011C5B]">
+        <div class="itm-modal-backdrop">
+          <div class="itm-modal-card">
+            <div class="itm-modal-header">
+              <h3>
                 <mat-icon>apartment</mat-icon>
-                <span>{{ sedeEditandoId() ? 'Editar Sede ITM' : 'Registrar Nueva Sede' }}</span>
-              </div>
-              <button (click)="cerrarModalSede()" class="text-slate-400 hover:text-slate-600">
+                <span>{{ sedeEditandoId() ? 'Editar Sede ITM' : 'Registrar Nueva Sede ITM' }}</span>
+              </h3>
+              <button type="button" (click)="cerrarModalSede()" class="itm-modal-close">
                 <mat-icon>close</mat-icon>
               </button>
             </div>
 
-            <form [formGroup]="sedeForm" (ngSubmit)="guardarSede()" class="mt-4 space-y-3">
-              <div>
-                <label for="sedeNombreInput" class="block text-xs font-semibold text-slate-700 mb-1">Nombre institucional:</label>
-                <input 
-                  id="sedeNombreInput"
-                  type="text" 
-                  formControlName="nombre" 
-                  placeholder="Ej: Sede Fraternidad (Boston)"
-                  class="w-full text-xs rounded-lg border border-slate-300 p-2.5 focus:border-[#011C5B] focus:outline-none"
-                />
-              </div>
+            <form [formGroup]="sedeForm" (ngSubmit)="guardarSede()">
+              <div class="itm-modal-body">
+                <div class="itm-field">
+                  <label for="sedeNombreInput" class="itm-label">Nombre institucional *</label>
+                  <input
+                    id="sedeNombreInput"
+                    type="text"
+                    formControlName="nombre"
+                    placeholder="Ej: Sede Fraternidad (Boston)"
+                    class="itm-input"
+                  />
+                </div>
 
-              <div>
-                <label for="sedeCodigoInput" class="block text-xs font-semibold text-slate-700 mb-1">Código de sede:</label>
-                <input 
-                  id="sedeCodigoInput"
-                  type="text" 
-                  formControlName="codigo" 
-                  placeholder="Ej: FRAT"
-                  class="w-full text-xs rounded-lg border border-slate-300 p-2.5 focus:border-[#011C5B] focus:outline-none uppercase font-mono"
-                />
-              </div>
+                <div class="itm-field">
+                  <label for="sedeCodigoInput" class="itm-label">Código corto de sede *</label>
+                  <input
+                    id="sedeCodigoInput"
+                    type="text"
+                    formControlName="codigo"
+                    placeholder="Ej: FRAT"
+                    class="itm-input"
+                    style="text-transform: uppercase; font-family: monospace;"
+                  />
+                </div>
 
-              <div>
-                <label class="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer pt-1">
-                  <input type="checkbox" formControlName="activa" class="rounded text-[#011C5B]" />
-                  <span>Sede Activa en el Sistema OPE</span>
+                <label class="sede-check-row">
+                  <input type="checkbox" formControlName="activa" />
+                  <span>Sede activa y operativa en el sistema OPE</span>
                 </label>
               </div>
 
-              <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
-                <button 
-                  type="button" 
-                  (click)="cerrarModalSede()"
-                  class="px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">
+              <div class="itm-modal-footer">
+                <button type="button" (click)="cerrarModalSede()" class="itm-btn itm-btn-ghost">
                   Cancelar
                 </button>
-                <button 
-                  type="submit" 
-                  [disabled]="sedeForm.invalid"
-                  class="px-4 py-2 rounded-lg bg-[#011C5B] hover:bg-[#0A2F8A] disabled:opacity-50 text-white text-xs font-semibold transition-colors">
-                  Guardar Sede
+                <button type="submit" [disabled]="sedeForm.invalid || guardando()" class="itm-btn itm-btn-primary">
+                  {{ sedeEditandoId() ? 'Guardar Cambios' : 'Crear Sede' }}
                 </button>
               </div>
             </form>
@@ -235,47 +227,41 @@ import { SedeAdminService } from '../../../core/sede-admin.service';
 
       <!-- Modal Asignar Sede a Administrador -->
       @if (modalAsignarAbierto()) {
-        <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-200 animate-fadeIn">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div class="flex items-center gap-2 font-bold text-sm text-[#011C5B]">
+        <div class="itm-modal-backdrop">
+          <div class="itm-modal-card">
+            <div class="itm-modal-header">
+              <h3>
                 <mat-icon>swap_horiz</mat-icon>
                 <span>Asignar Sede de Operación</span>
-              </div>
-              <button (click)="cerrarModalAsignar()" class="text-slate-400 hover:text-slate-600">
+              </h3>
+              <button type="button" (click)="cerrarModalAsignar()" class="itm-modal-close">
                 <mat-icon>close</mat-icon>
               </button>
             </div>
 
-            <div class="my-3 text-xs text-slate-600">
-              Administrador: <strong class="text-slate-800">{{ adminSeleccionado()?.nombre_completo }}</strong>
-            </div>
+            <form [formGroup]="asignarForm" (ngSubmit)="confirmarAsignacionSede()">
+              <div class="itm-modal-body">
+                <div class="sede-admin-summary">
+                  <strong>{{ adminSeleccionado()?.nombre_completo }}</strong>
+                  <span>{{ adminSeleccionado()?.correo }}</span>
+                </div>
 
-            <form [formGroup]="asignarForm" (ngSubmit)="confirmarAsignacionSede()" class="space-y-3">
-              <div>
-                <label for="selectSedeAsignar" class="block text-xs font-semibold text-slate-700 mb-1">Sede de Jurisdicción:</label>
-                <select 
-                  id="selectSedeAsignar"
-                  formControlName="sede_id" 
-                  class="w-full text-xs rounded-lg border border-slate-300 p-2.5 focus:border-[#011C5B] focus:outline-none bg-white">
-                  <option value="" disabled>-- Seleccione la sede asignada --</option>
-                  @for (s of sedes(); track s.sede_id) {
-                    <option [value]="s.sede_id">{{ s.nombre }} ({{ s.codigo }})</option>
-                  }
-                </select>
+                <div class="itm-field">
+                  <label for="selectSedeAsignar" class="itm-label">Sede de Jurisdicción *</label>
+                  <select id="selectSedeAsignar" formControlName="sede_id" class="itm-select">
+                    <option value="" disabled>-- Seleccione la sede asignada --</option>
+                    @for (s of sedes(); track s.sede_id) {
+                      <option [value]="s.sede_id">{{ s.nombre }} ({{ s.codigo }})</option>
+                    }
+                  </select>
+                </div>
               </div>
 
-              <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
-                <button 
-                  type="button" 
-                  (click)="cerrarModalAsignar()"
-                  class="px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">
+              <div class="itm-modal-footer">
+                <button type="button" (click)="cerrarModalAsignar()" class="itm-btn itm-btn-ghost">
                   Cancelar
                 </button>
-                <button 
-                  type="submit" 
-                  [disabled]="asignarForm.invalid"
-                  class="px-4 py-2 rounded-lg bg-[#011C5B] hover:bg-[#0A2F8A] disabled:opacity-50 text-white text-xs font-semibold transition-colors">
+                <button type="submit" [disabled]="asignarForm.invalid || guardando()" class="itm-btn itm-btn-primary">
                   Confirmar Asignación
                 </button>
               </div>
@@ -286,76 +272,93 @@ import { SedeAdminService } from '../../../core/sede-admin.service';
 
       <!-- Modal Crear Administrador -->
       @if (modalCrearAdminAbierto()) {
-        <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-200 animate-fadeIn">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div class="flex items-center gap-2 font-bold text-sm text-[#011C5B]">
+        <div class="itm-modal-backdrop">
+          <div class="itm-modal-card">
+            <div class="itm-modal-header">
+              <h3>
                 <mat-icon>person_add</mat-icon>
-                <span>Habilitar Nuevo Administrador</span>
-              </div>
-              <button (click)="cerrarModalCrearAdmin()" class="text-slate-400 hover:text-slate-600">
+                <span>Habilitar Nuevo Administrador ITM</span>
+              </h3>
+              <button type="button" (click)="cerrarModalCrearAdmin()" class="itm-modal-close">
                 <mat-icon>close</mat-icon>
               </button>
             </div>
 
-            <form [formGroup]="crearAdminForm" (ngSubmit)="guardarNuevoAdmin()" class="mt-4 space-y-3">
-              <div>
-                <label for="adminEmailInput" class="block text-xs font-semibold text-slate-700 mb-1">Correo Institucional ITM:</label>
-                <input 
-                  id="adminEmailInput"
-                  type="email" 
-                  formControlName="correo" 
-                  placeholder="usuario@correo.itm.edu.co"
-                  class="w-full text-xs rounded-lg border border-slate-300 p-2.5 focus:border-[#011C5B] focus:outline-none"
-                />
+            <form [formGroup]="crearAdminForm" (ngSubmit)="guardarNuevoAdmin()">
+              <div class="itm-modal-body">
+                <div class="itm-field">
+                  <label for="adminNombreInput" class="itm-label">Nombre Completo *</label>
+                  <input
+                    id="adminNombreInput"
+                    type="text"
+                    formControlName="nombre_completo"
+                    placeholder="Ej: Andrés Felipe Restrepo"
+                    class="itm-input"
+                  />
+                </div>
+
+                <div class="sede-form-2col">
+                  <div class="itm-field">
+                    <label for="adminCedulaInput" class="itm-label">Cédula / Documento *</label>
+                    <input
+                      id="adminCedulaInput"
+                      type="text"
+                      formControlName="cedula"
+                      placeholder="Ej: 1037648123"
+                      class="itm-input"
+                    />
+                  </div>
+
+                  <div class="itm-field">
+                    <label for="adminCelularInput" class="itm-label">Celular</label>
+                    <input
+                      id="adminCelularInput"
+                      type="text"
+                      formControlName="celular"
+                      placeholder="Ej: 3001234567"
+                      class="itm-input"
+                    />
+                  </div>
+                </div>
+
+                <div class="itm-field">
+                  <label for="adminEmailInput" class="itm-label">Correo Institucional (@itm.edu.co) *</label>
+                  <input
+                    id="adminEmailInput"
+                    type="email"
+                    formControlName="correo"
+                    placeholder="funcionario@correo.itm.edu.co"
+                    class="itm-input"
+                  />
+                </div>
+
+                <div class="itm-field">
+                  <label for="adminSedeSelect" class="itm-label">Sede de Operación *</label>
+                  <select id="adminSedeSelect" formControlName="sede_id" class="itm-select">
+                    <option value="" disabled>-- Seleccione sede inicial --</option>
+                    @for (s of sedes(); track s.sede_id) {
+                      <option [value]="s.sede_id">{{ s.nombre }} ({{ s.codigo }})</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="itm-field">
+                  <label for="adminPasswordInput" class="itm-label">Contraseña Temporal Segura *</label>
+                  <input
+                    id="adminPasswordInput"
+                    type="password"
+                    formControlName="password_temporal"
+                    placeholder="Mín. 8 caracteres, mayúscula, minúscula, número y símbolo"
+                    class="itm-input"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label for="adminNombreInput" class="block text-xs font-semibold text-slate-700 mb-1">Nombre Completo:</label>
-                <input 
-                  id="adminNombreInput"
-                  type="text" 
-                  formControlName="nombre_completo" 
-                  placeholder="Ej: Andrés Felipe Restrepo"
-                  class="w-full text-xs rounded-lg border border-slate-300 p-2.5 focus:border-[#011C5B] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label for="adminCedulaInput" class="block text-xs font-semibold text-slate-700 mb-1">Cédula / Documento:</label>
-                <input 
-                  id="adminCedulaInput"
-                  type="text" 
-                  formControlName="cedula" 
-                  placeholder="Ej: 1037648123"
-                  class="w-full text-xs rounded-lg border border-slate-300 p-2.5 focus:border-[#011C5B] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label for="adminSedeSelect" class="block text-xs font-semibold text-slate-700 mb-1">Sede de Operación:</label>
-                <select 
-                  id="adminSedeSelect"
-                  formControlName="sede_id" 
-                  class="w-full text-xs rounded-lg border border-slate-300 p-2.5 focus:border-[#011C5B] focus:outline-none bg-white">
-                  <option value="" disabled>-- Seleccione sede inicial --</option>
-                  @for (s of sedes(); track s.sede_id) {
-                    <option [value]="s.sede_id">{{ s.nombre }}</option>
-                  }
-                </select>
-              </div>
-
-              <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
-                <button 
-                  type="button" 
-                  (click)="cerrarModalCrearAdmin()"
-                  class="px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100">
+              <div class="itm-modal-footer">
+                <button type="button" (click)="cerrarModalCrearAdmin()" class="itm-btn itm-btn-ghost">
                   Cancelar
                 </button>
-                <button 
-                  type="submit" 
-                  [disabled]="crearAdminForm.invalid"
-                  class="px-4 py-2 rounded-lg bg-[#011C5B] hover:bg-[#0A2F8A] disabled:opacity-50 text-white text-xs font-semibold transition-colors">
+                <button type="submit" [disabled]="crearAdminForm.invalid || guardando()" class="itm-btn itm-btn-primary">
                   Crear Administrador
                 </button>
               </div>
@@ -365,17 +368,208 @@ import { SedeAdminService } from '../../../core/sede-admin.service';
       }
 
     </div>
-  `
+  `,
+  styles: [`
+    .sede-header-badges {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .sede-header-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .sede-two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .sede-two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .sede-panel-header {
+      padding: 18px 22px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .sede-panel-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sede-panel-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
+      background: #f0f6fc;
+      color: var(--ing-1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .sede-panel-icon.cyan {
+      background: rgba(0, 160, 183, 0.12);
+      color: var(--ing-2);
+    }
+
+    .sede-panel-title h2 {
+      margin: 0;
+      font-size: 0.96rem;
+      font-weight: 800;
+      color: var(--ing-1);
+    }
+
+    .sede-panel-title p {
+      margin: 2px 0 0;
+      font-size: 0.78rem;
+      color: #6b7280;
+    }
+
+    .sede-list {
+      display: flex;
+      flex-direction: column;
+      max-height: 540px;
+      overflow-y: auto;
+    }
+
+    .sede-item {
+      padding: 16px 22px;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      transition: background-color 0.15s ease;
+    }
+
+    .sede-item:last-child {
+      border-bottom: none;
+    }
+
+    .sede-item:hover {
+      background: #f8fafc;
+    }
+
+    .sede-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .sede-item-top {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .sede-item-name {
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--ing-1);
+    }
+
+    .sede-item-id {
+      font-family: monospace;
+      font-size: 0.73rem;
+      color: #6b7280;
+    }
+
+    .sede-item-email {
+      font-size: 0.8rem;
+      color: #4b5563;
+    }
+
+    .sede-item-loc {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--ing-2);
+      margin-top: 2px;
+    }
+
+    .sede-item-loc mat-icon {
+      font-size: 15px !important;
+      width: 15px !important;
+      height: 15px !important;
+    }
+
+    .sede-check-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #374151;
+      cursor: pointer;
+    }
+
+    .sede-admin-summary {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.84rem;
+    }
+
+    .sede-admin-summary strong {
+      color: var(--ing-1);
+    }
+
+    .sede-admin-summary span {
+      color: #6b7280;
+      font-size: 0.78rem;
+    }
+
+    .sede-form-2col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 560px) {
+      .sede-form-2col {
+        grid-template-columns: 1fr;
+      }
+    }
+  `]
 })
 export class AdminSedesComponent implements OnInit {
   private sedesService = inject(SedesService);
   private usuariosService = inject(UsuariosService);
   private sedeAdmin = inject(SedeAdminService);
-  private auth = inject(AuthService);
   private http = inject(HttpClient);
+  private snack = inject(MatSnackBar);
+
+  readonly String = String;
 
   sedes = signal<SedeResponse[]>([]);
   administradores = signal<UsuarioResponse[]>([]);
+  guardando = signal(false);
 
   modalSedeAbierto = signal(false);
   modalAsignarAbierto = signal(false);
@@ -383,9 +577,6 @@ export class AdminSedesComponent implements OnInit {
 
   sedeEditandoId = signal<string | null>(null);
   adminSeleccionado = signal<UsuarioResponse | null>(null);
-
-  mensajeFeedback = signal<string | null>(null);
-  tipoFeedback = signal<'exito' | 'error'>('exito');
 
   sedeForm = new FormGroup({
     nombre: new FormControl('', [Validators.required, Validators.minLength(3)]),
@@ -400,8 +591,10 @@ export class AdminSedesComponent implements OnInit {
   crearAdminForm = new FormGroup({
     correo: new FormControl('', [Validators.required, Validators.email]),
     nombre_completo: new FormControl('', [Validators.required, Validators.minLength(3)]),
-    cedula: new FormControl('', [Validators.required, Validators.minLength(6)]),
-    sede_id: new FormControl('', [Validators.required])
+    cedula: new FormControl('', [Validators.required, Validators.minLength(5)]),
+    celular: new FormControl(''),
+    sede_id: new FormControl('', [Validators.required]),
+    password_temporal: new FormControl('', [Validators.required, Validators.minLength(8)])
   });
 
   ngOnInit(): void {
@@ -412,122 +605,28 @@ export class AdminSedesComponent implements OnInit {
   cargarSedes(): void {
     this.sedesService.obtenerTodasSedesSedesGet().subscribe({
       next: (data: SedeResponse[]) => {
-        if (Array.isArray(data) && data.length > 0) {
-          this.sedes.set(data);
-        } else {
-          this.usarSedesRespaldo();
-        }
+        this.sedes.set(Array.isArray(data) ? data : []);
       },
-      error: () => this.usarSedesRespaldo()
-    });
-  }
-
-  private usarSedesRespaldo(): void {
-    this.sedes.set([
-      {
-        sede_id: '11111111-1111-1111-1111-111111111111',
-        nombre: 'Sede Fraternidad (Boston)',
-        codigo: 'FRAT',
-        activa: true,
-        fecha_creacion: new Date().toISOString(),
-        fecha_edicion: new Date().toISOString()
-      },
-      {
-        sede_id: '22222222-2222-2222-2222-222222222222',
-        nombre: 'Sede Robledo',
-        codigo: 'ROBL',
-        activa: true,
-        fecha_creacion: new Date().toISOString(),
-        fecha_edicion: new Date().toISOString()
-      },
-      {
-        sede_id: '33333333-3333-3333-3333-333333333333',
-        nombre: 'Sede Castilla',
-        codigo: 'CAST',
-        activa: true,
-        fecha_creacion: new Date().toISOString(),
-        fecha_edicion: new Date().toISOString()
-      },
-      {
-        sede_id: '44444444-4444-4444-4444-444444444444',
-        nombre: 'Sede Prado',
-        codigo: 'PRAD',
-        activa: true,
-        fecha_creacion: new Date().toISOString(),
-        fecha_edicion: new Date().toISOString()
-      },
-      {
-        sede_id: '55555555-5555-5555-5555-555555555555',
-        nombre: 'Sede Floresta',
-        codigo: 'FLOR',
-        activa: true,
-        fecha_creacion: new Date().toISOString(),
-        fecha_edicion: new Date().toISOString()
+      error: (err) => {
+        this.mostrarFeedback(mensajeDeError(err, 'No se pudieron cargar las sedes registradas.'));
       }
-    ]);
+    });
   }
 
   cargarAdministradores(): void {
-    this.usuariosService.obtenerTodosUsuariosUsuariosGet(
-      undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 0, 100
-    ).subscribe({
-      next: (users: UsuarioResponse[]) => {
-        const arr = Array.isArray(users) ? users : [];
-        const admins = arr.filter(u => String(u.rol).toUpperCase() === 'ADMIN' || String(u.rol).toUpperCase() === 'SUPERADMIN');
-        this.administradores.set(admins.length > 0 ? admins : this.obtenerAdminsEjemplo());
+    this.http.get<UsuarioResponse[]>(`${API_URL}/usuarios/administradores`).subscribe({
+      next: (admins) => {
+        this.administradores.set(Array.isArray(admins) ? admins : []);
       },
-      error: () => {
-        this.administradores.set(this.obtenerAdminsEjemplo());
+      error: (err) => {
+        this.mostrarFeedback(mensajeDeError(err, 'No se pudo cargar el listado de administradores.'));
       }
     });
   }
 
-  private obtenerAdminsEjemplo(): UsuarioResponse[] {
-    return [
-      {
-        usuario_id: 'adm-01',
-        correo: 'admin.frat@itm.edu.co',
-        nombre_completo: 'Guillermo Valencia Restrepo',
-        cedula: '71829304',
-        tipo_vinculacion: 'ADMINISTRATIVO' as any,
-        rol: 'ADMIN' as any,
-        sede_id: '11111111-1111-1111-1111-111111111111',
-        is_active: true,
-        is_blocked: false,
-        is_verified: true,
-        fecha_creacion: new Date().toISOString()
-      },
-      {
-        usuario_id: 'adm-02',
-        correo: 'admin.robl@itm.edu.co',
-        nombre_completo: 'Gloria Stella Echeverri',
-        cedula: '43920194',
-        tipo_vinculacion: 'ADMINISTRATIVO' as any,
-        rol: 'ADMIN' as any,
-        sede_id: '22222222-2222-2222-2222-222222222222',
-        is_active: true,
-        is_blocked: false,
-        is_verified: true,
-        fecha_creacion: new Date().toISOString()
-      },
-      {
-        usuario_id: 'adm-03',
-        correo: 'superadmin@itm.edu.co',
-        nombre_completo: 'Vicerrectoría de Servicios y Bienestar',
-        cedula: '890980040',
-        tipo_vinculacion: 'ADMINISTRATIVO' as any,
-        rol: 'SUPERADMIN' as any,
-        is_active: true,
-        is_blocked: false,
-        is_verified: true,
-        fecha_creacion: new Date().toISOString()
-      }
-    ];
-  }
-
   obtenerNombreSede(sedeId?: string | null): string {
-    if (!sedeId) return 'Sin sede asignada / Global';
-    const s = this.sedes().find(x => x.sede_id === sedeId);
+    if (!sedeId) return 'Sin sede asignada / Jurisdicción Global';
+    const s = this.sedes().find((x) => x.sede_id === sedeId);
     return s ? `${s.nombre} (${s.codigo})` : 'Sede asignada';
   }
 
@@ -552,31 +651,45 @@ export class AdminSedesComponent implements OnInit {
   }
 
   guardarSede(): void {
-    if (this.sedeForm.invalid) return;
+    if (this.sedeForm.invalid || this.guardando()) return;
     const { nombre, codigo, activa } = this.sedeForm.value;
+    const payload = {
+      nombre: nombre!.trim(),
+      codigo: codigo!.trim().toUpperCase(),
+      activa: !!activa
+    };
 
+    this.guardando.set(true);
     const editId = this.sedeEditandoId();
+
     if (editId) {
-      this.sedes.update(list => list.map(s => {
-        if (s.sede_id === editId) {
-          return { ...s, nombre: nombre!, codigo: codigo!.toUpperCase(), activa: !!activa };
+      this.sedesService.actualizarSedeSedesSedeIdPut(editId, payload).subscribe({
+        next: (actualizada) => {
+          this.guardando.set(false);
+          this.sedes.update((list) => list.map((s) => (s.sede_id === editId ? actualizada : s)));
+          this.sedeAdmin.cargarSedes();
+          this.mostrarFeedback(`Sede "${actualizada.nombre}" actualizada correctamente.`);
+          this.cerrarModalSede();
+        },
+        error: (err) => {
+          this.guardando.set(false);
+          this.mostrarFeedback(mensajeDeError(err, 'Error al actualizar la sede.'));
         }
-        return s;
-      }));
-      this.mostrarFeedback(`Sede "${nombre}" actualizada correctamente.`, 'exito');
-      this.cerrarModalSede();
+      });
     } else {
-      const nuevaSede: SedeResponse = {
-        sede_id: crypto.randomUUID ? crypto.randomUUID() : 'sede-' + Date.now(),
-        nombre: nombre!,
-        codigo: codigo!.toUpperCase(),
-        activa: !!activa,
-        fecha_creacion: new Date().toISOString(),
-        fecha_edicion: new Date().toISOString()
-      };
-      this.sedes.update(list => [...list, nuevaSede]);
-      this.mostrarFeedback(`Nueva sede "${nombre}" incorporada exitosamente.`, 'exito');
-      this.cerrarModalSede();
+      this.sedesService.crearSedeSedesPost(payload).subscribe({
+        next: (creada) => {
+          this.guardando.set(false);
+          this.sedes.update((list) => [...list, creada]);
+          this.sedeAdmin.cargarSedes();
+          this.mostrarFeedback(`Nueva sede "${creada.nombre}" registrada exitosamente.`);
+          this.cerrarModalSede();
+        },
+        error: (err) => {
+          this.guardando.set(false);
+          this.mostrarFeedback(mensajeDeError(err, 'Error al registrar la nueva sede.'));
+        }
+      });
     }
   }
 
@@ -593,25 +706,42 @@ export class AdminSedesComponent implements OnInit {
   }
 
   confirmarAsignacionSede(): void {
-    if (this.asignarForm.invalid) return;
+    if (this.asignarForm.invalid || this.guardando()) return;
     const target = this.adminSeleccionado();
     if (!target) return;
-    const nuevaSedeId = this.asignarForm.value.sede_id;
+    const nuevaSedeId = this.asignarForm.value.sede_id!;
 
-    this.administradores.update(list => list.map(a => {
-      if (a.usuario_id === target.usuario_id) {
-        return { ...a, sede_id: nuevaSedeId };
-      }
-      return a;
-    }));
-
-    const sedeNombre = this.obtenerNombreSede(nuevaSedeId);
-    this.mostrarFeedback(`Jurisdicción de ${target.nombre_completo} actualizada a ${sedeNombre}.`, 'exito');
-    this.cerrarModalAsignar();
+    this.guardando.set(true);
+    this.usuariosService
+      .moderarUsuarioUsuariosUsuarioIdModeracionPut(target.usuario_id, {
+        sede_id: nuevaSedeId
+      })
+      .subscribe({
+        next: (actualizado) => {
+          this.guardando.set(false);
+          this.administradores.update((list) =>
+            list.map((a) => (a.usuario_id === target.usuario_id ? actualizado : a))
+          );
+          const sedeNombre = this.obtenerNombreSede(nuevaSedeId);
+          this.mostrarFeedback(`Jurisdicción de ${target.nombre_completo} actualizada a ${sedeNombre}.`);
+          this.cerrarModalAsignar();
+        },
+        error: (err) => {
+          this.guardando.set(false);
+          this.mostrarFeedback(mensajeDeError(err, 'No se pudo asignar la sede al administrador.'));
+        }
+      });
   }
 
   abrirModalCrearAdmin(): void {
-    this.crearAdminForm.reset({ correo: '', nombre_completo: '', cedula: '', sede_id: '' });
+    this.crearAdminForm.reset({
+      correo: '',
+      nombre_completo: '',
+      cedula: '',
+      celular: '',
+      sede_id: '',
+      password_temporal: ''
+    });
     this.modalCrearAdminAbierto.set(true);
   }
 
@@ -620,33 +750,35 @@ export class AdminSedesComponent implements OnInit {
   }
 
   guardarNuevoAdmin(): void {
-    if (this.crearAdminForm.invalid) return;
-    const { correo, nombre_completo, cedula, sede_id } = this.crearAdminForm.value;
+    if (this.crearAdminForm.invalid || this.guardando()) return;
+    const { correo, nombre_completo, cedula, celular, sede_id, password_temporal } = this.crearAdminForm.value;
 
-    const nuevoAdm: UsuarioResponse = {
-      usuario_id: 'adm-' + Date.now(),
-      correo: correo!,
-      nombre_completo: nombre_completo!,
-      cedula: cedula!,
-      tipo_vinculacion: 'ADMINISTRATIVO' as any,
-      rol: 'ADMIN' as any,
+    const payload = {
+      correo: correo!.trim().toLowerCase(),
+      nombre_completo: nombre_completo!.trim(),
+      cedula: cedula!.trim(),
+      celular: celular?.trim() || null,
+      tipo_vinculacion: 'ADMINISTRATIVO',
       sede_id: sede_id!,
-      is_active: true,
-      is_blocked: false,
-      is_verified: true,
-      fecha_creacion: new Date().toISOString()
+      password_temporal: password_temporal!
     };
 
-    this.administradores.update(list => [nuevoAdm, ...list]);
-    this.mostrarFeedback(`Administrador ${nombre_completo} registrado y asignado a su sede.`, 'exito');
-    this.cerrarModalCrearAdmin();
+    this.guardando.set(true);
+    this.http.post<UsuarioResponse>(`${API_URL}/usuarios/administradores`, payload).subscribe({
+      next: (nuevoAdm) => {
+        this.guardando.set(false);
+        this.administradores.update((list) => [nuevoAdm, ...list]);
+        this.mostrarFeedback(`Administrador ${nuevoAdm.nombre_completo} creado y asignado exitosamente.`);
+        this.cerrarModalCrearAdmin();
+      },
+      error: (err) => {
+        this.guardando.set(false);
+        this.mostrarFeedback(mensajeDeError(err, 'No se pudo crear el administrador. Verifique correo @itm.edu.co y contraseña segura.'));
+      }
+    });
   }
 
-  private mostrarFeedback(msg: string, tipo: 'exito' | 'error'): void {
-    this.mensajeFeedback.set(msg);
-    this.tipoFeedback.set(tipo);
-    setTimeout(() => {
-      this.mensajeFeedback.set(null);
-    }, 4500);
+  private mostrarFeedback(msg: string): void {
+    this.snack.open(msg, 'Cerrar', { duration: 4000 });
   }
 }

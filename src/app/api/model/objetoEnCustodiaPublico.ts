@@ -7,6 +7,7 @@ import { EstadoCustodia } from './estadoCustodia';
 export interface ObjetoEnCustodiaPublico { 
     objetoEnCustodia_id: string;
     categoria: CategoriaObjeto;
+    descripcion?: string | null;
     lugar_origen_id: string;
     lugar_origen_nombre?: string | null;
     fecha_ingreso: string;

@@ -1,9 +1,10 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AdminMetricasService, MetricasResumen } from '../../../core/admin-metricas.service';
 import { SedeAdminService } from '../../../core/sede-admin.service';
+import { mensajeDeError } from '../../../core/api-error';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -20,28 +21,44 @@ import { SedeAdminService } from '../../../core/sede-admin.service';
             Monitoreo en tiempo real del inventario, solicitudes de reclamo y publicaciones en {{ sedeNombre() }}
           </p>
         </div>
-        <div class="welcome-date">
-          <mat-icon class="date-icon">calendar_today</mat-icon>
-          <span>{{ fechaHoy }}</span>
+        <div class="welcome-actions">
+          <button type="button" class="refresh-btn" (click)="cargarMetricas()" [disabled]="cargando()">
+            <mat-icon [class.spin]="cargando()">refresh</mat-icon>
+            <span>Actualizar</span>
+          </button>
+          <div class="welcome-date">
+            <mat-icon class="date-icon">calendar_today</mat-icon>
+            <span>{{ fechaHoy }}</span>
+          </div>
         </div>
       </section>
+
+      @if (errorMensaje()) {
+        <div class="error-alert">
+          <div class="error-alert-left">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ errorMensaje() }}</span>
+          </div>
+          <button type="button" class="retry-btn" (click)="cargarMetricas()">Reintentar</button>
+        </div>
+      }
 
       <!-- 2. Grid de 4 Tarjetas KPI -->
       <section class="kpi-grid">
         
-        <!-- KPI 1: Total en Custodia -->
+        <!-- KPI 1: En Custodia Activa / Total Registrados -->
         <div class="kpi-card">
           <div class="kpi-header">
-            <span class="kpi-label">Total en Custodia</span>
+            <span class="kpi-label">En Custodia Activa</span>
             <div class="kpi-icon-box box-navy">
               <mat-icon>inventory_2</mat-icon>
             </div>
           </div>
           <div class="kpi-value text-navy">
-            {{ metricas()?.total_custodia ?? 42 }}
+            {{ metricas()?.total_custodia ?? 0 }}
           </div>
           <div class="kpi-subtext">
-            <span>Artículos resguardados físicamente</span>
+            <span>De {{ metricas()?.total_objetos ?? 0 }} artículos registrados en total</span>
           </div>
         </div>
 
@@ -54,7 +71,7 @@ import { SedeAdminService } from '../../../core/sede-admin.service';
             </div>
           </div>
           <div class="kpi-value text-green">
-            {{ metricas()?.reclamados ?? 31 }}
+            {{ metricas()?.reclamados ?? 0 }}
           </div>
           <div class="kpi-subtext">
             <span>Restituidos a sus titulares</span>
@@ -74,7 +91,7 @@ import { SedeAdminService } from '../../../core/sede-admin.service';
           </div>
           <div class="kpi-subtext">
             <a routerLink="/admin/aprobaciones" class="kpi-link">
-              <span>Revisar solicitudes</span>
+              <span>{{ detallePendientesTexto() }}</span>
               <mat-icon>arrow_forward</mat-icon>
             </a>
           </div>
@@ -89,10 +106,14 @@ import { SedeAdminService } from '../../../core/sede-admin.service';
             </div>
           </div>
           <div class="kpi-value text-teal">
-            {{ metricas()?.tasa_exito_porcentaje ?? 73.8 }}%
+            {{ metricas()?.tasa_exito_porcentaje ?? 0 }}%
           </div>
           <div class="kpi-subtext">
-            <span>Eficacia global de entrega</span>
+            @if (metricas()?.dias_promedio_custodia !== null && metricas()?.dias_promedio_custodia !== undefined) {
+              <span>Promedio de entrega: {{ metricas()?.dias_promedio_custodia }} días</span>
+            } @else {
+              <span>Eficacia global de entrega</span>
+            }
           </div>
         </div>
 
@@ -106,37 +127,44 @@ import { SedeAdminService } from '../../../core/sede-admin.service';
           <div class="panel-header">
             <div>
               <h2 class="panel-title">Top 5 Categorías con más reportes</h2>
-              <p class="panel-subtitle">Distribución histórica de incidencias de extravío en la sede</p>
+              <p class="panel-subtitle">Distribución real de reportes de extravío en {{ sedeNombre() }}</p>
             </div>
             <div class="panel-header-icon">
               <mat-icon>bar_chart</mat-icon>
             </div>
           </div>
 
-          <div class="categories-list">
-            @for (cat of topCategorias(); track cat.nombre) {
-              <div class="category-item">
-                <div class="category-info">
-                  <div class="category-label">
-                    <mat-icon class="category-icon">{{ cat.icono }}</mat-icon>
-                    <span class="category-name">{{ cat.nombre }}</span>
+          @if (topCategorias().length === 0) {
+            <div class="empty-categories">
+              <mat-icon>insights</mat-icon>
+              <p>Aún no hay reportes de pérdida registrados en esta sede.</p>
+            </div>
+          } @else {
+            <div class="categories-list">
+              @for (cat of topCategorias(); track cat.categoria) {
+                <div class="category-item">
+                  <div class="category-info">
+                    <div class="category-label">
+                      <mat-icon class="category-icon">{{ cat.icono }}</mat-icon>
+                      <span class="category-name">{{ cat.nombre }}</span>
+                    </div>
+                    <span class="category-stats">{{ cat.cantidad }} {{ cat.cantidad === 1 ? 'reporte' : 'reportes' }} ({{ cat.porcentaje }}%)</span>
                   </div>
-                  <span class="category-stats">{{ cat.cantidad }} reportes ({{ cat.porcentaje }}%)</span>
+                  <div class="progress-track">
+                    <div class="progress-bar" [style.width.%]="cat.porcentaje"></div>
+                  </div>
                 </div>
-                <div class="progress-track">
-                  <div class="progress-bar" [style.width.%]="cat.porcentaje"></div>
-                </div>
-              </div>
-            }
-          </div>
+              }
+            </div>
+          }
         </div>
 
-        <!-- Columna Derecha: Reclamos por Estado -->
+        <!-- Columna Derecha: Reclamos y Moderación por Estado -->
         <div class="panel-card col-narrow">
           <div class="panel-header">
             <div>
               <h2 class="panel-title">Reclamos por Estado</h2>
-              <p class="panel-subtitle">Solicitudes ciudadanas en curso</p>
+              <p class="panel-subtitle">Solicitudes ciudadanas registradas en la sede</p>
             </div>
             <div class="panel-header-icon">
               <mat-icon>pie_chart</mat-icon>
@@ -144,36 +172,36 @@ import { SedeAdminService } from '../../../core/sede-admin.service';
           </div>
 
           <div class="status-list">
-            <!-- Aprobados -->
+            <!-- Aprobados / Entregados -->
             <div class="status-item">
               <div class="status-left">
                 <span class="status-indicator dot-green"></span>
-                <span class="status-name">Aprobados / Entregados</span>
+                <span class="status-name">Aprobados / Reclamados</span>
               </div>
               <span class="status-badge badge-green">
-                {{ metricas()?.reclamados ?? 31 }}
+                {{ reclamosAprobadosYEntregados() }}
               </span>
             </div>
 
-            <!-- En Revisión -->
+            <!-- En Revisión / Enviados / Cita Agendada -->
             <div class="status-item">
               <div class="status-left">
                 <span class="status-indicator dot-amber"></span>
-                <span class="status-name">En Revisión / Pendientes</span>
+                <span class="status-name">En Revisión / Cita Agendada</span>
               </div>
               <span class="status-badge badge-amber">
-                {{ totalPendientes() }}
+                {{ reclamosEnCurso() }}
               </span>
             </div>
 
-            <!-- Rechazados -->
+            <!-- Rechazados / Cancelados -->
             <div class="status-item">
               <div class="status-left">
                 <span class="status-indicator dot-red"></span>
-                <span class="status-name">Rechazados / Descartados</span>
+                <span class="status-name">Rechazados / Cancelados</span>
               </div>
               <span class="status-badge badge-red">
-                5
+                {{ reclamosDescartados() }}
               </span>
             </div>
           </div>
@@ -182,7 +210,7 @@ import { SedeAdminService } from '../../../core/sede-admin.service';
           <div class="panel-footer-action">
             <a routerLink="/admin/aprobaciones" class="action-btn">
               <mat-icon>verified</mat-icon>
-              <span>Ir a la Bandeja de Moderación</span>
+              <span>Ir a la Bandeja de Moderación ({{ totalPendientes() }})</span>
             </a>
           </div>
         </div>
@@ -226,6 +254,78 @@ import { SedeAdminService } from '../../../core/sede-admin.service';
       color: #6B7280;
       margin: 0;
       line-height: 1.4;
+    }
+
+    .welcome-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .refresh-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      color: #011C5B;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .refresh-btn:hover:not(:disabled) {
+      background: #F3F4F6;
+    }
+
+    .refresh-btn mat-icon {
+      font-size: 16px !important;
+      width: 16px !important;
+      height: 16px !important;
+    }
+
+    .spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-alert {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      color: #991B1B;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .error-alert-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .retry-btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid #FCA5A5;
+      background: #FFFFFF;
+      color: #991B1B;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
     }
 
     .welcome-date {
@@ -398,6 +498,25 @@ import { SedeAdminService } from '../../../core/sede-admin.service';
       color: #9CA3AF;
     }
 
+    .empty-categories {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 36px 16px;
+      color: #9CA3AF;
+      text-align: center;
+      font-size: 0.85rem;
+    }
+
+    .empty-categories mat-icon {
+      font-size: 32px !important;
+      width: 32px !important;
+      height: 32px !important;
+      color: #CBD5E1;
+    }
+
     /* Barras de Categorías */
     .categories-list {
       display: flex;
@@ -561,6 +680,8 @@ export class AdminDashboardComponent implements OnInit {
   private sedeAdmin = inject(SedeAdminService);
 
   metricas = signal<MetricasResumen | null>(null);
+  cargando = signal<boolean>(false);
+  errorMensaje = signal<string | null>(null);
 
   fechaHoy = new Date().toLocaleDateString('es-CO', {
     weekday: 'long',
@@ -569,34 +690,68 @@ export class AdminDashboardComponent implements OnInit {
     year: 'numeric'
   });
 
-  sedeNombre = () => this.sedeAdmin.selectedSede()?.nombre || 'Sede Fraternidad';
+  sedeNombre = computed(() => this.sedeAdmin.selectedSede()?.nombre || 'Sede Institucional');
 
-  totalPendientes = () => {
+  totalPendientes = computed(() => {
     const m = this.metricas();
-    if (!m) return 12;
-    return (m.pendientes_moderacion?.perdidos || 0) +
-      (m.pendientes_moderacion?.encontrados || 0) +
-      (m.pendientes_moderacion?.eliminaciones || 0) || 12;
-  };
+    if (!m) return 0;
+    return (
+      (m.pendientes_moderacion?.perdidos ?? 0) +
+      (m.pendientes_moderacion?.encontrados ?? 0) +
+      (m.pendientes_moderacion?.eliminaciones ?? 0)
+    );
+  });
 
-  topCategorias = () => {
-    const cats = this.metricas()?.top_categorias;
-    if (cats && cats.length > 0) return cats;
-    return [
-      { nombre: 'Dispositivos Electrónicos', icono: 'devices', cantidad: 38, porcentaje: 35 },
-      { nombre: 'Documentos e Identificación', icono: 'badge', cantidad: 27, porcentaje: 25 },
-      { nombre: 'Billeteras y Tarjeteros', icono: 'account_balance_wallet', cantidad: 18, porcentaje: 16 },
-      { nombre: 'Llaves y Llaveros', icono: 'vpn_key', cantidad: 15, porcentaje: 14 },
-      { nombre: 'Prendas y Accesorios', icono: 'checkroom', cantidad: 11, porcentaje: 10 }
-    ];
-  };
+  detallePendientesTexto = computed(() => {
+    const m = this.metricas();
+    if (!m) return 'Revisar solicitudes';
+    const p = m.pendientes_moderacion;
+    return `${p.perdidos} perdidos · ${p.encontrados} encontrados · ${p.eliminaciones} bajas`;
+  });
+
+  topCategorias = computed(() => {
+    return this.metricas()?.top_categorias ?? [];
+  });
+
+  reclamosAprobadosYEntregados = computed(() => {
+    const r = this.metricas()?.reclamos_por_estado ?? {};
+    return (r['APROBADO'] ?? 0) + (r['RECLAMADO'] ?? 0) + (r['ENTREGADO'] ?? 0);
+  });
+
+  reclamosEnCurso = computed(() => {
+    const r = this.metricas()?.reclamos_por_estado ?? {};
+    return (r['ENVIADO'] ?? 0) + (r['EN_REVISION'] ?? 0) + (r['CITA_AGENDADA'] ?? 0);
+  });
+
+  reclamosDescartados = computed(() => {
+    const r = this.metricas()?.reclamos_por_estado ?? {};
+    return (r['RECHAZADO'] ?? 0) + (r['CANCELADO_POR_USUARIO'] ?? 0);
+  });
+
+  constructor() {
+    effect(() => {
+      // Se suscribe reactivamente al cambio de sede del SUPERADMIN
+      this.sedeAdmin.selectedSedeId();
+      this.cargarMetricas();
+    });
+  }
 
   ngOnInit(): void {
+    this.cargarMetricas();
+  }
+
+  cargarMetricas(): void {
+    this.cargando.set(true);
+    this.errorMensaje.set(null);
+
     this.metricasService.obtenerResumen().subscribe({
       next: (data) => {
-        if (data) {
-          this.metricas.set(data);
-        }
+        this.metricas.set(data);
+        this.cargando.set(false);
+      },
+      error: (err) => {
+        this.cargando.set(false);
+        this.errorMensaje.set(mensajeDeError(err, 'No se pudieron obtener las métricas de la sede.'));
       }
     });
   }

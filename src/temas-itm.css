@@ -205,3 +205,515 @@ a:hover { color: var(--ing-1); text-decoration: underline; }
   color: var(--ing-1) !important;
   font-weight: 600 !important;
 }
+
+/* ==========================================================================
+   Sistema de Diseño Institucional ITM - Paneles Administrativos
+   ========================================================================== */
+.itm-admin-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-bottom: 32px;
+  animation: itmFadeIn 0.28s ease-out;
+}
+
+@keyframes itmFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.itm-admin-header {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 2px 10px rgba(1, 28, 91, 0.04);
+}
+
+.itm-admin-title {
+  margin: 0;
+  font-family: 'Montserrat', Arial, sans-serif;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--ing-1);
+  letter-spacing: -0.02em;
+}
+
+.itm-admin-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Segmented Tabs ITM */
+.itm-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: #f3f4f6;
+  padding: 5px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.itm-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px !important;
+  border-radius: 9px !important;
+  border: none !important;
+  background: transparent !important;
+  color: #4b5563 !important;
+  font-size: 0.84rem !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: none !important;
+}
+
+.itm-tab-btn:hover {
+  color: var(--ing-1) !important;
+  background: rgba(255, 255, 255, 0.65) !important;
+}
+
+.itm-tab-btn.active {
+  background: var(--ing-1) !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 10px rgba(16, 45, 105, 0.22) !important;
+}
+
+.itm-tab-counter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.itm-tab-btn.active .itm-tab-counter {
+  background: var(--ing-2);
+  color: #ffffff;
+}
+
+/* Filter Bar & Form Controls */
+.itm-filter-bar {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 18px 22px;
+  display: grid;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(1, 28, 91, 0.03);
+}
+
+.itm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.itm-label {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.itm-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.itm-input-icon {
+  position: absolute;
+  left: 12px;
+  color: #9ca3af;
+  font-size: 19px !important;
+  pointer-events: none;
+}
+
+.itm-input,
+.itm-select,
+.itm-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #f9fafb;
+  border: 1.5px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1f2937;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+.itm-input.with-icon {
+  padding-left: 38px;
+}
+
+.itm-input:focus,
+.itm-select:focus,
+.itm-textarea:focus {
+  background: #ffffff;
+  border-color: var(--ing-2);
+  box-shadow: 0 0 0 3px rgba(0, 160, 183, 0.14);
+}
+
+/* Botones Administrativos ITM */
+.itm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px !important;
+  border-radius: 10px !important;
+  font-size: 0.84rem !important;
+  font-weight: 700 !important;
+  border: 1px solid transparent !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  line-height: 1.2;
+}
+
+.itm-btn-primary {
+  background: var(--ing-1) !important;
+  color: #ffffff !important;
+}
+.itm-btn-primary:hover:not(:disabled) {
+  background: var(--ing-2) !important;
+  box-shadow: 0 4px 12px rgba(0, 160, 183, 0.28) !important;
+}
+
+.itm-btn-secondary {
+  background: var(--ing-2) !important;
+  color: #ffffff !important;
+}
+.itm-btn-secondary:hover:not(:disabled) {
+  background: #008699 !important;
+}
+
+.itm-btn-success {
+  background: #059669 !important;
+  color: #ffffff !important;
+}
+.itm-btn-success:hover:not(:disabled) {
+  background: #047857 !important;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25) !important;
+}
+
+.itm-btn-danger {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+.itm-btn-danger:hover:not(:disabled) {
+  background: #b91c1c !important;
+}
+
+.itm-btn-outline-danger {
+  background: #ffffff !important;
+  color: #dc2626 !important;
+  border: 1.5px solid #fecaca !important;
+}
+.itm-btn-outline-danger:hover:not(:disabled) {
+  background: #fef2f2 !important;
+  border-color: #ef4444 !important;
+}
+
+.itm-btn-outline {
+  background: #ffffff !important;
+  color: var(--ing-1) !important;
+  border: 1.5px solid #d1d5db !important;
+}
+.itm-btn-outline:hover:not(:disabled) {
+  background: #f3f4f6 !important;
+  border-color: var(--ing-1) !important;
+}
+
+.itm-btn-ghost {
+  background: #f3f4f6 !important;
+  color: #374151 !important;
+}
+.itm-btn-ghost:hover:not(:disabled) {
+  background: #e5e7eb !important;
+  color: var(--ing-1) !important;
+}
+
+.itm-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0 !important;
+  border-radius: 9px !important;
+  border: 1px solid #e5e7eb !important;
+  background: #ffffff !important;
+  color: #4b5563 !important;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.itm-icon-btn:hover:not(:disabled) {
+  background: #f0f6fc !important;
+  color: var(--ing-1) !important;
+  border-color: var(--ing-3) !important;
+}
+.itm-icon-btn.danger:hover:not(:disabled) {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-color: #fca5a5 !important;
+}
+.itm-icon-btn.success:hover:not(:disabled) {
+  background: #ecfdf5 !important;
+  color: #059669 !important;
+  border-color: #6ee7b7 !important;
+}
+
+/* Tablas Institucionales ITM */
+.itm-table-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(1, 28, 91, 0.04);
+}
+
+.itm-table-scroll {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.itm-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.itm-table thead tr {
+  background: #f8fafc;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.itm-table th {
+  padding: 13px 18px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--ing-1);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.itm-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.15s ease;
+}
+
+.itm-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.itm-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.itm-table td {
+  padding: 14px 18px;
+  font-size: 0.86rem;
+  color: #1f2937;
+  vertical-align: middle;
+}
+
+/* Badges / Etiquetas de Estado */
+.itm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.73rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.itm-badge-primary {
+  background: rgba(16, 45, 105, 0.1);
+  color: var(--ing-1);
+  border: 1px solid rgba(16, 45, 105, 0.2);
+}
+
+.itm-badge-cyan {
+  background: rgba(0, 160, 183, 0.12);
+  color: #007a8c;
+  border: 1px solid rgba(0, 160, 183, 0.25);
+}
+
+.itm-badge-success {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.itm-badge-warning {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.itm-badge-danger {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.itm-badge-neutral {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+/* Paginación */
+.itm-pagination {
+  background: #f8fafc;
+  border-top: 1px solid #e5e7eb;
+  padding: 12px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: #4b5563;
+}
+
+/* Estado Vacío */
+.itm-empty-state {
+  background: #ffffff;
+  border: 1.5px dashed #d1d5db;
+  border-radius: 16px;
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.itm-empty-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #f0f6fc;
+  color: var(--ing-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Modales Administrativos ITM */
+.itm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(1, 28, 91, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: itmFadeIn 0.18s ease-out;
+}
+
+.itm-modal-card {
+  background: #ffffff;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(1, 28, 91, 0.28);
+  border: 1px solid #e5e7eb;
+}
+
+.itm-modal-card.wide {
+  max-width: 680px;
+}
+
+.itm-modal-header {
+  padding: 18px 24px;
+  background: linear-gradient(135deg, var(--itm-azul), var(--ing-1));
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.itm-modal-header.danger {
+  background: linear-gradient(135deg, #991b1b, #dc2626);
+}
+
+.itm-modal-header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.08rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.itm-modal-close {
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+  border: none !important;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px !important;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.itm-modal-close:hover {
+  background: rgba(255, 255, 255, 0.26) !important;
+}
+
+.itm-modal-body {
+  padding: 22px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.itm-modal-footer {
+  padding: 14px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}

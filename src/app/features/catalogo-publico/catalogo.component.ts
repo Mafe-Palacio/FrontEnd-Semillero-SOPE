@@ -8,12 +8,13 @@ import {
   ChangeDetectionStrategy,
   PLATFORM_ID
 } from '@angular/core';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, takeUntil, finalize, startWith } from 'rxjs/operators';
+import { Subject, forkJoin, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil, finalize, startWith, switchMap } from 'rxjs/operators';
 
 // Angular Material
 import { MatIconModule } from '@angular/material/icon';
@@ -24,18 +25,22 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 // Core Services & API
+import { API_URL } from '../../core/api.config';
 import { AuthService } from '../../core/auth.service';
 import { CATEGORIAS } from '../../core/categorias';
 import { mensajeDeError } from '../../core/api-error';
 import { ObjetosEnCustodiaService } from '../../api/api/objetosEnCustodia.service';
 import { PublicacionesEncontradasService } from '../../api/api/publicacionesEncontradas.service';
 import { ReclamosService } from '../../api/api/reclamos.service';
+import { PreguntasDeSeguridadService } from '../../api/api/preguntasDeSeguridad.service';
+import { RespuestasDeSeguridadService } from '../../api/api/respuestasDeSeguridad.service';
 import { UbicacionesService } from '../../api/api/ubicaciones.service';
 import { PuntosEntregaService } from '../../api/api/puntosEntrega.service';
 import { ReportesDePrdidaService } from '../../api/api/reportesDePrdida.service';
 import { UbicacionResponse } from '../../api/model/ubicacionResponse';
 import { PuntoEntregaResponse } from '../../api/model/puntoEntregaResponse';
 import { ObjetoEnCustodiaPublico } from '../../api/model/objetoEnCustodiaPublico';
+import { PreguntaSeguridadPublica } from '../../api/model/preguntaSeguridadPublica';
 import { CategoriaObjeto } from '../../api/model/categoriaObjeto';
 import { EstadoCustodia } from '../../api/model/estadoCustodia';
 
@@ -83,9 +88,12 @@ export interface CategoriaFiltro {
   styleUrl: './catalogo.component.scss'
 })
 export class CatalogoComponent implements OnInit, OnDestroy {
+  private readonly http = inject(HttpClient);
   private readonly objetosService = inject(ObjetosEnCustodiaService);
   private readonly publicacionesService = inject(PublicacionesEncontradasService);
   private readonly reclamosService = inject(ReclamosService);
+  private readonly preguntasService = inject(PreguntasDeSeguridadService);
+  private readonly respuestasService = inject(RespuestasDeSeguridadService);
   private readonly ubicacionesService = inject(UbicacionesService);
   private readonly puntosService = inject(PuntosEntregaService);
   private readonly reportesService = inject(ReportesDePrdidaService);
@@ -105,6 +113,14 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   readonly modalReclamarAbierto = signal<boolean>(false);
   readonly reclamoEnviadoConExito = signal<boolean>(false);
 
+  // Estado del flujo real de reclamación (HU08, HU20, HU21, HU22)
+  readonly preguntasSeguridad = signal<PreguntaSeguridadPublica[]>([]);
+  readonly cargandoPreguntas = signal<boolean>(false);
+  readonly modalidadReclamo = signal<'virtual' | 'presencial'>('virtual');
+  readonly respuestasReclamo = signal<Record<string, string>>({});
+  readonly evidenciaUrlReclamo = signal<string>('');
+  readonly enviandoReclamo = signal<boolean>(false);
+
   // Modales de acciones rápidas (Se me perdió un objeto / Encontré un objeto)
   readonly modalReportarPerdidoAbierto = signal<boolean>(false);
   readonly modalRegistrarEncontradoAbierto = signal<boolean>(false);
@@ -113,6 +129,17 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   readonly ubicaciones = signal<UbicacionResponse[]>([]);
   readonly puntosEntrega = signal<PuntoEntregaResponse[]>([]);
   readonly enviando = signal<boolean>(false);
+
+  // Estado de carga de fotografías (HU28 - POST /imagenes)
+  readonly imagenPerdidoUrl = signal<string | null>(null);
+  readonly imagenPerdidoNombre = signal<string | null>(null);
+  readonly subiendoImagenPerdido = signal<boolean>(false);
+
+  readonly imagenEncontradoUrl = signal<string | null>(null);
+  readonly imagenEncontradoNombre = signal<string | null>(null);
+  readonly subiendoImagenEncontrado = signal<boolean>(false);
+
+  readonly subiendoEvidenciaReclamo = signal<boolean>(false);
 
   // Formulario reactivo de búsqueda y filtros
   readonly filtrosForm = new FormGroup({
@@ -127,14 +154,6 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     this.filtrosForm.valueChanges.pipe(startWith(this.filtrosForm.getRawValue())),
     { initialValue: this.filtrosForm.getRawValue() }
   );
-
-  // Formulario de reclamo del objeto (HU21, HU22)
-  readonly reclamoForm = new FormGroup({
-    descripcionDetallada: new FormControl<string>('', { nonNullable: true }),
-    caracteristicaUnica: new FormControl<string>('', { nonNullable: true }),
-    fechaPerdidaEstimada: new FormControl<string>('', { nonNullable: true }),
-    lugarPerdidaEstimado: new FormControl<string>('', { nonNullable: true })
-  });
 
   // Formulario "Se me perdió un objeto"
   readonly formReportePerdido = new FormGroup({
@@ -152,6 +171,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     lugarEntregaId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
     fechaHallazgo: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] })
   });
+
   // Filtros de categoría: salen de core/categorias.ts (las mismas 11 categorías del backend)
   readonly categorias: CategoriaFiltro[] = [
     { id: 'TODAS', etiqueta: 'Todas las categorías', icono: 'apps' },
@@ -162,7 +182,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     }))
   ];
 
-  // Objetos filtrados reactivamente en base a búsqueda, categoría, sede y orden
+  // Objetos filtrados reactivamente en base a búsqueda, categoría y orden
   readonly objetosFiltrados = computed(() => {
     const lista = this.objetos();
     this.filtros(); // dependencia reactiva de los filtros
@@ -178,11 +198,13 @@ export class CatalogoComponent implements OnInit, OnDestroy {
           return false;
         }
 
-        // Filtro por texto reactivo (coincide con descripción o categoría)
+        // Filtro por texto reactivo (coincide con descripción pública, categoría, punto de custodia o código)
         if (query) {
           const coincideDescripcion = item.descripcion.toLowerCase().includes(query);
           const coincideCategoria = item.categoriaEtiqueta.toLowerCase().includes(query);
-          if (!coincideDescripcion && !coincideCategoria) {
+          const coincideLugar = item.lugarGeneral.toLowerCase().includes(query);
+          const coincideCodigo = item.codigoPublico.toLowerCase().includes(query);
+          if (!coincideDescripcion && !coincideCategoria && !coincideLugar && !coincideCodigo) {
             return false;
           }
         }
@@ -250,28 +272,28 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Mapea un objeto del esquema de FastAPI a la tarjeta pública.
-   * El catálogo público solo trae categoría, fecha, imagen y lugar de origen:
-   * no se inventa ningún otro dato (descripción, sede, etc.).
+   * Mapea un objeto del esquema de FastAPI a la tarjeta pública (HU01).
+   * Incluye la descripción pública del objeto sin exponer detalles_internos.
    */
   private mapearObjetoPublico(item: ObjetoEnCustodiaPublico): ObjetoCatalogoItem {
     const fecha = item.fecha_ingreso ? new Date(item.fecha_ingreso) : new Date();
     const diasEnCustodia = Math.ceil(Math.abs(Date.now() - fecha.getTime()) / (1000 * 60 * 60 * 24));
     const etiqueta = CATEGORIAS[item.categoria]?.label ?? item.categoria;
+    const descripcionPublica = item.descripcion?.trim() || etiqueta;
 
     return {
       id: item.objetoEnCustodia_id,
       codigoPublico: `OP-${item.objetoEnCustodia_id.slice(-6).toUpperCase()}`,
-      descripcion: etiqueta, // el usuario común solo ve la categoría
+      descripcion: descripcionPublica,
       categoria: item.categoria,
       categoriaEtiqueta: etiqueta,
-      sede: 'Sede Fraternidad',
+      sede: 'ITM',
       lugarGeneral: item.lugar_origen_nombre ?? 'Oficina de custodia',
       fechaIngreso: item.fecha_ingreso,
       fechaFormateada: this.formatearFecha(fecha),
       imagenUrl: item.imagen_url || null,
       estado: item.estado || EstadoCustodia.EnCustodia,
-      estadoEtiqueta: 'En Custodia Oficial',
+      estadoEtiqueta: item.estado === EstadoCustodia.PorVencer ? 'Por Vencer' : 'En Custodia Oficial',
       diasEnCustodia
     };
   }
@@ -316,8 +338,8 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Inicia el flujo de reclamación (HU08, HU21, HU22)
-   * Valida si el usuario está autenticado en la plataforma.
+   * Inicia el flujo real de reclamación (HU08, HU20, HU21, HU22)
+   * Valida si el usuario está autenticado y consulta las preguntas de seguridad configuradas.
    */
   iniciarReclamo(item: ObjetoCatalogoItem, event?: MouseEvent): void {
     if (event) {
@@ -325,15 +347,82 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     }
     this.objetoSeleccionado.set(item);
     this.reclamoEnviadoConExito.set(false);
-    this.reclamoForm.reset();
+    this.respuestasReclamo.set({});
+    this.evidenciaUrlReclamo.set('');
+    this.preguntasSeguridad.set([]);
+    this.modalidadReclamo.set('virtual');
 
-    // Verificación de autenticación: si no está logueado, redirige de inmediato a iniciar sesión
     if (!this.authService.isLoggedIn()) {
-      this.router.navigate(['/auth'], { queryParams: { returnUrl: '/catalogo' } });
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/catalogo' } });
       return;
     }
 
     this.modalReclamarAbierto.set(true);
+    this.cargarPreguntasSeguridad(item.id);
+  }
+
+  private cargarPreguntasSeguridad(objetoId: string): void {
+    this.cargandoPreguntas.set(true);
+    this.preguntasService
+      .obtenerPreguntasSeguridadPublicasPreguntasSeguridadObjetoObjetoEnCustodiaIdPublicoGet(objetoId)
+      .pipe(
+        finalize(() => this.cargandoPreguntas.set(false)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (preguntas) => {
+          const ordenadas = [...(preguntas ?? [])].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+          this.preguntasSeguridad.set(ordenadas);
+          if (ordenadas.length === 0) {
+            this.modalidadReclamo.set('presencial');
+          } else {
+            this.modalidadReclamo.set('virtual');
+            const inicial: Record<string, string> = {};
+            for (const p of ordenadas) {
+              inicial[p.preguntaSeguridad_id] = '';
+            }
+            this.respuestasReclamo.set(inicial);
+          }
+        },
+        error: () => {
+          // Si el objeto aún no tiene cuestionario configurado (404), habilitamos modalidad presencial
+          this.preguntasSeguridad.set([]);
+          this.modalidadReclamo.set('presencial');
+        }
+      });
+  }
+
+  cambiarModalidadReclamo(modalidad: 'virtual' | 'presencial'): void {
+    if (modalidad === 'virtual' && this.preguntasSeguridad().length === 0) {
+      return;
+    }
+    this.modalidadReclamo.set(modalidad);
+  }
+
+  actualizarRespuestaReclamo(preguntaId: string, valor: string): void {
+    this.respuestasReclamo.update((actual) => ({
+      ...actual,
+      [preguntaId]: valor
+    }));
+  }
+
+  actualizarEvidenciaUrl(valor: string): void {
+    this.evidenciaUrlReclamo.set(valor);
+  }
+
+  formularioReclamoValido(): boolean {
+    if (this.enviandoReclamo() || this.cargandoPreguntas()) {
+      return false;
+    }
+    if (this.modalidadReclamo() === 'presencial') {
+      return true;
+    }
+    const preguntas = this.preguntasSeguridad();
+    if (preguntas.length === 0) {
+      return true;
+    }
+    const respuestas = this.respuestasReclamo();
+    return preguntas.every((p) => (respuestas[p.preguntaSeguridad_id] ?? '').trim().length > 0);
   }
 
   cerrarModalReclamo(): void {
@@ -345,10 +434,13 @@ export class CatalogoComponent implements OnInit, OnDestroy {
    */
   abrirModalReportarPerdido(): void {
     if (!this.authService.isLoggedIn()) {
-      this.router.navigate(['/auth'], { queryParams: { returnUrl: '/catalogo' } });
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/catalogo' } });
       return;
     }
     this.reportePerdidoEnviado.set(false);
+    this.imagenPerdidoUrl.set(null);
+    this.imagenPerdidoNombre.set(null);
+    this.subiendoImagenPerdido.set(false);
     this.formReportePerdido.reset({
       categoria: CategoriaObjeto.Electronicos,
       descripcion: '',
@@ -361,6 +453,95 @@ export class CatalogoComponent implements OnInit, OnDestroy {
 
   cerrarModalReportarPerdido(): void {
     this.modalReportarPerdidoAbierto.set(false);
+  }
+
+  seleccionarFotoPerdido(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0];
+    if (!archivo) return;
+    this.subirFotografia(archivo, 'perdido');
+    input.value = '';
+  }
+
+  quitarFotoPerdido(): void {
+    this.imagenPerdidoUrl.set(null);
+    this.imagenPerdidoNombre.set(null);
+  }
+
+  seleccionarFotoEncontrado(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0];
+    if (!archivo) return;
+    this.subirFotografia(archivo, 'encontrado');
+    input.value = '';
+  }
+
+  quitarFotoEncontrado(): void {
+    this.imagenEncontradoUrl.set(null);
+    this.imagenEncontradoNombre.set(null);
+  }
+
+  seleccionarFotoEvidenciaReclamo(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const archivo = input.files?.[0];
+    if (!archivo) return;
+    this.subirFotografia(archivo, 'reclamo');
+    input.value = '';
+  }
+
+  private subirFotografia(archivo: File, destino: 'perdido' | 'encontrado' | 'reclamo'): void {
+    const tiposPermitidos = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!tiposPermitidos.includes(archivo.type)) {
+      this.snackBar.open('Formato no válido. Solo se permiten imágenes JPG o PNG.', 'Cerrar', {
+        duration: 4000
+      });
+      return;
+    }
+    if (archivo.size > 5 * 1024 * 1024) {
+      this.snackBar.open('La imagen supera el límite máximo permitido de 5 MB.', 'Cerrar', {
+        duration: 4000
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+
+    if (destino === 'perdido') this.subiendoImagenPerdido.set(true);
+    if (destino === 'encontrado') this.subiendoImagenEncontrado.set(true);
+    if (destino === 'reclamo') this.subiendoEvidenciaReclamo.set(true);
+
+    this.http
+      .post<{ url: string; formato: string; bytes: number }>(`${API_URL}/imagenes`, formData)
+      .pipe(
+        finalize(() => {
+          if (destino === 'perdido') this.subiendoImagenPerdido.set(false);
+          if (destino === 'encontrado') this.subiendoImagenEncontrado.set(false);
+          if (destino === 'reclamo') this.subiendoEvidenciaReclamo.set(false);
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          if (destino === 'perdido') {
+            this.imagenPerdidoUrl.set(res.url);
+            this.imagenPerdidoNombre.set(archivo.name);
+          } else if (destino === 'encontrado') {
+            this.imagenEncontradoUrl.set(res.url);
+            this.imagenEncontradoNombre.set(archivo.name);
+          } else {
+            this.evidenciaUrlReclamo.set(res.url);
+          }
+          this.snackBar.open('Fotografía cargada correctamente.', 'Cerrar', { duration: 3000 });
+        },
+        error: (err) => {
+          this.snackBar.open(
+            mensajeDeError(err, 'No se pudo subir la fotografía. Intenta con otra imagen JPG o PNG.'),
+            'Cerrar',
+            { duration: 5000 }
+          );
+        }
+      });
   }
 
   private cargarLugares(): void {
@@ -387,7 +568,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   }
 
   enviarReportePerdido(): void {
-    if (this.formReportePerdido.invalid || this.enviando()) {
+    if (this.formReportePerdido.invalid || this.enviando() || this.subiendoImagenPerdido()) {
       this.formReportePerdido.markAllAsTouched();
       this.snackBar.open('Completa categoría, descripción, lugar y fecha.', 'Cerrar', { duration: 3000 });
       return;
@@ -399,7 +580,8 @@ export class CatalogoComponent implements OnInit, OnDestroy {
         categoria: f.categoria as CategoriaObjeto,
         descripcion: f.descripcion.trim(),
         lugar_perdida_id: f.lugarPerdidaId,
-        fecha_perdida: f.fechaExtravio
+        fecha_perdida: f.fechaExtravio,
+        imagen_url: this.imagenPerdidoUrl() || undefined
       })
       .pipe(finalize(() => this.enviando.set(false)), takeUntil(this.destroy$))
       .subscribe({
@@ -417,10 +599,13 @@ export class CatalogoComponent implements OnInit, OnDestroy {
    */
   abrirModalRegistrarEncontrado(): void {
     if (!this.authService.isLoggedIn()) {
-      this.router.navigate(['/auth'], { queryParams: { returnUrl: '/catalogo' } });
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/catalogo' } });
       return;
     }
     this.reporteEncontradoEnviado.set(false);
+    this.imagenEncontradoUrl.set(null);
+    this.imagenEncontradoNombre.set(null);
+    this.subiendoImagenEncontrado.set(false);
     this.formReporteEncontrado.reset({
       categoria: CategoriaObjeto.Electronicos,
       descripcion: '',
@@ -437,7 +622,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   }
 
   enviarReporteEncontrado(): void {
-    if (this.formReporteEncontrado.invalid || this.enviando()) {
+    if (this.formReporteEncontrado.invalid || this.enviando() || this.subiendoImagenEncontrado()) {
       this.formReporteEncontrado.markAllAsTouched();
       this.snackBar.open('Completa categoría, descripción, lugares y fecha.', 'Cerrar', { duration: 3000 });
       return;
@@ -450,7 +635,8 @@ export class CatalogoComponent implements OnInit, OnDestroy {
         descripcion: f.descripcion.trim(),
         lugar_hallazgo_id: f.lugarHallazgoId,
         lugar_entrega_fisica_id: f.lugarEntregaId,
-        fecha_hallazgo: f.fechaHallazgo
+        fecha_hallazgo: f.fechaHallazgo,
+        imagen_url: this.imagenEncontradoUrl() || undefined
       })
       .pipe(finalize(() => this.enviando.set(false)), takeUntil(this.destroy$))
       .subscribe({
@@ -464,24 +650,75 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Envía la solicitud de reclamo para validación de seguridad (HU22)
+   * Envía la solicitud real de reclamo al backend (POST /reclamos) y registra las
+   * respuestas de seguridad (POST /respuestas-seguridad/) cuando es virtual (HU08, HU20, HU21, HU22).
    */
   enviarReclamo(): void {
-    if (this.reclamoForm.invalid) {
-      this.snackBar.open('Por favor ingrese las características que demuestren su titularidad.', 'Cerrar', { duration: 4000 });
-      return;
+    const item = this.objetoSeleccionado();
+    if (!item || this.enviandoReclamo()) return;
+
+    const esPresencial = this.modalidadReclamo() === 'presencial' || this.preguntasSeguridad().length === 0;
+    const preguntas = this.preguntasSeguridad();
+    const respuestas = this.respuestasReclamo();
+
+    if (!esPresencial) {
+      const faltanRespuestas = preguntas.some(
+        (p) => !(respuestas[p.preguntaSeguridad_id] ?? '').trim()
+      );
+      if (faltanRespuestas) {
+        this.snackBar.open(
+          'Por favor responde todas las preguntas de seguridad para validar tu titularidad.',
+          'Cerrar',
+          { duration: 4000 }
+        );
+        return;
+      }
     }
 
-    const item = this.objetoSeleccionado();
-    if (!item) return;
+    const evidenciaLimpia = this.evidenciaUrlReclamo().trim();
+    this.enviandoReclamo.set(true);
 
-    // Feedback positivo y simulación de registro de reclamo
-    this.reclamoEnviadoConExito.set(true);
-    this.snackBar.open(
-      `Reclamo para ${item.descripcion} enviado al personal de custodia.`,
-      'Entendido',
-      { duration: 5000 }
-    );
+    this.reclamosService
+      .crearReclamoReclamosPost({
+        objetoEnCustodia_id: item.id,
+        es_presencial: esPresencial,
+        evidencia_url: evidenciaLimpia ? evidenciaLimpia : null
+      })
+      .pipe(
+        switchMap((reclamoCreado) => {
+          if (esPresencial || preguntas.length === 0) {
+            return of(reclamoCreado);
+          }
+          const peticionesRespuestas = preguntas.map((p) =>
+            this.respuestasService.crearRespuestaRespuestasSeguridadPost({
+              reclamo_id: reclamoCreado.reclamo_id,
+              preguntaSeguridad_id: p.preguntaSeguridad_id,
+              respuesta_usuario: respuestas[p.preguntaSeguridad_id].trim()
+            })
+          );
+          return forkJoin(peticionesRespuestas).pipe(switchMap(() => of(reclamoCreado)));
+        }),
+        finalize(() => this.enviandoReclamo.set(false)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: () => {
+          this.reclamoEnviadoConExito.set(true);
+          this.snackBar.open(
+            `Reclamo para "${item.descripcion}" registrado exitosamente.`,
+            'Entendido',
+            { duration: 5000 }
+          );
+          this.cargarCatalogo();
+        },
+        error: (err) => {
+          this.snackBar.open(
+            mensajeDeError(err, 'No se pudo enviar el reclamo. Verifica tu perfil e inténtalo de nuevo.'),
+            'Cerrar',
+            { duration: 6000 }
+          );
+        }
+      });
   }
 
   /**

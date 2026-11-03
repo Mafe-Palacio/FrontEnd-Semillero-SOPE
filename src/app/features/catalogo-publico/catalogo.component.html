@@ -4,7 +4,7 @@
   <header class="catalogo-header">
     <div class="header-container">
       <div class="header-branding">
-        <span class="sede-badge">Institución Universitaria ITM · Sede Fraternidad</span>
+        <span class="sede-badge">Institución Universitaria ITM · Sistema Oficial de Custodia</span>
         <h1 class="header-title">Muro Público de Objetos en Custodia</h1>
         <p class="header-subtitle">
           Consulta los artículos recuperados en las instalaciones del campus. Si reconoces tu pertenencia, inicia el proceso seguro de validación y entrega institucional.
@@ -62,7 +62,7 @@
             <input
               type="text"
               formControlName="termino"
-              placeholder="Buscar por artículo, bloque, categoría (ej. audífonos, termo, llaves, mochila)..."
+              placeholder="Buscar por artículo, punto de custodia, categoría o código (ej. audífonos, termo, llaves)..."
               class="search-input"
               aria-label="Buscar objetos encontrados en el ITM"
             />
@@ -180,10 +180,33 @@
                     </div>
                   </div>
                 }
+
+                <div class="card-media-badges">
+                  <span class="badge-categoria">
+                    <mat-icon>{{ getIconoPorCategoria(item.categoria) }}</mat-icon>
+                    {{ item.categoriaEtiqueta }}
+                  </span>
+                  @if (item.estado === 'POR_VENCER') {
+                    <span class="badge-estado badge-estado--warning">Por Vencer</span>
+                  }
+                </div>
               </div>
 
               <div class="card-body">
+                <div class="card-top-meta">
+                  <span class="card-code">{{ item.codigoPublico }}</span>
+                  <span class="card-date">
+                    <mat-icon>calendar_today</mat-icon>
+                    {{ item.fechaFormateada }}
+                  </span>
+                </div>
+
                 <h3 class="card-title">{{ item.descripcion }}</h3>
+
+                <div class="card-location">
+                  <mat-icon>place</mat-icon>
+                  <span>{{ item.lugarGeneral }}</span>
+                </div>
 
                 <div class="card-footer">
                   <button
@@ -229,15 +252,15 @@
   </main>
   </div>
 
-  <!-- Modal de Reclamación y Validación de Seguridad (HU08, HU21, HU22) -->
-  @if (modalReclamarAbierto() && objetoSeleccionado()) {
+  <!-- Modal Real de Reclamación y Validación de Seguridad (HU08, HU20, HU21, HU22) -->
+  @if (modalReclamarAbierto() && objetoSeleccionado(); as item) {
     <div class="modal-backdrop" (click)="cerrarModalReclamo()">
       <div class="modal-card modal-card-claim" (click)="$event.stopPropagation()">
 
         <div class="modal-header">
           <div class="modal-header-titles">
-            <span class="modal-kicker">Validación de Titularidad ITM</span>
-            <h2 class="modal-title">Reclamar {{ objetoSeleccionado()?.descripcion }}</h2>
+            <span class="modal-kicker">Validación de Titularidad ITM · {{ item.codigoPublico }}</span>
+            <h2 class="modal-title">Reclamar {{ item.descripcion }}</h2>
           </div>
           <button type="button" class="modal-close-btn" (click)="cerrarModalReclamo()" aria-label="Cerrar">
             <mat-icon>close</mat-icon>
@@ -245,64 +268,132 @@
         </div>
 
         @if (!reclamoEnviadoConExito()) {
-          <form [formGroup]="reclamoForm" (ngSubmit)="enviarReclamo()" class="claim-form">
+          <form (submit)="$event.preventDefault(); enviarReclamo()" class="claim-form">
             <div class="modal-body">
 
-              <div class="notice-box">
-                <mat-icon>info</mat-icon>
-                <p>
-                  Para proteger los artículos de la comunidad universitaria, debes describir detalles que solo el dueño real conoce (marcas, contraseñas, pegatinas, contenido interior o marcas de uso).
-                </p>
-              </div>
-
-              <div class="form-group">
-                <label for="desc" class="form-label">
-                  Descripción de características no visibles en la foto: *
-                </label>
-                <textarea
-                  id="desc"
-                  formControlName="descripcionDetallada"
-                  rows="3"
-                  class="form-textarea"
-                  placeholder="Ej: Tiene un sticker de Java en la esquina, funda transparente con tarjeta de metro en el interior..."
-                  required
-                ></textarea>
-              </div>
-
-              <div class="form-group">
-                <label for="caract" class="form-label">
-                  Seña particular o marca distintiva:
-                </label>
-                <input
-                  id="caract"
-                  type="text"
-                  formControlName="caracteristicaUnica"
-                  class="form-input"
-                  placeholder="Ej: Número de serie parcial, fondo de pantalla, nombre en etiqueta..."
-                />
-              </div>
-
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label for="fechaPerdida" class="form-label">Fecha aproximada en que lo perdiste:</label>
-                  <input
-                    id="fechaPerdida"
-                    type="date"
-                    formControlName="fechaPerdidaEstimada"
-                    class="form-input"
-                  />
+              <!-- Resumen del artículo seleccionado -->
+              <div class="claim-object-summary">
+                <div class="summary-chip">
+                  <mat-icon>{{ getIconoPorCategoria(item.categoria) }}</mat-icon>
+                  <span>{{ item.categoriaEtiqueta }}</span>
                 </div>
-                <div class="form-group">
-                  <label for="lugarPerdida" class="form-label">Lugar probable de extravío:</label>
-                  <input
-                    id="lugarPerdida"
-                    type="text"
-                    formControlName="lugarPerdidaEstimado"
-                    class="form-input"
-                    placeholder="Ej: Aula 204, Cafetería Fraternidad..."
-                  />
+                <div class="summary-chip">
+                  <mat-icon>place</mat-icon>
+                  <span>{{ item.lugarGeneral }}</span>
+                </div>
+                <div class="summary-chip">
+                  <mat-icon>event</mat-icon>
+                  <span>Ingreso: {{ item.fechaFormateada }}</span>
                 </div>
               </div>
+
+              @if (cargandoPreguntas()) {
+                <div class="claim-questions-loading">
+                  <div class="spinner-institutional"></div>
+                  <p>Cargando cuestionario de seguridad del artículo...</p>
+                </div>
+              } @else {
+                <!-- Selector de modalidad (Virtual con preguntas vs Presencial en oficina) -->
+                @if (preguntasSeguridad().length > 0) {
+                  <div class="claim-mode-tabs" role="tablist" aria-label="Modalidad de validación">
+                    <button
+                      type="button"
+                      class="claim-mode-tab"
+                      [class.active]="modalidadReclamo() === 'virtual'"
+                      (click)="cambiarModalidadReclamo('virtual')"
+                    >
+                      <mat-icon>quiz</mat-icon>
+                      <span>Validación Virtual ({{ preguntasSeguridad().length }} {{ preguntasSeguridad().length === 1 ? 'pregunta' : 'preguntas' }})</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="claim-mode-tab"
+                      [class.active]="modalidadReclamo() === 'presencial'"
+                      (click)="cambiarModalidadReclamo('presencial')"
+                    >
+                      <mat-icon>badge</mat-icon>
+                      <span>Validación Presencial en Sede</span>
+                    </button>
+                  </div>
+                }
+
+                @if (modalidadReclamo() === 'virtual' && preguntasSeguridad().length > 0) {
+                  <div class="notice-box">
+                    <mat-icon>verified_user</mat-icon>
+                    <p>
+                      Responde las siguientes preguntas de seguridad configuradas por el punto de custodia para demostrar que eres el propietario legítimo del artículo.
+                    </p>
+                  </div>
+
+                  <div class="questions-list">
+                    @for (pregunta of preguntasSeguridad(); track pregunta.preguntaSeguridad_id; let idx = $index) {
+                      <div class="form-group question-card">
+                        <label [for]="'preg-' + pregunta.preguntaSeguridad_id" class="form-label">
+                          Pregunta {{ idx + 1 }}: {{ pregunta.pregunta }} *
+                        </label>
+                        <textarea
+                          [id]="'preg-' + pregunta.preguntaSeguridad_id"
+                          rows="2"
+                          class="form-textarea"
+                          placeholder="Escribe tu respuesta detallada aquí..."
+                          [value]="respuestasReclamo()[pregunta.preguntaSeguridad_id] || ''"
+                          (input)="actualizarRespuestaReclamo(pregunta.preguntaSeguridad_id, $any($event.target).value)"
+                          required
+                        ></textarea>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="notice-box">
+                    <mat-icon>storefront</mat-icon>
+                    <p>
+                      @if (preguntasSeguridad().length === 0) {
+                        Este artículo se valida de forma presencial. Al confirmar la solicitud, el objeto quedará reservado para revisión y podrás acercarte a <strong>{{ item.lugarGeneral }}</strong> con tu documento o carnet institucional.
+                      } @else {
+                        Has elegido <strong>Validación Presencial</strong>. Al enviar esta solicitud se reservará el objeto y el personal de custodia programará o atenderá tu verificación directamente en <strong>{{ item.lugarGeneral }}</strong>.
+                      }
+                    </p>
+                  </div>
+                }
+
+                <div class="form-group">
+                  <label class="form-label">
+                    Fotografía o soporte de propiedad (opcional · JPG/PNG máx. 5 MB):
+                  </label>
+                  <div class="photo-upload-area">
+                    @if (!evidenciaUrlReclamo()) {
+                      <label class="photo-dropzone" [class.disabled]="subiendoEvidenciaReclamo()">
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png"
+                          (change)="seleccionarFotoEvidenciaReclamo($event)"
+                          [disabled]="subiendoEvidenciaReclamo()"
+                          hidden
+                        />
+                        <mat-icon>{{ subiendoEvidenciaReclamo() ? 'hourglass_top' : 'add_a_photo' }}</mat-icon>
+                        <div class="photo-dropzone-text">
+                          <strong>{{ subiendoEvidenciaReclamo() ? 'Subiendo fotografía...' : 'Haz clic para adjuntar una foto de evidencia' }}</strong>
+                          <span>Factura, foto previa con el objeto o carnet (JPG o PNG, máx. 5 MB)</span>
+                        </div>
+                      </label>
+                    } @else {
+                      <div class="photo-preview-card">
+                        <img [src]="evidenciaUrlReclamo()" alt="Evidencia adjunta" class="photo-preview-img" referrerpolicy="no-referrer" />
+                        <div class="photo-preview-info">
+                          <span class="photo-preview-badge">
+                            <mat-icon>check_circle</mat-icon>
+                            Soporte adjuntado
+                          </span>
+                          <button type="button" class="photo-remove-btn" (click)="actualizarEvidenciaUrl('')">
+                            <mat-icon>delete_outline</mat-icon>
+                            <span>Quitar foto</span>
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
 
             </div>
 
@@ -313,10 +404,10 @@
               <button
                 type="submit"
                 class="btn-primary-itm"
-                [disabled]="reclamoForm.invalid"
+                [disabled]="!formularioReclamoValido()"
               >
-                <mat-icon>send</mat-icon>
-                <span>Enviar Reclamo a Custodia</span>
+                <mat-icon>{{ enviandoReclamo() ? 'hourglass_top' : 'send' }}</mat-icon>
+                <span>{{ enviandoReclamo() ? 'Enviando reclamo...' : 'Enviar Reclamo a Custodia' }}</span>
               </button>
             </div>
           </form>
@@ -327,7 +418,7 @@
             </div>
             <h3>¡Solicitud de Reclamación Recibida!</h3>
             <p>
-              Tu reclamo para el artículo <strong>{{ objetoSeleccionado()?.descripcion }}</strong> ha sido registrado con éxito. El equipo de custodia verificará los datos suministrados y recibirás una notificación para acudir a reclamarlo con tu carnet institucional.
+              Tu reclamo para el artículo <strong>{{ item.descripcion }}</strong> ({{ item.codigoPublico }}) ha sido registrado en el sistema y el objeto quedó reservado en validación. Recibirás notificaciones en tu correo institucional sobre el estado de tu solicitud.
             </p>
             <div class="success-actions">
               <button type="button" class="btn-primary-itm" (click)="cerrarModalReclamo()">
@@ -348,7 +439,7 @@
 
         <div class="modal-header">
           <div class="modal-header-titles">
-            <span class="modal-kicker modal-kicker-red">Reporte de Extravío · Sede Fraternidad</span>
+            <span class="modal-kicker modal-kicker-red">Reporte de Extravío · ITM</span>
             <h2 class="modal-title text-red">Se me perdió un objeto</h2>
           </div>
           <button type="button" class="modal-close-btn" (click)="cerrarModalReportarPerdido()" aria-label="Cerrar">
@@ -411,6 +502,43 @@
                 </div>
               </div>
 
+              <!-- Adjuntar Fotografía del Objeto Perdido -->
+              <div class="form-group">
+                <label class="form-label">Fotografía de referencia (opcional · JPG o PNG máx. 5 MB):</label>
+                <div class="photo-upload-area">
+                  @if (!imagenPerdidoUrl()) {
+                    <label class="photo-dropzone" [class.disabled]="subiendoImagenPerdido()">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        (change)="seleccionarFotoPerdido($event)"
+                        [disabled]="subiendoImagenPerdido()"
+                        hidden
+                      />
+                      <mat-icon>{{ subiendoImagenPerdido() ? 'hourglass_top' : 'add_a_photo' }}</mat-icon>
+                      <div class="photo-dropzone-text">
+                        <strong>{{ subiendoImagenPerdido() ? 'Subiendo fotografía...' : 'Seleccionar fotografía del objeto perdido' }}</strong>
+                        <span>Formatos permitidos: JPG, JPEG o PNG (máximo 5 MB)</span>
+                      </div>
+                    </label>
+                  } @else {
+                    <div class="photo-preview-card">
+                      <img [src]="imagenPerdidoUrl()!" alt="Vista previa del objeto perdido" class="photo-preview-img" referrerpolicy="no-referrer" />
+                      <div class="photo-preview-info">
+                        <span class="photo-preview-badge">
+                          <mat-icon>check_circle</mat-icon>
+                          {{ imagenPerdidoNombre() || 'Fotografía lista' }}
+                        </span>
+                        <button type="button" class="photo-remove-btn" (click)="quitarFotoPerdido()">
+                          <mat-icon>delete_outline</mat-icon>
+                          <span>Cambiar o quitar</span>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+
             </div>
 
             <div class="modal-footer">
@@ -420,10 +548,10 @@
               <button
                 type="submit"
                 class="btn-primary-itm btn-danger-itm"
-                [disabled]="formReportePerdido.invalid || enviando()"
+                [disabled]="formReportePerdido.invalid || enviando() || subiendoImagenPerdido()"
               >
                 <mat-icon>send</mat-icon>
-                <span>Registrar Reporte de Pérdida</span>
+                <span>{{ subiendoImagenPerdido() ? 'Subiendo foto...' : 'Registrar Reporte de Pérdida' }}</span>
               </button>
             </div>
           </form>
@@ -434,7 +562,7 @@
             </div>
             <h3>¡Reporte Registrado!</h3>
             <p>
-              Hemos registrado la información de tu pertenencia. El personal de custodia en <strong>Sede Fraternidad</strong> comparará este reporte con los objetos entregados.
+              Hemos registrado la información de tu pertenencia. El personal de custodia comparará este reporte con los objetos entregados en el campus.
             </p>
             <div class="success-actions">
               <button type="button" class="btn-primary-itm" (click)="cerrarModalReportarPerdido()">
@@ -455,7 +583,7 @@
 
         <div class="modal-header">
           <div class="modal-header-titles">
-            <span class="modal-kicker modal-kicker-green">Solidaridad ITM · Sede Fraternidad</span>
+            <span class="modal-kicker modal-kicker-green">Solidaridad ITM · Campus</span>
             <h2 class="modal-title text-green">Encontré un objeto</h2>
           </div>
           <button type="button" class="modal-close-btn" (click)="cerrarModalRegistrarEncontrado()" aria-label="Cerrar">
@@ -470,7 +598,7 @@
               <div class="notice-box notice-green">
                 <mat-icon>volunteer_activism</mat-icon>
                 <p>
-                  ¡Gracias por tu honestidad! Por favor entrega el objeto en el punto de custodia autorizado (Portería Principal o Bloque M) para su custodia oficial.
+                  ¡Gracias por tu honestidad! Por favor entrega el objeto en el punto de custodia autorizado para su resguardo oficial.
                 </p>
               </div>
 
@@ -528,6 +656,43 @@
                 />
               </div>
 
+              <!-- Adjuntar Fotografía del Objeto Encontrado -->
+              <div class="form-group">
+                <label class="form-label">Fotografía del objeto encontrado (opcional · JPG o PNG máx. 5 MB):</label>
+                <div class="photo-upload-area">
+                  @if (!imagenEncontradoUrl()) {
+                    <label class="photo-dropzone" [class.disabled]="subiendoImagenEncontrado()">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        (change)="seleccionarFotoEncontrado($event)"
+                        [disabled]="subiendoImagenEncontrado()"
+                        hidden
+                      />
+                      <mat-icon>{{ subiendoImagenEncontrado() ? 'hourglass_top' : 'add_a_photo' }}</mat-icon>
+                      <div class="photo-dropzone-text">
+                        <strong>{{ subiendoImagenEncontrado() ? 'Subiendo fotografía...' : 'Seleccionar fotografía del objeto encontrado' }}</strong>
+                        <span>Formatos permitidos: JPG, JPEG o PNG (máximo 5 MB)</span>
+                      </div>
+                    </label>
+                  } @else {
+                    <div class="photo-preview-card">
+                      <img [src]="imagenEncontradoUrl()!" alt="Vista previa del objeto encontrado" class="photo-preview-img" referrerpolicy="no-referrer" />
+                      <div class="photo-preview-info">
+                        <span class="photo-preview-badge">
+                          <mat-icon>check_circle</mat-icon>
+                          {{ imagenEncontradoNombre() || 'Fotografía lista' }}
+                        </span>
+                        <button type="button" class="photo-remove-btn" (click)="quitarFotoEncontrado()">
+                          <mat-icon>delete_outline</mat-icon>
+                          <span>Cambiar o quitar</span>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+
             </div>
 
             <div class="modal-footer">
@@ -537,10 +702,10 @@
               <button
                 type="submit"
                 class="btn-primary-itm btn-success-itm"
-                [disabled]="formReporteEncontrado.invalid || enviando()"
+                [disabled]="formReporteEncontrado.invalid || enviando() || subiendoImagenEncontrado()"
               >
                 <mat-icon>check_circle</mat-icon>
-                <span>Registrar Objeto Encontrado</span>
+                <span>{{ subiendoImagenEncontrado() ? 'Subiendo foto...' : 'Registrar Objeto Encontrado' }}</span>
               </button>
             </div>
           </form>
@@ -551,7 +716,7 @@
             </div>
             <h3>¡Gracias por tu aporte a la comunidad ITM!</h3>
             <p>
-              El registro ha sido creado. Recuerda llevar la pertenencia al punto de custodia en <strong>Sede Fraternidad</strong> para que su dueño pueda recuperarlo.
+              El registro ha sido creado. Recuerda llevar la pertenencia al punto de custodia seleccionado para que su dueño pueda recuperarla.
             </p>
             <div class="success-actions">
               <button type="button" class="btn-primary-itm" (click)="cerrarModalRegistrarEncontrado()">
