@@ -248,6 +248,29 @@
         </div>
       }
 
+      <!-- Objetos reportados como perdidos (aprobados por un administrador) -->
+      @if (perdidosPublicos().length > 0) {
+        <section class="perdidos-section" aria-label="Objetos reportados como perdidos">
+          <h2 class="perdidos-title">Reportados como perdidos</h2>
+          <p class="perdidos-sub">¿Encontraste alguno de estos objetos? Entrégalo en la oficina de objetos perdidos de tu sede.</p>
+          <div class="perdidos-grid">
+            @for (p of perdidosPublicos(); track p.reportePerdida_id) {
+              <article class="perdido-card">
+                @if (p.imagen_url) {
+                  <img [src]="p.imagen_url" [alt]="p.descripcion" class="perdido-img" referrerpolicy="no-referrer" />
+                }
+                <span class="perdido-cat">{{ etiquetaCategoria(p.categoria) }}</span>
+                <h3 class="perdido-desc">{{ p.descripcion }}</h3>
+                <div class="perdido-meta">
+                  <span>{{ p.lugar_perdida_nombre || 'Lugar no indicado' }}</span>
+                  <span>{{ p.fecha_perdida }}</span>
+                </div>
+              </article>
+            }
+          </div>
+        </section>
+      }
+
     </div>
   </main>
   </div>

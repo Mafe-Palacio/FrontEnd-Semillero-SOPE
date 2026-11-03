@@ -64,6 +64,15 @@ export interface ObjetoCatalogoItem {
   diasEnCustodia: number;
 }
 
+export interface ReportePerdidoPublico {
+  reportePerdida_id: string;
+  categoria: string;
+  descripcion: string;
+  lugar_perdida_nombre: string | null;
+  fecha_perdida: string;
+  imagen_url: string | null;
+}
+
 export interface CategoriaFiltro {
   id: string;
   etiqueta: string;
@@ -108,6 +117,8 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   readonly cargando = signal<boolean>(true);
   readonly errorMensaje = signal<string | null>(null);
   readonly objetos = signal<ObjetoCatalogoItem[]>([]);
+  /** Reportes de pérdida ya aprobados por un admin (GET /reportes-perdida/publicos). */
+  readonly perdidosPublicos = signal<ReportePerdidoPublico[]>([]);
   readonly objetoSeleccionado = signal<ObjetoCatalogoItem | null>(null);
   readonly modalDetalleAbierto = signal<boolean>(false);
   readonly modalReclamarAbierto = signal<boolean>(false);
@@ -225,6 +236,21 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.suscribirCambiosFiltros();
     this.cargarCatalogo();
+    this.cargarPerdidosPublicos();
+  }
+
+  cargarPerdidosPublicos(): void {
+    this.http
+      .get<ReportePerdidoPublico[]>(`${API_URL.replace(/\/+$/, '')}/reportes-perdida/publicos`)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (items) => this.perdidosPublicos.set(Array.isArray(items) ? items : []),
+        error: () => this.perdidosPublicos.set([])
+      });
+  }
+
+  etiquetaCategoria(cat: string): string {
+    return (CATEGORIAS as Record<string, { label: string }>)[cat]?.label ?? cat;
   }
 
   ngOnDestroy(): void {

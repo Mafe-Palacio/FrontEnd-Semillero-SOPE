@@ -669,7 +669,7 @@ export class AdminReportesComponent implements OnInit {
 
   cargarActas(): void {
     this.cargandoActas.set(true);
-    this.http.get<ActaEntregaBackend[]>(`${API_URL}/actas-entrega/`).subscribe({
+    this.http.get<ActaEntregaBackend[]>(`${API_URL}/actas-entrega`).subscribe({
       next: (data) => {
         this.actas.set(Array.isArray(data) ? data : []);
         this.cargandoActas.set(false);
