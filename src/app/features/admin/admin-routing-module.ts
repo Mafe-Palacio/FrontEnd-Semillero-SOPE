@@ -16,6 +16,10 @@ const routes: Routes = [
         loadComponent: () => import('./aprobaciones/admin-aprobaciones.component').then(m => m.AdminAprobacionesComponent)
       },
       {
+        path: 'custodia',
+        loadComponent: () => import('./custodia/admin-custodia.component').then(m => m.AdminCustodiaComponent)
+      },
+      {
         path: 'usuarios',
         loadComponent: () => import('./usuarios/admin-usuarios.component').then(m => m.AdminUsuariosComponent)
       },

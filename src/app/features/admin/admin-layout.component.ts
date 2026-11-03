@@ -177,7 +177,22 @@ import { SedeAdminService } from '../../core/sede-admin.service';
 
         <!-- Contenedor Principal de la Vista Activa -->
         <main class="admin-content">
-          <router-outlet></router-outlet>
+          @if (requiereSeleccionSede()) {
+            <div class="sede-aviso">
+              <mat-icon>domain</mat-icon>
+              <div>
+                <h2>Elige la sede que vas a supervisar</h2>
+                <p>Como superadministrador debes seleccionar una sede para ver sus objetos, usuarios y métricas.</p>
+                <div class="sede-aviso-botones">
+                  @for (sede of sedes(); track sede.sede_id) {
+                    <button type="button" (click)="elegirSede(sede.sede_id)">{{ sede.nombre }}</button>
+                  }
+                </div>
+              </div>
+            </div>
+          } @else if (outletVisible()) {
+            <router-outlet></router-outlet>
+          }
         </main>
 
       </div>
@@ -557,6 +572,13 @@ import { SedeAdminService } from '../../core/sede-admin.service';
       width: 100%;
     }
 
+    .sede-aviso { display: flex; gap: 14px; padding: 22px; background: #fff; border: 1px solid #E5E7EB; border-radius: 16px; color: #011C5B; }
+    .sede-aviso h2 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 700; }
+    .sede-aviso p { margin: 0; font-size: 0.85rem; color: #4B5563; }
+    .sede-aviso-botones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .sede-aviso-botones button { padding: 8px 14px; border: 1px solid #011C5B; border-radius: 8px; background: #fff; color: #011C5B; font-weight: 600; font-size: 0.8rem; cursor: pointer; }
+    .sede-aviso-botones button:hover { background: rgba(1, 28, 91, 0.08); }
+
     @media (max-width: 900px) {
       .admin-shell {
         flex-direction: column;
@@ -591,6 +613,9 @@ export class AdminLayoutComponent implements OnInit {
 
   sedes = this.sedeAdmin.sedes;
   selectedSedeId = this.sedeAdmin.selectedSedeId;
+  requiereSeleccionSede = this.sedeAdmin.requiereSeleccionSede;
+  /** Se apaga un instante al cambiar de sede para que la vista activa recargue sus datos. */
+  outletVisible = signal(true);
 
   // Signal y método para colapsar / ocultar el menú lateral
   sidebarOculto = signal<boolean>(false);
@@ -616,8 +641,14 @@ export class AdminLayoutComponent implements OnInit {
   onSedeChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
     if (target && target.value) {
-      this.sedeAdmin.seleccionarSede(target.value);
+      this.elegirSede(target.value);
     }
+  }
+
+  elegirSede(id: string): void {
+    this.sedeAdmin.seleccionarSede(id);
+    this.outletVisible.set(false);
+    setTimeout(() => this.outletVisible.set(true));
   }
 
   logout(): void {
