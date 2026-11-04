@@ -212,6 +212,10 @@ import { mensajeDeError } from '../../../core/api-error';
               <mat-icon>verified</mat-icon>
               <span>Ir a la Bandeja de Moderación ({{ totalPendientes() }})</span>
             </a>
+            <a routerLink="/admin/custodia" class="action-btn" style="margin-top: 8px;">
+              <mat-icon>assignment_turned_in</mat-icon>
+              <span>Reclamos por atender ({{ reclamosPorAtender() }})</span>
+            </a>
           </div>
         </div>
 
@@ -715,12 +719,18 @@ export class AdminDashboardComponent implements OnInit {
 
   reclamosAprobadosYEntregados = computed(() => {
     const r = this.metricas()?.reclamos_por_estado ?? {};
-    return (r['APROBADO'] ?? 0) + (r['RECLAMADO'] ?? 0) + (r['ENTREGADO'] ?? 0);
+    return (r['APROBADO'] ?? 0) + (r['RECLAMADO'] ?? 0);
   });
 
   reclamosEnCurso = computed(() => {
     const r = this.metricas()?.reclamos_por_estado ?? {};
-    return (r['ENVIADO'] ?? 0) + (r['EN_REVISION'] ?? 0) + (r['CITA_AGENDADA'] ?? 0);
+    return (r['ENVIADO'] ?? 0) + (r['EN_REVISION'] ?? 0) + (r['LISTO_PARA_RECOGER'] ?? 0);
+  });
+
+  /** Reclamos que esperan una decisión del admin (se gestionan en /admin/custodia). */
+  reclamosPorAtender = computed(() => {
+    const r = this.metricas()?.reclamos_por_estado ?? {};
+    return (r['ENVIADO'] ?? 0) + (r['EN_REVISION'] ?? 0);
   });
 
   reclamosDescartados = computed(() => {
