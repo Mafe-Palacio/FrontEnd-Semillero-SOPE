@@ -1,0 +1,1481 @@
+// Variables Institucionales ITM
+$color-itm-blue: #011C5B;
+$color-itm-blue-hover: #0A2F8A;
+$color-itm-cyan: #00A0B7;
+$color-itm-cyan-light: #29ABE2;
+$color-bg-gray: #F8F9FA;
+$color-border: #E5E7EB;
+$color-text-main: #1F2937;
+$color-text-muted: #6B7280;
+$font-itm: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+// Badges Institucionales
+$green-itm: #008A47;
+$green-bg: #E8F5E9;
+$red-itm: #B23B24;
+$red-bg: #FFEBEE;
+$amber-itm: #F19800;
+$amber-bg: #FFF8E1;
+
+.mis-reclamos-page {
+  font-family: $font-itm;
+  color: $color-text-main;
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// -------------------------------------------------------------------------
+// 1. Encabezado de Página
+// -------------------------------------------------------------------------
+.page-header {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid $color-border;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header-titles {
+  flex: 1;
+  min-width: 260px;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: $color-itm-blue;
+  margin: 0 0 6px 0;
+  line-height: 1.25;
+}
+
+.page-subtitle {
+  font-size: 0.9rem;
+  color: $color-text-muted;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: #FFFFFF;
+  border: 1px solid $color-border;
+  color: $color-itm-blue;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: #F3F4F6;
+    border-color: #D1D5DB;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.btn-catalogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  background: $color-itm-blue;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
+
+  &:hover {
+    background: $color-itm-blue-hover;
+    text-decoration: none;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// -------------------------------------------------------------------------
+// 2. Alertas (Éxito y Error)
+// -------------------------------------------------------------------------
+.alert-success {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: $green-bg;
+  border: 1px solid #A7F3D0;
+  color: #065F46;
+  font-size: 0.88rem;
+  font-weight: 600;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: $green-itm;
+    flex-shrink: 0;
+  }
+
+  span {
+    flex: 1;
+  }
+
+  .btn-close-alert {
+    background: transparent;
+    border: none;
+    color: #065F46;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: 6px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+  }
+}
+
+.alert-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: $red-bg;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+  font-size: 0.88rem;
+  font-weight: 600;
+  flex-wrap: wrap;
+
+  .alert-error-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    mat-icon {
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+      color: $red-itm;
+    }
+  }
+
+  .btn-retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid #FCA5A5;
+    background: #FFFFFF;
+    color: #991B1B;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover {
+      background: #FEE2E2;
+    }
+  }
+}
+
+// -------------------------------------------------------------------------
+// 3. Barra de Filtros Rápidos (Pestañas)
+// -------------------------------------------------------------------------
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+
+  .tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    background: #FFFFFF;
+    border: 1px solid $color-border;
+    color: $color-text-muted;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+
+    &:hover {
+      background: #F9FAFB;
+      color: $color-itm-blue;
+    }
+
+    &.active {
+      background: $color-itm-blue;
+      border-color: $color-itm-blue;
+      color: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(1, 28, 91, 0.2);
+
+      .tab-count {
+        background: rgba(255, 255, 255, 0.25);
+        color: #FFFFFF;
+      }
+    }
+
+    .tab-count {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: #E5E7EB;
+      color: #4B5563;
+      font-family: monospace;
+    }
+
+    .count-amber {
+      background: $amber-bg;
+      color: #B45309;
+    }
+
+    .count-green {
+      background: $green-bg;
+      color: #047857;
+    }
+
+    .count-gray {
+      background: #F3F4F6;
+      color: #4B5563;
+    }
+  }
+}
+
+// -------------------------------------------------------------------------
+// 4. Estado de Carga
+// -------------------------------------------------------------------------
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  color: $color-text-muted;
+  font-size: 0.95rem;
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #E5E7EB;
+    border-top-color: $color-itm-blue;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+// -------------------------------------------------------------------------
+// 5. Grid de Tarjetas de Reclamo
+// -------------------------------------------------------------------------
+.reclamos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 18px;
+}
+
+.reclamo-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid $color-border;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(1, 28, 91, 0.06);
+  }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.code-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: $color-itm-blue;
+  font-family: monospace;
+
+  .code-prefix {
+    color: #9CA3AF;
+  }
+}
+
+// Badges Institucionales
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+
+  .badge-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  &.badge-green {
+    background: $green-bg;
+    color: $green-itm;
+    border: 1px solid rgba(0, 138, 71, 0.2);
+  }
+
+  &.badge-amber {
+    background: $amber-bg;
+    color: $amber-itm;
+    border: 1px solid rgba(241, 152, 0, 0.25);
+  }
+
+  &.badge-red {
+    background: $red-bg;
+    color: $red-itm;
+    border: 1px solid rgba(178, 59, 36, 0.2);
+  }
+
+  &.badge-gray {
+    background: #F3F4F6;
+    color: #4B5563;
+    border: 1px solid $color-border;
+  }
+}
+
+// Cuerpo de la tarjeta
+.card-body {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.item-thumbnail {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #F3F4F6;
+  border: 1px solid $color-border;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.item-icon-box {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  background: #EEF2F7;
+  color: $color-itm-blue;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.item-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: $color-itm-cyan;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+
+  .cat-mini-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.item-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: $color-text-main;
+  margin: 0 0 8px 0;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: $color-text-muted;
+
+  .meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  .tag-presencial {
+    color: $color-itm-blue;
+    background: #EEF2F7;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+}
+
+// Miniatura de evidencia
+.evidencia-strip {
+  .btn-ver-evidencia {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #F8F9FA;
+    border: 1px dashed #CBD5E1;
+    color: #475569;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    transition: background 0.15s;
+
+    &:hover {
+      background: #F1F5F9;
+      color: $color-itm-blue;
+    }
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    .icon-open {
+      margin-left: auto;
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      color: #94A3B8;
+    }
+  }
+}
+
+// Resumen de Cita Presencial en Tarjeta
+.cita-card-preview {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #E8F5E9;
+  border: 1px solid #C8E6C9;
+
+  .cita-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: $green-itm;
+    flex-shrink: 0;
+  }
+
+  .cita-info {
+    font-size: 0.78rem;
+
+    strong {
+      color: $green-itm;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    p {
+      margin: 0;
+      color: #1E3A1E;
+      line-height: 1.35;
+    }
+  }
+}
+
+// Motivo de rechazo en tarjeta
+.rechazo-box-mini {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: $red-bg;
+  border: 1px solid #FECACA;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: $red-itm;
+    flex-shrink: 0;
+  }
+
+  .rechazo-text {
+    font-size: 0.78rem;
+
+    strong {
+      color: $red-itm;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    p {
+      margin: 0;
+      color: #7F1D1D;
+      line-height: 1.35;
+    }
+  }
+}
+
+// Pie de Tarjeta
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid $color-border;
+  margin-top: auto;
+}
+
+.btn-seguimiento {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: $color-itm-blue;
+  color: #FFFFFF;
+  border: none;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    background: $color-itm-blue-hover;
+  }
+}
+
+.btn-cancelar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: transparent;
+  color: $red-itm;
+  border: 1px solid #FECACA;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    background: $red-bg;
+    border-color: #FCA5A5;
+  }
+}
+
+// -------------------------------------------------------------------------
+// 6. Estado Vacío
+// -------------------------------------------------------------------------
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 20px;
+  background: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid $color-border;
+
+  .empty-icon-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: #EEF2F7;
+    color: $color-itm-blue;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+
+    mat-icon {
+      font-size: 36px;
+      width: 36px;
+      height: 36px;
+    }
+  }
+
+  .empty-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: $color-itm-blue;
+    margin: 0 0 8px 0;
+  }
+
+  .empty-subtitle {
+    font-size: 0.9rem;
+    color: $color-text-muted;
+    max-width: 480px;
+    margin: 0 0 20px 0;
+    line-height: 1.5;
+  }
+
+  .btn-empty-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    background: $color-itm-blue;
+    color: #FFFFFF;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:hover {
+      background: $color-itm-blue-hover;
+      text-decoration: none;
+    }
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
+// -------------------------------------------------------------------------
+// 7. Modales (Backdrop y Contenedores)
+// -------------------------------------------------------------------------
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(1, 28, 91, 0.45);
+  backdrop-filter: blur(3px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.modal-card {
+  background: #FFFFFF;
+  border-radius: 18px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+// Modal de Seguimiento
+.modal-seguimiento {
+  width: 100%;
+  max-width: 640px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid $color-border;
+  padding-bottom: 16px;
+}
+
+.modal-title-group {
+  .modal-badge-code {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: $color-itm-blue;
+    background: #EEF2F7;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-family: monospace;
+    margin-bottom: 6px;
+  }
+
+  .modal-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: $color-itm-blue;
+    margin: 0 0 4px 0;
+  }
+
+  .modal-subtitle {
+    font-size: 0.88rem;
+    color: $color-text-muted;
+    margin: 0;
+  }
+}
+
+.btn-close-modal {
+  background: #F3F4F6;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #4B5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    background: #E5E7EB;
+    color: #111827;
+  }
+}
+
+.modal-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+
+  mat-icon {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+  }
+
+  .banner-text {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.85rem;
+
+    strong {
+      font-size: 0.92rem;
+    }
+
+    span {
+      font-size: 0.78rem;
+      opacity: 0.85;
+    }
+  }
+}
+
+// -------------------------------------------------------------------------
+// 8. Línea de Tiempo (Stepper Visual)
+// -------------------------------------------------------------------------
+.stepper-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stepper-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: $color-itm-blue;
+  margin: 0;
+}
+
+.stepper {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 10px;
+}
+
+.step-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+  padding-bottom: 24px;
+
+  &:last-child {
+    padding-bottom: 0;
+
+    &::after {
+      display: none;
+    }
+  }
+
+  // Línea conectora
+  &::after {
+    content: '';
+    position: absolute;
+    top: 32px;
+    left: 15px;
+    bottom: 0;
+    width: 2px;
+    background: #E5E7EB;
+  }
+
+  &.step-completed::after {
+    background: $green-itm;
+  }
+
+  .step-marker {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 2px solid #D1D5DB;
+    color: #9CA3AF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    z-index: 1;
+    flex-shrink: 0;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  &.step-completed .step-marker {
+    background: $green-itm;
+    border-color: $green-itm;
+    color: #FFFFFF;
+  }
+
+  &.step-active .step-marker {
+    background: $amber-bg;
+    border-color: $amber-itm;
+    color: $amber-itm;
+  }
+
+  &.step-error .step-marker {
+    background: $red-bg;
+    border-color: $red-itm;
+    color: $red-itm;
+  }
+
+  &.step-disabled .step-marker {
+    background: #F3F4F6;
+    border-color: #E5E7EB;
+    color: #9CA3AF;
+  }
+
+  .step-content {
+    flex: 1;
+  }
+
+  .step-label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: $color-text-main;
+    margin: 4px 0 4px 0;
+  }
+
+  .step-description {
+    font-size: 0.82rem;
+    color: $color-text-muted;
+    margin: 0 0 4px 0;
+    line-height: 1.45;
+  }
+
+  .step-date {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: $color-itm-blue;
+    background: #EEF2F7;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+
+  .step-pending {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-style: italic;
+    color: #B45309;
+  }
+}
+
+// Destacados dentro del Stepper
+.cita-box-highlight {
+  margin-top: 10px;
+  background: #E8F5E9;
+  border: 1px solid #C8E6C9;
+  border-radius: 12px;
+  padding: 14px;
+
+  .cita-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: $green-itm;
+    font-size: 0.92rem;
+    margin-bottom: 8px;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .cita-body {
+    font-size: 0.82rem;
+    color: #1F2937;
+
+    p {
+      margin: 0 0 4px 0;
+    }
+
+    .cita-instructions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 8px;
+      color: #166534;
+      font-size: 0.8rem;
+      line-height: 1.4;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+    }
+  }
+}
+
+.rechazo-box-highlight {
+  margin-top: 10px;
+  background: $red-bg;
+  border: 1px solid #FECACA;
+  border-radius: 12px;
+  padding: 14px;
+
+  .rechazo-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: $red-itm;
+    font-size: 0.92rem;
+    margin-bottom: 8px;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .rechazo-motivo {
+    font-size: 0.82rem;
+    color: #7F1D1D;
+    margin: 0 0 12px 0;
+    line-height: 1.45;
+  }
+
+  .btn-nuevo-reclamo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: $color-itm-blue;
+    color: #FFFFFF;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s;
+
+    &:hover {
+      background: $color-itm-blue-hover;
+      text-decoration: none;
+    }
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+// Pie del Modal de Seguimiento
+.modal-footer-info {
+  border-top: 1px solid $color-border;
+  padding-top: 16px;
+
+  .cancel-action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.82rem;
+    color: $color-text-muted;
+
+    .btn-cancelar-modal {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      background: #FFFFFF;
+      border: 1px solid #FECACA;
+      color: $red-itm;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+
+      &:hover {
+        background: $red-bg;
+      }
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+
+  .info-note-locked {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: #9CA3AF;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+// -------------------------------------------------------------------------
+// 9. Modal de Confirmación de Cancelación (HU16)
+// -------------------------------------------------------------------------
+.modal-confirmar {
+  width: 100%;
+  max-width: 440px;
+  padding: 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .confirm-icon-box {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: $red-bg;
+    color: $red-itm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+
+    mat-icon {
+      font-size: 36px;
+      width: 36px;
+      height: 36px;
+    }
+  }
+
+  .confirm-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: $color-itm-blue;
+    margin: 0 0 8px 0;
+  }
+
+  .confirm-body {
+    font-size: 0.88rem;
+    color: $color-text-muted;
+    margin: 0 0 20px 0;
+    line-height: 1.5;
+  }
+
+  .confirm-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: $red-bg;
+    color: $red-itm;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    width: 100%;
+    box-sizing: border-box;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+  }
+
+  .confirm-actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+
+    button {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .btn-cancel-action {
+      background: #FFFFFF;
+      border: 1px solid $color-border;
+      color: #4B5563;
+
+      &:hover:not(:disabled) {
+        background: #F3F4F6;
+      }
+    }
+
+    .btn-confirm-delete {
+      background: $red-itm;
+      border: 1px solid $red-itm;
+      color: #FFFFFF;
+
+      &:hover:not(:disabled) {
+        background: #8B1E0F;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+// -------------------------------------------------------------------------
+// 10. Modal de Felicitación por Objeto Recuperado (HU26 CA2)
+// -------------------------------------------------------------------------
+.modal-felicitacion {
+  width: 100%;
+  max-width: 480px;
+  padding: 36px 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .celebration-icon-box {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: $green-bg;
+    color: $green-itm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    border: 3px solid #A7F3D0;
+
+    mat-icon {
+      font-size: 46px;
+      width: 46px;
+      height: 46px;
+    }
+  }
+
+  .celebration-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: $color-itm-blue;
+    margin: 0 0 10px 0;
+  }
+
+  .celebration-message {
+    font-size: 1rem;
+    color: #1F2937;
+    margin: 0 0 14px 0;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+
+  .celebration-institution {
+    font-size: 0.78rem;
+    color: $color-text-muted;
+    margin: 0 0 24px 0;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .celebration-actions {
+    width: 100%;
+
+    .btn-celebration {
+      width: 100%;
+      padding: 12px 24px;
+      border-radius: 12px;
+      background: $green-itm;
+      color: #FFFFFF;
+      border: none;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s;
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      &:hover {
+        background: #00733B;
+      }
+    }
+  }
+}
+
+// -------------------------------------------------------------------------
+// 11. Modal de Vista de Imagen
+// -------------------------------------------------------------------------
+.modal-image-preview {
+  position: relative;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    max-width: 100%;
+    max-height: 85vh;
+    border-radius: 14px;
+    object-fit: contain;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .btn-close-image {
+    position: absolute;
+    top: -16px;
+    right: -16px;
+    background: #FFFFFF;
+    color: #1F2937;
+    border: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+    mat-icon {
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+    }
+  }
+}
+
+// -------------------------------------------------------------------------
+// Responsividad
+// -------------------------------------------------------------------------
+@media (max-width: 640px) {
+  .mis-reclamos-page {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .page-title {
+    font-size: 1.3rem;
+  }
+
+  .reclamos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-seguimiento {
+    padding: 18px;
+  }
+
+  .header-actions {
+    width: 100%;
+
+    .btn-refresh,
+    .btn-catalogo {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}

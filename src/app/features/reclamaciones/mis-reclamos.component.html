@@ -1,0 +1,520 @@
+<div class="mis-reclamos-page">
+  
+  <!-- Encabezado Institucional -->
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-titles">
+        <h1 class="page-title">Mis Reclamos de Objetos</h1>
+        <p class="page-subtitle">
+          Consulta y haz seguimiento en tiempo real de tus solicitudes de recuperación de objetos en custodia ITM
+        </p>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn-refresh" (click)="cargarReclamos()" [disabled]="cargando()" aria-label="Actualizar solicitudes">
+          <mat-icon [class.spin]="cargando()">refresh</mat-icon>
+          <span>Actualizar</span>
+        </button>
+        <a routerLink="/catalogo" class="btn-catalogo">
+          <mat-icon>travel_explore</mat-icon>
+          <span>Ir al Catálogo</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Alerta de Éxito Temporal -->
+  @if (mensajeExito()) {
+    <div class="alert-success" role="alert">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ mensajeExito() }}</span>
+      <button type="button" class="btn-close-alert" (click)="mensajeExito.set(null)" aria-label="Cerrar">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+
+  <!-- Alerta de Error con Botón de Reintentar (Regla 1) -->
+  @if (errorMensaje()) {
+    <div class="alert-error" role="alert">
+      <div class="alert-error-left">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ errorMensaje() }}</span>
+      </div>
+      <button type="button" class="btn-retry" (click)="cargarReclamos()">
+        <mat-icon>replay</mat-icon>
+        <span>Reintentar</span>
+      </button>
+    </div>
+  }
+
+  <!-- Barra de Filtros Rápidos por Estado -->
+  <nav class="filter-tabs" aria-label="Filtro de reclamos por estado">
+    <button
+      type="button"
+      class="tab-btn"
+      [class.active]="filtroActivo() === 'TODOS'"
+      (click)="filtroActivo.set('TODOS')">
+      <span>Todos</span>
+      <span class="tab-count">{{ totalReclamos() }}</span>
+    </button>
+    <button
+      type="button"
+      class="tab-btn"
+      [class.active]="filtroActivo() === 'EN_CURSO'"
+      (click)="filtroActivo.set('EN_CURSO')">
+      <span>En curso</span>
+      <span class="tab-count count-amber">{{ totalEnCurso() }}</span>
+    </button>
+    <button
+      type="button"
+      class="tab-btn"
+      [class.active]="filtroActivo() === 'CON_CITA'"
+      (click)="filtroActivo.set('CON_CITA')">
+      <span>Con cita / Aprobados</span>
+      <span class="tab-count count-green">{{ totalConCita() }}</span>
+    </button>
+    <button
+      type="button"
+      class="tab-btn"
+      [class.active]="filtroActivo() === 'FINALIZADOS'"
+      (click)="filtroActivo.set('FINALIZADOS')">
+      <span>Finalizados</span>
+      <span class="tab-count count-gray">{{ totalFinalizados() }}</span>
+    </button>
+  </nav>
+
+  <!-- Estado de Carga -->
+  @if (cargando()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando tus solicitudes de reclamo...</p>
+    </div>
+  }
+
+  <!-- Lista de Reclamos -->
+  @else if (reclamosFiltrados().length > 0) {
+    <div class="reclamos-grid">
+      @for (r of reclamosFiltrados(); track r.reclamo_id) {
+        @let obj = getObjeto(r.objetoEnCustodia_id);
+        @let estadoConfig = getEstadoConfig(r.estado);
+
+        <article class="reclamo-card">
+          <!-- Cabecera de la tarjeta: Código y Badge de Estado -->
+          <div class="card-header">
+            <div class="code-wrapper">
+              <span class="code-prefix">Caso #</span>
+              <span class="code-id">{{ r.reclamo_id.substring(0, 8).toUpperCase() }}</span>
+            </div>
+            <span class="badge" [ngClass]="estadoConfig.clase">
+              <mat-icon class="badge-icon">{{ estadoConfig.icon }}</mat-icon>
+              <span>{{ estadoConfig.label }}</span>
+            </span>
+          </div>
+
+          <!-- Cuerpo de la tarjeta: Foto (si hay), categoría y descripción -->
+          <div class="card-body">
+            @if (obj?.imagen_url) {
+              <div class="item-thumbnail">
+                <img [src]="obj?.imagen_url" [alt]="obj?.descripcion || 'Objeto en custodia'" referrerpolicy="no-referrer" />
+              </div>
+            } @else {
+              <div class="item-icon-box">
+                <mat-icon>{{ getCategoriaIcon(obj?.categoria) }}</mat-icon>
+              </div>
+            }
+
+            <div class="item-details">
+              <div class="item-category">
+                <mat-icon class="cat-mini-icon">{{ getCategoriaIcon(obj?.categoria) }}</mat-icon>
+                <span>{{ getCategoriaLabel(obj?.categoria) }}</span>
+              </div>
+              <h3 class="item-title">
+                {{ obj?.descripcion || 'Artículo bajo resguardo institucional' }}
+              </h3>
+              <div class="item-meta">
+                <span class="meta-item">
+                  <mat-icon>event</mat-icon>
+                  <span>Enviado: {{ formatearFecha(r.fecha_envio) }}</span>
+                </span>
+                @if (r.es_presencial) {
+                  <span class="meta-item tag-presencial">
+                    <mat-icon>storefront</mat-icon>
+                    <span>Trámite presencial</span>
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Miniatura de evidencia adjunta (si el ciudadano subió comprobante) -->
+          @if (r.evidencia_url) {
+            <div class="evidencia-strip">
+              <button type="button" class="btn-ver-evidencia" (click)="imagenModalUrl.set(r.evidencia_url || null)">
+                <mat-icon>image</mat-icon>
+                <span>Evidencia adjunta proporcionada</span>
+                <mat-icon class="icon-open">open_in_new</mat-icon>
+              </button>
+            </div>
+          }
+
+          <!-- Destacado de Cita Presencial (HU17) si ya tiene cita asignada -->
+          @if ((r.estado === 'APROBADO' || r.estado === 'LISTO_PARA_RECOGER') && (r.fecha_cita || r.horario_cita)) {
+            <div class="cita-card-preview">
+              <mat-icon class="cita-icon">event_available</mat-icon>
+              <div class="cita-info">
+                <strong>Cita Presencial Asignada</strong>
+                <p>Fecha: {{ formatearFecha(r.fecha_cita) }} · Horario: {{ r.horario_cita || 'En horario de oficina' }}</p>
+              </div>
+            </div>
+          }
+
+          <!-- Motivo de rechazo (HU15 CA3) visible si fue rechazado -->
+          @if (r.estado === 'RECHAZADO' && r.motivo_rechazo) {
+            <div class="rechazo-box-mini">
+              <mat-icon>info</mat-icon>
+              <div class="rechazo-text">
+                <strong>Motivo de rechazo:</strong>
+                <p>{{ r.motivo_rechazo }}</p>
+              </div>
+            </div>
+          }
+
+          <!-- Pie de tarjeta: Botones de Acción -->
+          <div class="card-footer">
+            <button type="button" class="btn-seguimiento" (click)="abrirSeguimiento(r)">
+              <mat-icon>timeline</mat-icon>
+              <span>Ver seguimiento</span>
+            </button>
+
+            @if (puedeCancelar(r.estado)) {
+              <button
+                type="button"
+                class="btn-cancelar"
+                (click)="solicitarCancelar(r, $event)"
+                aria-label="Cancelar solicitud de reclamo">
+                <mat-icon>close</mat-icon>
+                <span>Cancelar</span>
+              </button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+
+  <!-- Estado Vacío -->
+  @else {
+    <div class="empty-state">
+      <div class="empty-icon-circle">
+        <mat-icon>assignment_late</mat-icon>
+      </div>
+      @if (filtroActivo() === 'TODOS') {
+        <h2 class="empty-title">Aún no has registrado reclamos</h2>
+        <p class="empty-subtitle">
+          Si perdiste alguna pertenencia en cualquiera de las sedes del ITM, explora el catálogo de objetos en custodia y solicita su devolución.
+        </p>
+        <a routerLink="/catalogo" class="btn-empty-action">
+          <mat-icon>travel_explore</mat-icon>
+          <span>Explorar Catálogo de Objetos</span>
+        </a>
+      } @else {
+        <h2 class="empty-title">No hay reclamos en esta categoría</h2>
+        <p class="empty-subtitle">No se encontraron solicitudes con el filtro seleccionado.</p>
+        <button type="button" class="btn-empty-action" (click)="filtroActivo.set('TODOS')">
+          <mat-icon>list</mat-icon>
+          <span>Ver todos los reclamos</span>
+        </button>
+      }
+    </div>
+  }
+
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL DE SEGUIMIENTO Y LÍNEA DE TIEMPO (HU15, HU17)                        -->
+<!-- ========================================================================= -->
+@if (reclamoSeleccionado()) {
+  @let r = reclamoSeleccionado()!;
+  @let obj = getObjeto(r.objetoEnCustodia_id);
+  @let estadoCfg = getEstadoConfig(r.estado);
+
+  <div class="modal-backdrop" (click)="cerrarSeguimiento()">
+    <div class="modal-card modal-seguimiento" (click)="$event.stopPropagation()">
+      
+      <!-- Cabecera del Modal -->
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-badge-code">Caso #{{ r.reclamo_id.substring(0, 8).toUpperCase() }}</span>
+          <h2 class="modal-title">Seguimiento de tu Reclamo</h2>
+          <p class="modal-subtitle">{{ obj?.descripcion || 'Artículo en proceso de verificación' }}</p>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="cerrarSeguimiento()" aria-label="Cerrar seguimiento">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Resumen del Estado Actual -->
+      <div class="modal-status-banner" [ngClass]="estadoCfg.clase">
+        <mat-icon>{{ estadoCfg.icon }}</mat-icon>
+        <div class="banner-text">
+          <strong>Estado actual: {{ estadoCfg.label }}</strong>
+          <span>Última actualización: {{ formatearFecha(r.fecha_revision || r.fecha_envio) }}</span>
+        </div>
+      </div>
+
+      <!-- Línea de Tiempo (Stepper Visual) -->
+      <div class="stepper-container">
+        <h3 class="stepper-title">Progreso del Trámite</h3>
+        
+        <div class="stepper">
+          
+          <!-- Paso 1: Solicitud Enviada -->
+          <div class="step-item step-completed">
+            <div class="step-marker">
+              <mat-icon>check</mat-icon>
+            </div>
+            <div class="step-content">
+              <h4 class="step-label">1. Solicitud enviada</h4>
+              <p class="step-description">Tu solicitud fue radicada en el sistema OPE.</p>
+              <span class="step-date">Fecha: {{ formatearFecha(r.fecha_envio) }}</span>
+            </div>
+          </div>
+
+          <!-- Paso 2: Revisión Administrativa -->
+          <div class="step-item"
+            [class.step-completed]="r.estado !== 'ENVIADO'"
+            [class.step-active]="r.estado === 'ENVIADO' || r.estado === 'EN_REVISION'">
+            <div class="step-marker">
+              @if (r.estado === 'ENVIADO') {
+                <mat-icon>hourglass_empty</mat-icon>
+              } @else {
+                <mat-icon>check</mat-icon>
+              }
+            </div>
+            <div class="step-content">
+              <h4 class="step-label">2. Revisión administrativa</h4>
+              <p class="step-description">
+                El custodio de la sede valida tus respuestas de seguridad y las evidencias suministradas.
+              </p>
+              @if (r.fecha_revision) {
+                <span class="step-date">Revisado el: {{ formatearFecha(r.fecha_revision) }}</span>
+              } @else {
+                <span class="step-pending">En evaluación por el personal de custodia</span>
+              }
+            </div>
+          </div>
+
+          <!-- Paso 3: Decisión / Cita Presencial (HU17) -->
+          <div class="step-item"
+            [class.step-completed]="r.estado === 'RECLAMADO' || r.estado === 'APROBADO' || r.estado === 'LISTO_PARA_RECOGER'"
+            [class.step-active]="r.estado === 'APROBADO' || r.estado === 'LISTO_PARA_RECOGER'"
+            [class.step-error]="r.estado === 'RECHAZADO' || r.estado === 'CANCELADO_POR_USUARIO'">
+            
+            <div class="step-marker">
+              @if (r.estado === 'RECHAZADO' || r.estado === 'CANCELADO_POR_USUARIO') {
+                <mat-icon>close</mat-icon>
+              } @else if (r.estado === 'RECLAMADO' || r.estado === 'APROBADO' || r.estado === 'LISTO_PARA_RECOGER') {
+                <mat-icon>check</mat-icon>
+              } @else {
+                <span class="step-number">3</span>
+              }
+            </div>
+
+            <div class="step-content">
+              <h4 class="step-label">3. Decisión y Cita Presencial</h4>
+              
+              <!-- Caso A: Cita Asignada (HU17) -->
+              @if (r.estado === 'APROBADO' || r.estado === 'LISTO_PARA_RECOGER') {
+                <div class="cita-box-highlight">
+                  <div class="cita-header">
+                    <mat-icon>event_available</mat-icon>
+                    <strong>Cita Presencial Asignada</strong>
+                  </div>
+                  <div class="cita-body">
+                    <p><strong>Fecha programada:</strong> {{ formatearFecha(r.fecha_cita) }}</p>
+                    <p><strong>Horario de atención:</strong> {{ r.horario_cita || 'Jornada continua institucional' }}</p>
+                    <div class="cita-instructions">
+                      <mat-icon>assignment_ind</mat-icon>
+                      <span>
+                        Por favor acude a la <strong>Oficina de Custodia</strong> de la sede correspondiente con tu carnet institucional o documento de identidad original para firmar el acta de entrega.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <!-- Caso B: Rechazado (HU15 CA3) -->
+              @else if (r.estado === 'RECHAZADO') {
+                <div class="rechazo-box-highlight">
+                  <div class="rechazo-header">
+                    <mat-icon>cancel</mat-icon>
+                    <strong>Reclamo no aprobado</strong>
+                  </div>
+                  <p class="rechazo-motivo">
+                    <strong>Motivo de rechazo:</strong> {{ r.motivo_rechazo || 'Las respuestas o evidencias no coincidieron con las características del artículo bajo resguardo.' }}
+                  </p>
+                  <a routerLink="/catalogo" (click)="cerrarSeguimiento()" class="btn-nuevo-reclamo">
+                    <mat-icon>travel_explore</mat-icon>
+                    <span>Ir al catálogo para nuevo reclamo</span>
+                  </a>
+                </div>
+              }
+
+              <!-- Caso C: Cancelado por el Usuario -->
+              @else if (r.estado === 'CANCELADO_POR_USUARIO') {
+                <p class="step-description text-muted">
+                  Cancelaste esta solicitud voluntariamente. El objeto volvió a estar disponible en el inventario.
+                </p>
+              }
+
+              <!-- Caso D: Pendiente de resolución -->
+              @else {
+                <p class="step-description text-muted">
+                  Una vez validadas las preguntas y la evidencia, se te asignará fecha y horario de entrega o se notificará la resolución.
+                </p>
+              }
+            </div>
+          </div>
+
+          <!-- Paso 4: Entrega Final -->
+          <div class="step-item"
+            [class.step-completed]="r.estado === 'RECLAMADO'"
+            [class.step-disabled]="r.estado !== 'RECLAMADO'">
+            <div class="step-marker">
+              @if (r.estado === 'RECLAMADO') {
+                <mat-icon>verified</mat-icon>
+              } @else {
+                <span class="step-number">4</span>
+              }
+            </div>
+            <div class="step-content">
+              <h4 class="step-label">4. Entrega y Acta Final</h4>
+              @if (r.estado === 'RECLAMADO') {
+                <p class="step-description text-success font-semibold">
+                  ¡Objeto restituido exitosamente! El acta de entrega ha sido archivada con firma digital.
+                </p>
+              } @else {
+                <p class="step-description text-muted">
+                  Firma presencial del acta de entrega y restitución de tu pertenencia.
+                </p>
+              }
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Nota de Trazabilidad / Cancelación (HU16 CA2) -->
+      <div class="modal-footer-info">
+        @if (puedeCancelar(r.estado)) {
+          <div class="cancel-action-bar">
+            <span>¿Ya encontraste el objeto o deseas desistir?</span>
+            <button type="button" class="btn-cancelar-modal" (click)="solicitarCancelar(r)">
+              <mat-icon>close</mat-icon>
+              <span>Cancelar este reclamo</span>
+            </button>
+          </div>
+        } @else {
+          <div class="info-note-locked">
+            <mat-icon>lock</mat-icon>
+            <span>Este caso ya fue procesado o cerrado y no admite cancelación (HU16).</span>
+          </div>
+        }
+      </div>
+
+    </div>
+  </div>
+}
+
+<!-- ========================================================================= -->
+<!-- MODAL DE CONFIRMACIÓN DE CANCELACIÓN (HU16)                              -->
+<!-- ========================================================================= -->
+@if (modalCancelarAbierto() && reclamoACancelar()) {
+  <div class="modal-backdrop" (click)="cerrarModalCancelar()">
+    <div class="modal-card modal-confirmar" (click)="$event.stopPropagation()">
+      <div class="confirm-icon-box">
+        <mat-icon>warning_amber</mat-icon>
+      </div>
+
+      <h3 class="confirm-title">¿Estás seguro de cancelar este reclamo?</h3>
+      
+      <p class="confirm-body">
+        El objeto quedará libre para que otros usuarios de la comunidad ITM puedan reclamarlo. Esta acción no se puede deshacer.
+      </p>
+
+      @if (cancelarError()) {
+        <div class="confirm-error">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ cancelarError() }}</span>
+        </div>
+      }
+
+      <div class="confirm-actions">
+        <button
+          type="button"
+          class="btn-cancel-action"
+          (click)="cerrarModalCancelar()"
+          [disabled]="cancelando()">
+          No, mantener reclamo
+        </button>
+        <button
+          type="button"
+          class="btn-confirm-delete"
+          (click)="confirmarCancelar()"
+          [disabled]="cancelando()">
+          @if (cancelando()) {
+            <mat-icon class="spin">refresh</mat-icon>
+            <span>Cancelando...</span>
+          } @else {
+            <mat-icon>check</mat-icon>
+            <span>Sí, cancelar reclamo</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================================================= -->
+<!-- MODAL DE FELICITACIÓN POR OBJETO RECUPERADO (HU26 CA2)                   -->
+<!-- ========================================================================= -->
+@if (modalFelicitacionAbierto()) {
+  <div class="modal-backdrop">
+    <div class="modal-card modal-felicitacion" (click)="$event.stopPropagation()">
+      <div class="celebration-icon-box">
+        <mat-icon>verified</mat-icon>
+      </div>
+
+      <h2 class="celebration-title">¡Objeto Recuperado!</h2>
+
+      <p class="celebration-message">
+        ¡Felicitaciones! Tu objeto ha sido recuperado exitosamente. Esperamos haberte sido de ayuda.
+      </p>
+
+      <p class="celebration-institution">
+        Plataforma OPE · Semillero SOPE · Institución Universitaria ITM
+      </p>
+
+      <div class="celebration-actions">
+        <button type="button" class="btn-celebration" (click)="cerrarModalFelicitacion()">
+          <mat-icon>thumb_up</mat-icon>
+          <span>Aceptar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================================================= -->
+<!-- MODAL DE IMAGEN AMPLIADA                                                  -->
+<!-- ========================================================================= -->
+@if (imagenModalUrl()) {
+  <div class="modal-backdrop" (click)="imagenModalUrl.set(null)">
+    <div class="modal-image-preview" (click)="$event.stopPropagation()">
+      <button type="button" class="btn-close-image" (click)="imagenModalUrl.set(null)" aria-label="Cerrar imagen">
+        <mat-icon>close</mat-icon>
+      </button>
+      <img [src]="imagenModalUrl()" alt="Evidencia de reclamo" referrerpolicy="no-referrer" />
+    </div>
+  </div>
+}

@@ -1,0 +1,406 @@
+<div class="mis-reportes-page">
+  
+  <!-- Encabezado Institucional -->
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-titles">
+        <h1 class="page-title">Mis Reportes y Publicaciones</h1>
+        <p class="page-subtitle">
+          Administra las alertas de pérdidas que has publicado y los hallazgos solidarios que entregaste en custodia ITM
+        </p>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn-refresh" (click)="cargarDatos()" [disabled]="cargando()" aria-label="Actualizar datos">
+          <mat-icon [class.spin]="cargando()">refresh</mat-icon>
+          <span>Actualizar</span>
+        </button>
+        <a routerLink="/catalogo" class="btn-nuevo-reporte">
+          <mat-icon>add_circle_outline</mat-icon>
+          <span>Ir al Catálogo / Crear nuevo reporte</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Alerta de Éxito Temporal -->
+  @if (mensajeExito()) {
+    <div class="alert-success" role="alert">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ mensajeExito() }}</span>
+      <button type="button" class="btn-close-alert" (click)="mensajeExito.set(null)" aria-label="Cerrar">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+
+  <!-- Alerta de Error con Botón de Reintentar (Regla 1) -->
+  @if (errorMensaje()) {
+    <div class="alert-error" role="alert">
+      <div class="alert-error-left">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ errorMensaje() }}</span>
+      </div>
+      <button type="button" class="btn-retry" (click)="cargarDatos()">
+        <mat-icon>replay</mat-icon>
+        <span>Reintentar</span>
+      </button>
+    </div>
+  }
+
+  <!-- Selector de Pestañas Principales (Tabs) -->
+  <div class="tabs-container">
+    <button
+      type="button"
+      class="tab-main-btn"
+      [class.active]="tabActiva() === 'PERDIDOS'"
+      (click)="tabActiva.set('PERDIDOS')">
+      <mat-icon class="tab-icon">search</mat-icon>
+      <div class="tab-text">
+        <span class="tab-name">Objetos que perdí</span>
+        <span class="tab-badge">{{ totalPerdidos() }} reportes</span>
+      </div>
+    </button>
+
+    <button
+      type="button"
+      class="tab-main-btn"
+      [class.active]="tabActiva() === 'ENCONTRADOS'"
+      (click)="tabActiva.set('ENCONTRADOS')">
+      <mat-icon class="tab-icon">volunteer_activism</mat-icon>
+      <div class="tab-text">
+        <span class="tab-name">Objetos que encontré</span>
+        <span class="tab-badge">{{ totalEncontrados() }} publicaciones</span>
+      </div>
+    </button>
+  </div>
+
+  <!-- Estado de Carga -->
+  @if (cargando()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando información de tus reportes...</p>
+    </div>
+  }
+
+  <!-- ======================================================================= -->
+  <!-- PESTAÑA 1: OBJETOS QUE PERDÍ                                            -->
+  <!-- ======================================================================= -->
+  @else if (tabActiva() === 'PERDIDOS') {
+    @if (reportesPerdida().length > 0) {
+      <div class="cards-grid">
+        @for (rep of reportesPerdida(); track rep.reportePerdida_id) {
+          @let estadoCfg = getEstadoConfig(rep.estado, rep.eliminacion_solicitada);
+
+          <article class="reporte-card">
+            <!-- Encabezado de la tarjeta -->
+            <div class="card-top">
+              <div class="cat-pill">
+                <mat-icon>{{ getCategoriaIcon(rep.categoria) }}</mat-icon>
+                <span>{{ getCategoriaLabel(rep.categoria) }}</span>
+              </div>
+              <span class="badge" [ngClass]="estadoCfg.clase">
+                <mat-icon class="badge-icon">{{ estadoCfg.icon }}</mat-icon>
+                <span>{{ estadoCfg.label }}</span>
+              </span>
+            </div>
+
+            <!-- Cuerpo de la tarjeta -->
+            <div class="card-content">
+              @if (rep.imagen_url) {
+                <div class="card-thumb" (click)="imagenModalUrl.set(rep.imagen_url || null)">
+                  <img [src]="rep.imagen_url" [alt]="rep.descripcion" referrerpolicy="no-referrer" />
+                  <span class="zoom-badge"><mat-icon>zoom_in</mat-icon></span>
+                </div>
+              } @else {
+                <div class="card-placeholder-box">
+                  <mat-icon>{{ getCategoriaIcon(rep.categoria) }}</mat-icon>
+                </div>
+              }
+
+              <div class="card-info">
+                <h3 class="card-title">{{ rep.descripcion }}</h3>
+
+                <div class="metadata-list">
+                  <div class="meta-row">
+                    <mat-icon class="meta-icon">place</mat-icon>
+                    <span><strong>Lugar:</strong> {{ getNombreUbicacion(rep.lugar_perdida_id) }}</span>
+                  </div>
+                  <div class="meta-row">
+                    <mat-icon class="meta-icon">event</mat-icon>
+                    <span><strong>Extravío:</strong> {{ formatearFecha(rep.fecha_perdida) }}</span>
+                  </div>
+                  @if (rep.fecha_publicacion) {
+                    <div class="meta-row">
+                      <mat-icon class="meta-icon">schedule</mat-icon>
+                      <span><strong>Publicado:</strong> {{ formatearFecha(rep.fecha_publicacion) }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Motivo de Rechazo (si aplica) -->
+            @if (rep.estado === 'RECHAZADA' && rep.motivo_rechazo) {
+              <div class="rechazo-box">
+                <mat-icon>error_outline</mat-icon>
+                <div class="rechazo-body">
+                  <strong>Motivo de rechazo de la publicación:</strong>
+                  <p>{{ rep.motivo_rechazo }}</p>
+                </div>
+              </div>
+            }
+
+            <!-- Banner de Eliminación Solicitada -->
+            @if (rep.eliminacion_solicitada || rep.estado === 'ELIMINACION_PENDIENTE') {
+              <div class="baja-banner">
+                <mat-icon>hourglass_top</mat-icon>
+                <span>Solicitud de baja en evaluación administrativa. La publicación permanece oculta del muro.</span>
+              </div>
+            }
+
+            <!-- Pie de tarjeta con Acción de Eliminación (HU14) -->
+            <div class="card-footer">
+              <span class="footer-hint">Trazabilidad oficial OPE ITM</span>
+
+              @if (puedeSolicitarEliminacion(rep.estado, rep.eliminacion_solicitada)) {
+                <button
+                  type="button"
+                  class="btn-solicitar-baja"
+                  (click)="abrirModalEliminar('PERDIDO', rep.reportePerdida_id, rep.categoria, rep.descripcion)"
+                  aria-label="Solicitar eliminación del reporte">
+                  <mat-icon>delete_outline</mat-icon>
+                  <span>Solicitar eliminación</span>
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <div class="empty-icon-circle">
+          <mat-icon>search_off</mat-icon>
+        </div>
+        <h2 class="empty-title">No tienes reportes de objetos perdidos</h2>
+        <p class="empty-subtitle">
+          ¿Extraviaste un artículo en el campus? Registra un reporte de pérdida para que la comunidad y los custodios puedan alertarte si es hallado.
+        </p>
+        <a routerLink="/catalogo" class="btn-empty-action">
+          <mat-icon>add_circle_outline</mat-icon>
+          <span>Reportar pérdida en el catálogo</span>
+        </a>
+      </div>
+    }
+  }
+
+  <!-- ======================================================================= -->
+  <!-- PESTAÑA 2: OBJETOS QUE ENCONTRÉ                                         -->
+  <!-- ======================================================================= -->
+  @else if (tabActiva() === 'ENCONTRADOS') {
+    @if (publicacionesEncontradas().length > 0) {
+      <div class="cards-grid">
+        @for (pub of publicacionesEncontradas(); track pub.publicacionEncontrado_id) {
+          @let estadoCfg = getEstadoConfig(pub.estado, pub.eliminacion_solicitada);
+
+          <article class="reporte-card" [class.card-closed]="pub.estado === 'CERRADA'">
+            <!-- Encabezado de la tarjeta -->
+            <div class="card-top">
+              <div class="cat-pill">
+                <mat-icon>{{ getCategoriaIcon(pub.categoria) }}</mat-icon>
+                <span>{{ getCategoriaLabel(pub.categoria) }}</span>
+              </div>
+              <span class="badge" [ngClass]="estadoCfg.clase">
+                <mat-icon class="badge-icon">{{ estadoCfg.icon }}</mat-icon>
+                <span>{{ estadoCfg.label }}</span>
+              </span>
+            </div>
+
+            <!-- Cuerpo de la tarjeta -->
+            <div class="card-content">
+              @if (pub.imagen_url) {
+                <div class="card-thumb" (click)="imagenModalUrl.set(pub.imagen_url || null)">
+                  <img [src]="pub.imagen_url" [alt]="pub.descripcion" referrerpolicy="no-referrer" />
+                  <span class="zoom-badge"><mat-icon>zoom_in</mat-icon></span>
+                </div>
+              } @else {
+                <div class="card-placeholder-box">
+                  <mat-icon>{{ getCategoriaIcon(pub.categoria) }}</mat-icon>
+                </div>
+              }
+
+              <div class="card-info">
+                <h3 class="card-title">{{ pub.descripcion }}</h3>
+
+                <div class="metadata-list">
+                  <div class="meta-row">
+                    <mat-icon class="meta-icon">explore</mat-icon>
+                    <span><strong>Hallado en:</strong> {{ getNombreUbicacion(pub.lugar_hallazgo_id) }}</span>
+                  </div>
+                  <div class="meta-row">
+                    <mat-icon class="meta-icon">storefront</mat-icon>
+                    <span><strong>Entregado en:</strong> {{ getNombrePuntoEntrega(pub.lugar_entrega_fisica_id) }}</span>
+                  </div>
+                  <div class="meta-row">
+                    <mat-icon class="meta-icon">event</mat-icon>
+                    <span><strong>Fecha hallazgo:</strong> {{ formatearFecha(pub.fecha_hallazgo) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Caso Cerrado: Agradecimiento al ciudadano (HU29 CA2) -->
+            @if (pub.estado === 'CERRADA') {
+              <div class="closed-gratitude-box">
+                <mat-icon class="gratitude-icon">verified</mat-icon>
+                <div class="gratitude-content">
+                  <strong>¡Caso Cerrado · Entregado a su dueño!</strong>
+                  <p>¡Gracias por tu honestidad! Este artículo fue restituido exitosamente a su legítimo propietario.</p>
+                </div>
+              </div>
+            }
+
+            <!-- Motivo de Rechazo (si aplica) -->
+            @if (pub.estado === 'RECHAZADA' && pub.motivo_rechazo) {
+              <div class="rechazo-box">
+                <mat-icon>error_outline</mat-icon>
+                <div class="rechazo-body">
+                  <strong>Motivo de rechazo de la publicación:</strong>
+                  <p>{{ pub.motivo_rechazo }}</p>
+                </div>
+              </div>
+            }
+
+            <!-- Banner de Eliminación Solicitada -->
+            @if (pub.eliminacion_solicitada || pub.estado === 'ELIMINACION_PENDIENTE') {
+              <div class="baja-banner">
+                <mat-icon>hourglass_top</mat-icon>
+                <span>Solicitud de baja en evaluación administrativa. La publicación permanece oculta del muro.</span>
+              </div>
+            }
+
+            <!-- Pie de tarjeta con Acción de Eliminación (HU14) -->
+            <div class="card-footer">
+              <span class="footer-hint">Trazabilidad oficial OPE ITM</span>
+
+              @if (puedeSolicitarEliminacion(pub.estado, pub.eliminacion_solicitada)) {
+                <button
+                  type="button"
+                  class="btn-solicitar-baja"
+                  (click)="abrirModalEliminar('ENCONTRADO', pub.publicacionEncontrado_id, pub.categoria, pub.descripcion)"
+                  aria-label="Solicitar eliminación de la publicación">
+                  <mat-icon>delete_outline</mat-icon>
+                  <span>Solicitar eliminación</span>
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <div class="empty-icon-circle">
+          <mat-icon>volunteer_activism</mat-icon>
+        </div>
+        <h2 class="empty-title">No has registrado objetos encontrados</h2>
+        <p class="empty-subtitle">
+          ¿Encontraste una pertenencia ajena en los pasillos o aulas? Entrégalos en custodia ITM y publica la alerta para ayudar a devolverlo.
+        </p>
+        <a routerLink="/catalogo" class="btn-empty-action">
+          <mat-icon>add_circle_outline</mat-icon>
+          <span>Publicar un hallazgo solidario</span>
+        </a>
+      </div>
+    }
+  }
+
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL DE SOLICITUD DE ELIMINACIÓN (HU14, HU07)                            -->
+<!-- ========================================================================= -->
+@if (modalEliminarAbierto() && itemAEliminar()) {
+  @let item = itemAEliminar()!;
+
+  <div class="modal-backdrop" (click)="cerrarModalEliminar()">
+    <div class="modal-card modal-eliminar" (click)="$event.stopPropagation()">
+      <div class="warning-icon-box">
+        <mat-icon>delete_sweep</mat-icon>
+      </div>
+
+      <h3 class="modal-title">Solicitar eliminación de publicación</h3>
+
+      <div class="traceability-notice">
+        <mat-icon>policy</mat-icon>
+        <div>
+          <strong>Trazabilidad Institucional (HU07 / HU14):</strong>
+          <p>
+            Por normatividad institucional, las publicaciones no se eliminan inmediatamente de la base de datos sin control administrativo. Al confirmar, tu solicitud pasará a <strong>"Baja en revisión"</strong> y será ocultada de inmediato del muro público mientras la administración la aprueba definitivamente.
+          </p>
+        </div>
+      </div>
+
+      <div class="item-summary-box">
+        <span class="summary-label">Artículo a retirar:</span>
+        <strong class="summary-desc">{{ item.descripcion }}</strong>
+      </div>
+
+      <form [formGroup]="formEliminacion" class="eliminar-form">
+        <div class="field-group">
+          <label for="motivo-baja">Motivo del retiro de la publicación:</label>
+          <select id="motivo-baja" formControlName="motivo" class="form-select">
+            <option value="Ya encontré el objeto por mi cuenta">Ya encontré el objeto por mi cuenta</option>
+            <option value="El objeto ya fue entregado a su titular">El objeto ya fue entregado a su titular</option>
+            <option value="Publicación duplicada o creada por error">Publicación duplicada o creada por error</option>
+            <option value="Datos incorrectos en la publicación">Datos incorrectos en la publicación</option>
+            <option value="Otro motivo justificado">Otro motivo justificado</option>
+          </select>
+        </div>
+
+        @if (errorEliminacion()) {
+          <div class="form-error-alert">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ errorEliminacion() }}</span>
+          </div>
+        }
+
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn-cancelar-modal"
+            (click)="cerrarModalEliminar()"
+            [disabled]="procesandoEliminacion()">
+            Volver
+          </button>
+          <button
+            type="button"
+            class="btn-confirmar-baja"
+            (click)="confirmarEliminacion()"
+            [disabled]="procesandoEliminacion()">
+            @if (procesandoEliminacion()) {
+              <mat-icon class="spin">refresh</mat-icon>
+              <span>Enviando solicitud...</span>
+            } @else {
+              <mat-icon>check</mat-icon>
+              <span>Confirmar solicitud de retiro</span>
+            }
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+}
+
+<!-- ========================================================================= -->
+<!-- MODAL DE IMAGEN AMPLIADA                                                  -->
+<!-- ========================================================================= -->
+@if (imagenModalUrl()) {
+  <div class="modal-backdrop" (click)="imagenModalUrl.set(null)">
+    <div class="modal-image-preview" (click)="$event.stopPropagation()">
+      <button type="button" class="btn-close-image" (click)="imagenModalUrl.set(null)" aria-label="Cerrar imagen">
+        <mat-icon>close</mat-icon>
+      </button>
+      <img [src]="imagenModalUrl()" alt="Fotografía de la publicación" referrerpolicy="no-referrer" />
+    </div>
+  </div>
+}
