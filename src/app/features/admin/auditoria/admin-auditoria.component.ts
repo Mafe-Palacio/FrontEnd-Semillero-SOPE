@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatMenuModule } from '@angular/material/menu';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { API_URL } from '../../../core/api.config';
 import { mensajeDeError } from '../../../core/api-error';
 import { SedeAdminService } from '../../../core/sede-admin.service';
+import { AdminExportacionesService, FormatoExportacion } from '../../../core/admin-exportaciones.service';
 
 export interface AuditLogDetalle {
   auditLog_id: string;
@@ -25,7 +27,7 @@ export interface AuditLogDetalle {
 @Component({
   selector: 'app-admin-auditoria',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatIconModule, MatSnackBarModule],
+  imports: [CommonModule, ReactiveFormsModule, MatIconModule, MatSnackBarModule, MatMenuModule],
   template: `
     <div class="itm-admin-page">
       
@@ -49,6 +51,26 @@ export interface AuditLogDetalle {
             <span>Tiempo real (10s)</span>
           </label>
 
+          <!-- Botón de Exportar Auditoría con Menú CSV / Excel -->
+          <button
+            type="button"
+            [matMenuTriggerFor]="exportMenu"
+            [disabled]="exportando()"
+            class="itm-btn itm-btn-outline">
+            <mat-icon [class.spin-icon]="exportando()">file_download</mat-icon>
+            <span>{{ exportando() ? 'Exportando...' : 'Exportar' }}</span>
+          </button>
+          <mat-menu #exportMenu="matMenu">
+            <button mat-menu-item (click)="exportarAuditoria('csv')">
+              <mat-icon>description</mat-icon>
+              <span>Exportar en formato CSV</span>
+            </button>
+            <button mat-menu-item (click)="exportarAuditoria('xlsx')">
+              <mat-icon>table_view</mat-icon>
+              <span>Exportar en formato Excel (.xlsx)</span>
+            </button>
+          </mat-menu>
+
           <button
             type="button"
             (click)="cargarLogs()"
@@ -59,6 +81,19 @@ export interface AuditLogDetalle {
           </button>
         </div>
       </div>
+
+      <!-- Banner de Error de Exportación o Servidor -->
+      @if (errorExportacion()) {
+        <div class="aud-error-banner" role="alert">
+          <div class="aud-error-content">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ errorExportacion() }}</span>
+          </div>
+          <button type="button" class="aud-error-close" (click)="errorExportacion.set(null)" aria-label="Cerrar advertencia">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
 
       <!-- Barra de Filtros -->
       <form [formGroup]="filterForm" (ngSubmit)="filtrar()" class="itm-filter-bar aud-filter-grid">
@@ -487,6 +522,44 @@ export interface AuditLogDetalle {
       word-break: break-word;
     }
 
+    .aud-error-banner {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: #991b1b;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .aud-error-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .aud-error-close {
+      background: transparent;
+      border: none;
+      color: #991b1b;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease;
+    }
+
+    .aud-error-close:hover {
+      background: rgba(153, 27, 27, 0.1);
+    }
+
     .spin-icon {
       animation: itmSpin 1.1s linear infinite;
     }
@@ -501,12 +574,16 @@ export class AdminAuditoriaComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private snack = inject(MatSnackBar);
   private sedeAdmin = inject(SedeAdminService);
+  private exportacionesService = inject(AdminExportacionesService);
 
   logs = signal<AuditLogDetalle[]>([]);
   totalLogs = signal<number>(0);
   totalPaginas = signal<number>(1);
   isLoading = signal(false);
   paginaActual = signal(1);
+
+  exportando = signal(false);
+  errorExportacion = signal<string | null>(null);
 
   autoRefreshActivo = signal(false);
   private pollingTimer: any = null;
@@ -634,6 +711,40 @@ export class AdminAuditoriaComponent implements OnInit, OnDestroy {
   verDetalle(log: AuditLogDetalle): void {
     this.logSeleccionado.set(log);
     this.modalDetalleAbierto.set(true);
+  }
+
+  exportarAuditoria(formato: FormatoExportacion): void {
+    this.exportando.set(true);
+    this.errorExportacion.set(null);
+
+    const { entidad, accion, fechaDesde, fechaHasta } = this.filterForm.value;
+
+    this.exportacionesService
+      .exportarAuditoria(formato, {
+        entidad: entidad || undefined,
+        accion: accion || undefined,
+        fecha_desde: fechaDesde || undefined,
+        fecha_hasta: fechaHasta || undefined
+      })
+      .subscribe({
+        next: (res) => {
+          this.exportando.set(false);
+          this.snack.open(res.mensaje || 'Bitácora exportada exitosamente.', 'Cerrar', {
+            duration: 4000
+          });
+        },
+        error: (err) => {
+          this.exportando.set(false);
+          const errorMsg = mensajeDeError(
+            err,
+            'No se pudo exportar la bitácora de auditoría. El servidor reportó un error al procesar el archivo.'
+          );
+          this.errorExportacion.set(errorMsg);
+          this.snack.open(errorMsg, 'Cerrar', {
+            duration: 5000
+          });
+        }
+      });
   }
 
   formatearFecha(ts: string | undefined): string {

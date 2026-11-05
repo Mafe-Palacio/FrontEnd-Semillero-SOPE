@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -34,16 +34,33 @@ import { mensajeDeError } from './core/api-error';
 })
 export class App {
   title = 'frontend-objetos-perdidos';
-  isAuthRoute = false;
-  isCatalogoRoute = true;
-  isAdminRoute = false;
-  readonly isMobile = signal<boolean>(false);
 
   private readonly router = inject(Router);
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly fb = inject(FormBuilder);
   private readonly snack = inject(MatSnackBar);
   readonly authService = inject(AuthService);
+
+  readonly isLoggedIn = this.authService.isLoggedIn;
+  readonly isAdmin = this.authService.isAdmin;
+
+  private getInitialUrl(): string {
+    if (typeof window !== 'undefined' && window.location?.pathname) {
+      return window.location.pathname + (window.location.search || '');
+    }
+    return this.router.url || '';
+  }
+
+  readonly currentUrl = signal<string>(this.getInitialUrl());
+
+  readonly isAuthRoute = computed<boolean>(() => this.currentUrl().includes('/auth'));
+  readonly isAdminRoute = computed<boolean>(() => this.currentUrl().startsWith('/admin') || this.currentUrl().includes('/admin'));
+  readonly isCatalogoRoute = computed<boolean>(() => {
+    const url = this.currentUrl();
+    return url.includes('/catalogo') || url === '/' || url === '';
+  });
+
+  readonly isMobile = signal<boolean>(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
 
   // Estado del Modal de Perfil
   modalPerfilAbierto = signal<boolean>(false);
@@ -67,21 +84,11 @@ export class App {
     });
 
     this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: any) => {
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd)
+    ).subscribe((event) => {
       const url = event.urlAfterRedirects || event.url || '';
-      this.isAuthRoute = url.includes('/auth');
-      this.isAdminRoute = url.startsWith('/admin') || url.includes('/admin');
-      this.isCatalogoRoute = url.includes('/catalogo') || url === '/' || url === '';
+      this.currentUrl.set(url);
     });
-  }
-
-  isLoggedIn(): boolean {
-    return this.authService.isLoggedIn();
-  }
-
-  isAdmin(): boolean {
-    return this.authService.isAdmin();
   }
 
   abrirModalPerfil(): void {

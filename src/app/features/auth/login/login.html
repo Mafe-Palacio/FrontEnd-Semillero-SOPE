@@ -1,5 +1,5 @@
 <div class="auth-bg">
-  <div class="split-card">
+  <div class="split-card login-card auth-card">
     
     <!-- Lado Izquierdo: Logo ITM -->
     <div class="card-left">
@@ -21,9 +21,9 @@
 
       <h2 class="form-title">Iniciar Sesión</h2>
       
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form login-form">
         
-        <mat-form-field appearance="outline" class="full-width">
+        <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
           <mat-label>Correo electrónico</mat-label>
           <mat-icon matPrefix>person_outline</mat-icon>
           <input
@@ -41,12 +41,12 @@
           }
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="full-width">
+        <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
           <mat-label>Contraseña</mat-label>
           <mat-icon matPrefix>lock_outline</mat-icon>
           <input
             matInput
-            [type]="hidePassword ? 'password' : 'text'"
+            [type]="hidePassword() ? 'password' : 'text'"
             formControlName="password"
             autocomplete="current-password"
           />
@@ -54,17 +54,21 @@
             type="button"
             mat-icon-button
             matSuffix
-            (click)="hidePassword = !hidePassword"
+            (click)="hidePassword.set(!hidePassword())"
             aria-label="Mostrar u ocultar contraseña"
           >
-            <mat-icon>{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+            <mat-icon>{{hidePassword() ? 'visibility_off' : 'visibility'}}</mat-icon>
           </button>
           @if (loginForm.controls.password.hasError('required') && loginForm.controls.password.touched) {
             <mat-error>La contraseña es obligatoria</mat-error>
           }
         </mat-form-field>
 
-        <div class="info-box">
+        <a routerLink="/auth/recuperar-password" class="forgot-link forgot-password-link">
+          ¿Olvidaste tu contraseña?
+        </a>
+
+        <div class="info-box auth-info-box notice-box">
           <span class="badge">Autenticación ITM</span>
           <p>
             Ingresa con tu correo registrado.<br>
@@ -73,21 +77,20 @@
           </p>
         </div>
 
-        <div class="actions-right">
+        <div class="actions-right button-container">
           <button
             mat-flat-button
-            color="primary"
             type="submit"
-            class="submit-button"
-            [disabled]="loginForm.invalid || isLoading"
+            class="submit-button login-button"
+            [disabled]="loginForm.invalid || isLoading()"
           >
-            {{ isLoading ? 'Verificando...' : 'Ingresar a OPE' }}
+            <span>{{ isLoading() ? 'Verificando...' : 'Ingresar a OPE' }}</span>
           </button>
         </div>
 
-        <div style="margin-top: 16px; text-align: center; font-size: 0.9rem;">
+        <div class="register-prompt">
           <span>¿No tienes una cuenta? </span>
-          <a routerLink="/auth/registro" style="color: #011C5B; font-weight: 600; text-decoration: none;">
+          <a routerLink="/auth/registro" class="register-link">
             Regístrate aquí
           </a>
         </div>

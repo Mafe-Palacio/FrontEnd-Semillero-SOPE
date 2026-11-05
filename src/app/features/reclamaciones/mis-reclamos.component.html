@@ -95,7 +95,7 @@
   @else if (reclamosFiltrados().length > 0) {
     <div class="reclamos-grid">
       @for (r of reclamosFiltrados(); track r.reclamo_id) {
-        @let obj = getObjeto(r.objetoEnCustodia_id);
+        @let obj = getObjeto(r);
         @let estadoConfig = getEstadoConfig(r.estado);
 
         <article class="reclamo-card">
@@ -235,7 +235,7 @@
 <!-- ========================================================================= -->
 @if (reclamoSeleccionado()) {
   @let r = reclamoSeleccionado()!;
-  @let obj = getObjeto(r.objetoEnCustodia_id);
+  @let obj = getObjeto(r);
   @let estadoCfg = getEstadoConfig(r.estado);
 
   <div class="modal-backdrop" (click)="cerrarSeguimiento()">

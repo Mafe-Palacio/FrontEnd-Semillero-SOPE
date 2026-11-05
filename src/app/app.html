@@ -1,10 +1,10 @@
 <!-- 1. SI ESTAMOS EN EL LOGIN O EN EL PANEL ADMINISTRATIVO: Render directo sin menú envolvente -->
-@if (isAuthRoute || isAdminRoute) {
+@if (isAuthRoute() || isAdminRoute()) {
   <router-outlet></router-outlet>
 }
 
 <!-- 2. SI ESTAMOS EN EL CATÁLOGO PÚBLICO: Ancho completo sin menú lateral -->
-@else if (isCatalogoRoute) {
+@else if (isCatalogoRoute()) {
   <div class="catalogo-layout">
     <mat-toolbar color="primary" class="institucional-toolbar">
       <div class="brand-container">

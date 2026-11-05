@@ -1,0 +1,857 @@
+<div class="itm-admin-page">
+  
+  <!-- Encabezado Principal -->
+  <div class="itm-admin-header">
+    <div>
+      <div class="sede-header-badges">
+        <h1 class="itm-admin-title">Gestión de Sedes, Espacios y Puntos de Entrega</h1>
+        @if (esSuperAdmin()) {
+          <span class="itm-badge itm-badge-warning">Exclusivo Superadmin</span>
+        } @else {
+          <span class="itm-badge itm-badge-primary">Administrador ITM</span>
+        }
+      </div>
+      <p class="itm-admin-subtitle">
+        Parametrización oficial de sedes ITM, catálogo de ubicaciones y puntos físicos autorizados de custodia
+      </p>
+    </div>
+
+    <!-- Acciones según la pestaña activa -->
+    <div class="sede-header-actions">
+      @if (tabActiva() === 'sedes' && esSuperAdmin()) {
+        <button type="button" (click)="abrirModalCrearAdmin()" class="itm-btn itm-btn-outline">
+          <mat-icon>person_add</mat-icon>
+          <span>Nuevo Administrador</span>
+        </button>
+
+        <button type="button" (click)="abrirModalCrearSede()" class="itm-btn itm-btn-primary">
+          <mat-icon>add_business</mat-icon>
+          <span>Nueva Sede ITM</span>
+        </button>
+      } @else if (tabActiva() === 'ubicaciones') {
+        <button type="button" (click)="abrirModalCrearUbicacion()" class="itm-btn itm-btn-primary">
+          <mat-icon>add_location_alt</mat-icon>
+          <span>Nueva Ubicación</span>
+        </button>
+      } @else if (tabActiva() === 'puntos') {
+        <button type="button" (click)="abrirModalCrearPunto()" class="itm-btn itm-btn-primary">
+          <mat-icon>add_business</mat-icon>
+          <span>Nuevo Punto de Entrega</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Barra de Pestañas (Tabs) -->
+  <div class="itm-tabs-bar" role="tablist">
+    @if (esSuperAdmin()) {
+      <button
+        type="button"
+        class="itm-tab-btn"
+        [class.active]="tabActiva() === 'sedes'"
+        (click)="cambiarTab('sedes')"
+        role="tab">
+        <mat-icon>apartment</mat-icon>
+        <span>Sedes y Administradores</span>
+      </button>
+    }
+
+    <button
+      type="button"
+      class="itm-tab-btn"
+      [class.active]="tabActiva() === 'ubicaciones'"
+      (click)="cambiarTab('ubicaciones')"
+      role="tab">
+      <mat-icon>place</mat-icon>
+      <span>Ubicaciones ({{ ubicacionesFiltradas().length }})</span>
+    </button>
+
+    <button
+      type="button"
+      class="itm-tab-btn"
+      [class.active]="tabActiva() === 'puntos'"
+      (click)="cambiarTab('puntos')"
+      role="tab">
+      <mat-icon>storefront</mat-icon>
+      <span>Puntos de Entrega ({{ puntosFiltrados().length }})</span>
+    </button>
+  </div>
+
+  <!-- Selector / Contexto de Sede Activa (Para Ubicaciones y Puntos) -->
+  @if (tabActiva() === 'ubicaciones' || tabActiva() === 'puntos') {
+    <div class="sede-context-card">
+      <div class="sede-context-info">
+        <div class="context-icon-box">
+          <mat-icon>location_city</mat-icon>
+        </div>
+        <div>
+          <strong class="context-title">Sede de Operación: {{ activeSedeNombre() }}</strong>
+          <p class="context-desc">
+            Los espacios y puntos configurados corresponden a la jurisdicción de la sede seleccionada.
+          </p>
+        </div>
+      </div>
+
+      @if (esSuperAdmin() && sedes().length > 0) {
+        <div class="sede-context-selector">
+          <label for="selectSedeContexto">Cambiar sede activa:</label>
+          <select
+            id="selectSedeContexto"
+            [value]="activeSedeId() || ''"
+            (change)="onCambiarSedeContexto($event)"
+            class="itm-select itm-select-sm">
+            @for (s of sedes(); track s.sede_id) {
+              <option [value]="s.sede_id">{{ s.nombre }} ({{ s.codigo }})</option>
+            }
+          </select>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ======================================================================= -->
+  <!-- PESTAÑA 1: SEDES Y ADMINISTRADORES (SUPERADMIN)                         -->
+  <!-- ======================================================================= -->
+  @if (tabActiva() === 'sedes' && esSuperAdmin()) {
+    <div class="sede-two-col">
+      
+      <!-- Columna 1: Sedes Registradas -->
+      <div class="itm-table-card">
+        <div class="sede-panel-header">
+          <div class="sede-panel-title">
+            <div class="sede-panel-icon">
+              <mat-icon>apartment</mat-icon>
+            </div>
+            <div>
+              <h2>Sedes Universitarias ITM ({{ sedes().length }})</h2>
+              <p>Campus habilitados para recepción y custodia</p>
+            </div>
+          </div>
+
+          <button type="button" (click)="cargarSedes()" class="itm-icon-btn" title="Actualizar sedes">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+
+        @if (sedes().length === 0) {
+          <div class="itm-empty-state" style="border: none;">
+            <div class="itm-empty-icon">
+              <mat-icon>domain_disabled</mat-icon>
+            </div>
+            <h3 style="margin: 8px 0 0; font-size: 1rem;">No hay sedes registradas</h3>
+            <p style="margin: 0; font-size: 0.82rem; color: #6b7280;">Cree la primera sede institucional con el botón superior.</p>
+          </div>
+        } @else {
+          <div class="sede-list">
+            @for (s of sedes(); track s.sede_id) {
+              <div class="sede-item">
+                <div class="sede-item-info">
+                  <div class="sede-item-top">
+                    <span class="sede-item-name">{{ s.nombre }}</span>
+                    <span class="itm-badge itm-badge-primary">{{ s.codigo }}</span>
+                    @if (s.activa) {
+                      <span class="itm-badge itm-badge-success">Activa</span>
+                    } @else {
+                      <span class="itm-badge itm-badge-danger">Inactiva</span>
+                    }
+                  </div>
+                  <div class="sede-item-id">UUID: {{ s.sede_id }}</div>
+                </div>
+
+                <button
+                  type="button"
+                  (click)="abrirModalEditarSede(s)"
+                  class="itm-btn itm-btn-outline"
+                  style="padding: 6px 12px !important; font-size: 0.78rem !important;">
+                  <mat-icon style="font-size: 16px; width: 16px; height: 16px;">edit</mat-icon>
+                  <span>Editar</span>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Columna 2: Administradores Asignados -->
+      <div class="itm-table-card">
+        <div class="sede-panel-header">
+          <div class="sede-panel-title">
+            <div class="sede-panel-icon cyan">
+              <mat-icon>admin_panel_settings</mat-icon>
+            </div>
+            <div>
+              <h2>Equipo Administrador ({{ administradores().length }})</h2>
+              <p>Funcionarios con permisos de moderación y custodia</p>
+            </div>
+          </div>
+
+          <button type="button" (click)="cargarAdministradores()" class="itm-icon-btn" title="Actualizar administradores">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+
+        @if (administradores().length === 0) {
+          <div class="itm-empty-state" style="border: none;">
+            <div class="itm-empty-icon">
+              <mat-icon>manage_accounts</mat-icon>
+            </div>
+            <h3 style="margin: 8px 0 0; font-size: 1rem;">No se encontraron administradores</h3>
+            <p style="margin: 0; font-size: 0.82rem; color: #6b7280;">Habilite un nuevo administrador para las sedes del ITM.</p>
+          </div>
+        } @else {
+          <div class="sede-list">
+            @for (adm of administradores(); track adm.usuario_id) {
+              <div class="sede-item">
+                <div class="sede-item-info">
+                  <div class="sede-item-top">
+                    <span class="sede-item-name">{{ adm.nombre_completo }}</span>
+                    <span
+                      class="itm-badge"
+                      [class.itm-badge-primary]="String(adm.rol) === 'SUPERADMIN'"
+                      [class.itm-badge-cyan]="String(adm.rol) === 'ADMIN'">
+                      {{ adm.rol }}
+                    </span>
+                  </div>
+                  <div class="sede-item-email">{{ adm.correo }} · C.C. {{ adm.cedula }}</div>
+                  <div class="sede-item-loc">
+                    <mat-icon>location_on</mat-icon>
+                    <span>{{ obtenerNombreSede(adm.sede_id) }}</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  (click)="abrirModalAsignarSede(adm)"
+                  class="itm-btn itm-btn-outline"
+                  style="padding: 6px 12px !important; font-size: 0.78rem !important;">
+                  <mat-icon style="font-size: 16px; width: 16px; height: 16px;">swap_horiz</mat-icon>
+                  <span>Asignar Sede</span>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+    </div>
+  }
+
+  <!-- ======================================================================= -->
+  <!-- PESTAÑA 2: UBICACIONES (ADMIN Y SUPERADMIN)                             -->
+  <!-- ======================================================================= -->
+  @else if (tabActiva() === 'ubicaciones') {
+    <div class="itm-table-card">
+      <div class="table-card-header">
+        <div>
+          <h2>Catálogo de Ubicaciones en Campus</h2>
+          <p>Bloques, porterías, zonas comunes y espacios de reporte de hallazgos</p>
+        </div>
+        <button type="button" (click)="cargarUbicaciones()" class="itm-icon-btn" title="Recargar ubicaciones">
+          <mat-icon [class.spin-icon]="cargandoUbicaciones()">refresh</mat-icon>
+        </button>
+      </div>
+
+      @if (cargandoUbicaciones()) {
+        <div class="loading-box">
+          <div class="spinner"></div>
+          <span>Cargando catálogo de ubicaciones...</span>
+        </div>
+      } @else if (ubicacionesFiltradas().length === 0) {
+        <div class="itm-empty-state">
+          <div class="itm-empty-icon">
+            <mat-icon>place</mat-icon>
+          </div>
+          <h3>No hay ubicaciones registradas</h3>
+          <p>Registra las áreas y bloques del campus para que la comunidad pueda georreferenciar hallazgos y pérdidas.</p>
+          <button type="button" (click)="abrirModalCrearUbicacion()" class="itm-btn itm-btn-primary" style="margin-top: 12px;">
+            <mat-icon>add_location_alt</mat-icon>
+            <span>Crear Primera Ubicación</span>
+          </button>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="itm-table">
+            <thead>
+              <tr>
+                <th>Nombre del Espacio / Ubicación</th>
+                <th>Clasificación</th>
+                <th>Estado</th>
+                <th style="text-align: right;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (u of ubicacionesFiltradas(); track u.ubicacion_id) {
+                <tr>
+                  <td>
+                    <div class="cell-main-text">
+                      <mat-icon class="cell-icon">place</mat-icon>
+                      <strong class="entity-name">{{ u.nombre }}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="itm-badge itm-badge-primary">
+                      {{ getTipoUbicacionLabel(u.tipo) }}
+                    </span>
+                  </td>
+                  <td>
+                    @if (u.activa !== false) {
+                      <span class="itm-badge itm-badge-success">
+                        <mat-icon class="badge-icon">check_circle</mat-icon>
+                        <span>Activa</span>
+                      </span>
+                    } @else {
+                      <span class="itm-badge itm-badge-gray">
+                        <mat-icon class="badge-icon">remove_circle</mat-icon>
+                        <span>Inactiva</span>
+                      </span>
+                    }
+                  </td>
+                  <td style="text-align: right;">
+                    <div class="actions-cell">
+                      <!-- Switch / Botón reactivación rápida -->
+                      <button
+                        type="button"
+                        (click)="toggleActivaUbicacion(u)"
+                        class="itm-btn-sm"
+                        [class.btn-toggle-on]="u.activa !== false"
+                        [class.btn-toggle-off]="u.activa === false"
+                        [title]="u.activa !== false ? 'Desactivar ubicación' : 'Reactivar ubicación'">
+                        <mat-icon>{{ u.activa !== false ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+                        <span>{{ u.activa !== false ? 'Activa' : 'Inactiva' }}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        (click)="abrirModalEditarUbicacion(u)"
+                        class="itm-btn itm-btn-outline itm-btn-sm"
+                        title="Editar nombre y clasificación">
+                        <mat-icon>edit</mat-icon>
+                        <span>Editar</span>
+                      </button>
+
+                      @if (u.activa !== false) {
+                        <button
+                          type="button"
+                          (click)="solicitarDesactivarUbicacion(u)"
+                          class="itm-btn itm-btn-danger-outline itm-btn-sm"
+                          title="Desactivar del catálogo">
+                          <mat-icon>block</mat-icon>
+                          <span>Desactivar</span>
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ======================================================================= -->
+  <!-- PESTAÑA 3: PUNTOS DE ENTREGA (ADMIN Y SUPERADMIN)                       -->
+  <!-- ======================================================================= -->
+  @else if (tabActiva() === 'puntos') {
+    <div class="itm-table-card">
+      <div class="table-card-header">
+        <div>
+          <h2>Puntos Físicos Oficiales de Entrega</h2>
+          <p>Oficinas de custodia y porterías habilitadas para recibir y devolver objetos</p>
+        </div>
+        <button type="button" (click)="cargarPuntosEntrega()" class="itm-icon-btn" title="Recargar puntos de entrega">
+          <mat-icon [class.spin-icon]="cargandoPuntos()">refresh</mat-icon>
+        </button>
+      </div>
+
+      @if (cargandoPuntos()) {
+        <div class="loading-box">
+          <div class="spinner"></div>
+          <span>Cargando puntos de entrega autorizados...</span>
+        </div>
+      } @else if (puntosFiltrados().length === 0) {
+        <div class="itm-empty-state">
+          <div class="itm-empty-icon">
+            <mat-icon>storefront</mat-icon>
+          </div>
+          <h3>No hay puntos de entrega registrados</h3>
+          <p>Registra las oficinas de custodia o porterías donde la comunidad entrega los objetos perdidos encontrados.</p>
+          <button type="button" (click)="abrirModalCrearPunto()" class="itm-btn itm-btn-primary" style="margin-top: 12px;">
+            <mat-icon>add_business</mat-icon>
+            <span>Crear Primer Punto de Entrega</span>
+          </button>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="itm-table">
+            <thead>
+              <tr>
+                <th>Punto de Entrega / Oficina</th>
+                <th>Tipo de Punto</th>
+                <th>Estado Operativo</th>
+                <th style="text-align: right;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of puntosFiltrados(); track p.puntoEntrega_id) {
+                <tr>
+                  <td>
+                    <div class="cell-main-text">
+                      <mat-icon class="cell-icon">storefront</mat-icon>
+                      <strong class="entity-name">{{ p.nombre }}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="itm-badge itm-badge-cyan">
+                      {{ getTipoPuntoLabel(p.tipo) }}
+                    </span>
+                  </td>
+                  <td>
+                    @if (p.activa !== false) {
+                      <span class="itm-badge itm-badge-success">
+                        <mat-icon class="badge-icon">check_circle</mat-icon>
+                        <span>Activo</span>
+                      </span>
+                    } @else {
+                      <span class="itm-badge itm-badge-gray">
+                        <mat-icon class="badge-icon">remove_circle</mat-icon>
+                        <span>Inactivo</span>
+                      </span>
+                    }
+                  </td>
+                  <td style="text-align: right;">
+                    <div class="actions-cell">
+                      <!-- Switch / Botón reactivación rápida -->
+                      <button
+                        type="button"
+                        (click)="toggleActivaPunto(p)"
+                        class="itm-btn-sm"
+                        [class.btn-toggle-on]="p.activa !== false"
+                        [class.btn-toggle-off]="p.activa === false"
+                        [title]="p.activa !== false ? 'Desactivar punto' : 'Reactivar punto'">
+                        <mat-icon>{{ p.activa !== false ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+                        <span>{{ p.activa !== false ? 'Activo' : 'Inactivo' }}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        (click)="abrirModalEditarPunto(p)"
+                        class="itm-btn itm-btn-outline itm-btn-sm"
+                        title="Editar nombre y clasificación">
+                        <mat-icon>edit</mat-icon>
+                        <span>Editar</span>
+                      </button>
+
+                      @if (p.activa !== false) {
+                        <button
+                          type="button"
+                          (click)="solicitarDesactivarPunto(p)"
+                          class="itm-btn itm-btn-danger-outline itm-btn-sm"
+                          title="Desactivar del catálogo">
+                          <mat-icon>block</mat-icon>
+                          <span>Desactivar</span>
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ======================================================================= -->
+  <!-- MODALES                                                                 -->
+  <!-- ======================================================================= -->
+
+  <!-- Modal Crear / Editar Ubicación -->
+  @if (modalUbicacionAbierto()) {
+    <div class="itm-modal-backdrop" (click)="cerrarModalUbicacion()">
+      <div class="itm-modal-card" (click)="$event.stopPropagation()">
+        <div class="itm-modal-header">
+          <h3>
+            <mat-icon>place</mat-icon>
+            <span>{{ ubicacionEditandoId() ? 'Editar Ubicación' : 'Nueva Ubicación en Campus' }}</span>
+          </h3>
+          <button type="button" (click)="cerrarModalUbicacion()" class="itm-modal-close" aria-label="Cerrar modal">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <form [formGroup]="ubicacionForm" (ngSubmit)="guardarUbicacion()">
+          <div class="itm-modal-body">
+            @if (errorModalUbicacion()) {
+              <div class="modal-error-alert">
+                <mat-icon>error_outline</mat-icon>
+                <span>{{ errorModalUbicacion() }}</span>
+              </div>
+            }
+
+            <div class="itm-field">
+              <label for="ubicacionNombreInput" class="itm-label">Nombre de la ubicación *</label>
+              <input
+                id="ubicacionNombreInput"
+                type="text"
+                formControlName="nombre"
+                placeholder="Ej: Bloque F - Laboratorio de Física 102"
+                class="itm-input"
+                maxlength="100"
+              />
+              @if (ubicacionForm.controls.nombre.invalid && ubicacionForm.controls.nombre.touched) {
+                <small class="field-error">El nombre es obligatorio (máx. 100 caracteres).</small>
+              }
+            </div>
+
+            <div class="itm-field">
+              <label for="ubicacionTipoSelect" class="itm-label">Clasificación del espacio *</label>
+              <select id="ubicacionTipoSelect" formControlName="tipo" class="itm-select">
+                <option value="BLOQUE">Bloque académico / administrativo</option>
+                <option value="PORTERIA">Portería institucional</option>
+                <option value="ZONA_COMUN">Zona común / Plazoleta / Pasillos</option>
+                <option value="OTRO">Otro espacio universitario</option>
+              </select>
+            </div>
+
+            <label class="sede-check-row">
+              <input type="checkbox" formControlName="activa" />
+              <span>Ubicación activa y disponible para nuevos reportes de objetos</span>
+            </label>
+          </div>
+
+          <div class="itm-modal-footer">
+            <button type="button" (click)="cerrarModalUbicacion()" class="itm-btn itm-btn-ghost" [disabled]="guardando()">
+              Cancelar
+            </button>
+            <button type="submit" [disabled]="ubicacionForm.invalid || guardando()" class="itm-btn itm-btn-primary">
+              {{ guardando() ? 'Guardando...' : (ubicacionEditandoId() ? 'Guardar Cambios' : 'Registrar Ubicación') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Confirmar Desactivar Ubicación -->
+  @if (modalDesactivarUbicacionAbierto() && ubicacionADesactivar()) {
+    <div class="itm-modal-backdrop" (click)="cerrarModalDesactivarUbicacion()">
+      <div class="itm-modal-card modal-confirmar" (click)="$event.stopPropagation()">
+        <div class="warning-icon-box">
+          <mat-icon>warning_amber</mat-icon>
+        </div>
+
+        <h3 class="confirm-title">¿Desactivar esta ubicación?</h3>
+        
+        <p class="confirm-desc">
+          La ubicación <strong>"{{ ubicacionADesactivar()?.nombre }}"</strong> quedará marcada como inactiva. No se mostrará en los nuevos formularios de reportes ni hallazgos, pero el historial de registros anteriores se conservará intacto.
+        </p>
+
+        <div class="itm-modal-footer">
+          <button type="button" (click)="cerrarModalDesactivarUbicacion()" class="itm-btn itm-btn-ghost" [disabled]="guardando()">
+            Cancelar
+          </button>
+          <button type="button" (click)="confirmarDesactivarUbicacion()" class="itm-btn itm-btn-danger" [disabled]="guardando()">
+            {{ guardando() ? 'Desactivando...' : 'Desactivar Ubicación' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Crear / Editar Punto de Entrega -->
+  @if (modalPuntoAbierto()) {
+    <div class="itm-modal-backdrop" (click)="cerrarModalPunto()">
+      <div class="itm-modal-card" (click)="$event.stopPropagation()">
+        <div class="itm-modal-header">
+          <h3>
+            <mat-icon>storefront</mat-icon>
+            <span>{{ puntoEditandoId() ? 'Editar Punto de Entrega' : 'Nuevo Punto Oficial de Entrega' }}</span>
+          </h3>
+          <button type="button" (click)="cerrarModalPunto()" class="itm-modal-close" aria-label="Cerrar modal">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <form [formGroup]="puntoForm" (ngSubmit)="guardarPuntoEntrega()">
+          <div class="itm-modal-body">
+            @if (errorModalPunto()) {
+              <div class="modal-error-alert">
+                <mat-icon>error_outline</mat-icon>
+                <span>{{ errorModalPunto() }}</span>
+              </div>
+            }
+
+            <div class="itm-field">
+              <label for="puntoNombreInput" class="itm-label">Nombre del punto de entrega *</label>
+              <input
+                id="puntoNombreInput"
+                type="text"
+                formControlName="nombre"
+                placeholder="Ej: Oficina de Bienestar y Custodia"
+                class="itm-input"
+                maxlength="100"
+              />
+              @if (puntoForm.controls.nombre.invalid && puntoForm.controls.nombre.touched) {
+                <small class="field-error">El nombre es obligatorio (máx. 100 caracteres).</small>
+              }
+            </div>
+
+            <div class="itm-field">
+              <label for="puntoTipoSelect" class="itm-label">Tipo de punto *</label>
+              <select id="puntoTipoSelect" formControlName="tipo" class="itm-select">
+                <option value="OFICINA">Oficina oficial de custodia ITM</option>
+                <option value="PORTERIA">Portería institucional</option>
+              </select>
+            </div>
+
+            <label class="sede-check-row">
+              <input type="checkbox" formControlName="activa" />
+              <span>Punto activo y operativo para recepción y restitución física</span>
+            </label>
+          </div>
+
+          <div class="itm-modal-footer">
+            <button type="button" (click)="cerrarModalPunto()" class="itm-btn itm-btn-ghost" [disabled]="guardando()">
+              Cancelar
+            </button>
+            <button type="submit" [disabled]="puntoForm.invalid || guardando()" class="itm-btn itm-btn-primary">
+              {{ guardando() ? 'Guardando...' : (puntoEditandoId() ? 'Guardar Cambios' : 'Registrar Punto') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Confirmar Desactivar Punto de Entrega -->
+  @if (modalDesactivarPuntoAbierto() && puntoADesactivar()) {
+    <div class="itm-modal-backdrop" (click)="cerrarModalDesactivarPunto()">
+      <div class="itm-modal-card modal-confirmar" (click)="$event.stopPropagation()">
+        <div class="warning-icon-box">
+          <mat-icon>warning_amber</mat-icon>
+        </div>
+
+        <h3 class="confirm-title">¿Desactivar este punto de entrega?</h3>
+        
+        <p class="confirm-desc">
+          El punto <strong>"{{ puntoADesactivar()?.nombre }}"</strong> quedará inactivo. No podrá ser seleccionado para nuevas recepciones o entregas presenciales de objetos, pero se preservará el histórico de actas formalizadas.
+        </p>
+
+        <div class="itm-modal-footer">
+          <button type="button" (click)="cerrarModalDesactivarPunto()" class="itm-btn itm-btn-ghost" [disabled]="guardando()">
+            Cancelar
+          </button>
+          <button type="button" (click)="confirmarDesactivarPunto()" class="itm-btn itm-btn-danger" [disabled]="guardando()">
+            {{ guardando() ? 'Desactivando...' : 'Desactivar Punto' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Crear / Editar Sede (SUPERADMIN) -->
+  @if (modalSedeAbierto()) {
+    <div class="itm-modal-backdrop" (click)="cerrarModalSede()">
+      <div class="itm-modal-card" (click)="$event.stopPropagation()">
+        <div class="itm-modal-header">
+          <h3>
+            <mat-icon>apartment</mat-icon>
+            <span>{{ sedeEditandoId() ? 'Editar Sede ITM' : 'Registrar Nueva Sede ITM' }}</span>
+          </h3>
+          <button type="button" (click)="cerrarModalSede()" class="itm-modal-close" aria-label="Cerrar modal">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <form [formGroup]="sedeForm" (ngSubmit)="guardarSede()">
+          <div class="itm-modal-body">
+            <div class="itm-field">
+              <label for="sedeNombreInput" class="itm-label">Nombre institucional *</label>
+              <input
+                id="sedeNombreInput"
+                type="text"
+                formControlName="nombre"
+                placeholder="Ej: Sede Fraternidad (Boston)"
+                class="itm-input"
+              />
+            </div>
+
+            <div class="itm-field">
+              <label for="sedeCodigoInput" class="itm-label">Código corto de sede *</label>
+              <input
+                id="sedeCodigoInput"
+                type="text"
+                formControlName="codigo"
+                placeholder="Ej: FRAT"
+                class="itm-input"
+                style="text-transform: uppercase; font-family: monospace;"
+              />
+            </div>
+
+            <label class="sede-check-row">
+              <input type="checkbox" formControlName="activa" />
+              <span>Sede activa y operativa en el sistema OPE</span>
+            </label>
+          </div>
+
+          <div class="itm-modal-footer">
+            <button type="button" (click)="cerrarModalSede()" class="itm-btn itm-btn-ghost" [disabled]="guardando()">
+              Cancelar
+            </button>
+            <button type="submit" [disabled]="sedeForm.invalid || guardando()" class="itm-btn itm-btn-primary">
+              {{ sedeEditandoId() ? 'Guardar Cambios' : 'Crear Sede' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Asignar Sede a Administrador (SUPERADMIN) -->
+  @if (modalAsignarAbierto()) {
+    <div class="itm-modal-backdrop" (click)="cerrarModalAsignar()">
+      <div class="itm-modal-card" (click)="$event.stopPropagation()">
+        <div class="itm-modal-header">
+          <h3>
+            <mat-icon>swap_horiz</mat-icon>
+            <span>Asignar Sede de Operación</span>
+          </h3>
+          <button type="button" (click)="cerrarModalAsignar()" class="itm-modal-close" aria-label="Cerrar modal">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <form [formGroup]="asignarForm" (ngSubmit)="confirmarAsignacionSede()">
+          <div class="itm-modal-body">
+            <div class="sede-admin-summary">
+              <strong>{{ adminSeleccionado()?.nombre_completo }}</strong>
+              <span>{{ adminSeleccionado()?.correo }}</span>
+            </div>
+
+            <div class="itm-field">
+              <label for="selectSedeAsignar" class="itm-label">Sede de Jurisdicción *</label>
+              <select id="selectSedeAsignar" formControlName="sede_id" class="itm-select">
+                <option value="" disabled>-- Seleccione la sede asignada --</option>
+                @for (s of sedes(); track s.sede_id) {
+                  <option [value]="s.sede_id">{{ s.nombre }} ({{ s.codigo }})</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="itm-modal-footer">
+            <button type="button" (click)="cerrarModalAsignar()" class="itm-btn itm-btn-ghost" [disabled]="guardando()">
+              Cancelar
+            </button>
+            <button type="submit" [disabled]="asignarForm.invalid || guardando()" class="itm-btn itm-btn-primary">
+              Confirmar Asignación
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Crear Administrador (SUPERADMIN) -->
+  @if (modalCrearAdminAbierto()) {
+    <div class="itm-modal-backdrop" (click)="cerrarModalCrearAdmin()">
+      <div class="itm-modal-card" (click)="$event.stopPropagation()">
+        <div class="itm-modal-header">
+          <h3>
+            <mat-icon>person_add</mat-icon>
+            <span>Habilitar Nuevo Administrador ITM</span>
+          </h3>
+          <button type="button" (click)="cerrarModalCrearAdmin()" class="itm-modal-close" aria-label="Cerrar modal">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <form [formGroup]="crearAdminForm" (ngSubmit)="guardarNuevoAdmin()">
+          <div class="itm-modal-body">
+            <div class="itm-field">
+              <label for="adminNombreInput" class="itm-label">Nombre Completo *</label>
+              <input
+                id="adminNombreInput"
+                type="text"
+                formControlName="nombre_completo"
+                placeholder="Ej: Andrés Felipe Restrepo"
+                class="itm-input"
+              />
+            </div>
+
+            <div class="sede-form-2col">
+              <div class="itm-field">
+                <label for="adminCorreoInput" class="itm-label">Correo institucional (@itm.edu.co) *</label>
+                <input
+                  id="adminCorreoInput"
+                  type="email"
+                  formControlName="correo"
+                  placeholder="usuario@itm.edu.co"
+                  class="itm-input"
+                />
+              </div>
+
+              <div class="itm-field">
+                <label for="adminCedulaInput" class="itm-label">Cédula de ciudadanía *</label>
+                <input
+                  id="adminCedulaInput"
+                  type="text"
+                  formControlName="cedula"
+                  placeholder="Ej: 1020304050"
+                  class="itm-input"
+                />
+              </div>
+            </div>
+
+            <div class="sede-form-2col">
+              <div class="itm-field">
+                <label for="adminCelularInput" class="itm-label">Número celular</label>
+                <input
+                  id="adminCelularInput"
+                  type="text"
+                  formControlName="celular"
+                  placeholder="Ej: 3001234567"
+                  class="itm-input"
+                />
+              </div>
+
+              <div class="itm-field">
+                <label for="adminSedeSelect" class="itm-label">Sede asignada *</label>
+                <select id="adminSedeSelect" formControlName="sede_id" class="itm-select">
+                  <option value="" disabled>-- Selecciona sede --</option>
+                  @for (s of sedes(); track s.sede_id) {
+                    <option [value]="s.sede_id">{{ s.nombre }} ({{ s.codigo }})</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="itm-field">
+              <label for="adminPasswordInput" class="itm-label">Contraseña inicial *</label>
+              <input
+                id="adminPasswordInput"
+                type="password"
+                formControlName="password_temporal"
+                placeholder="Mín. 8 caracteres, mayúscula, minúscula, número y símbolo"
+                class="itm-input"
+              />
+            </div>
+          </div>
+
+          <div class="itm-modal-footer">
+            <button type="button" (click)="cerrarModalCrearAdmin()" class="itm-btn itm-btn-ghost" [disabled]="guardando()">
+              Cancelar
+            </button>
+            <button type="submit" [disabled]="crearAdminForm.invalid || guardando()" class="itm-btn itm-btn-primary">
+              Crear Administrador
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+</div>

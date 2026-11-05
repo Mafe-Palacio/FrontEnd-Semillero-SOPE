@@ -27,6 +27,7 @@ export interface ReportePerdidaResponse {
     fecha_publicacion: string;
     motivo_rechazo?: string | null;
     eliminacion_solicitada: boolean;
+    motivo_eliminacion?: string | null;
     fecha_edicion?: string | null;
 }
 export namespace ReportePerdidaResponse {

@@ -1,7 +1,8 @@
-import { Injectable, PLATFORM_ID, inject } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject, signal, computed } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Router } from '@angular/router';
+import { Observable, tap, catchError, finalize, of } from 'rxjs';
 import { API_URL } from './api.config';
 
 export interface TokenResponse {
@@ -43,6 +44,96 @@ export interface PerfilUsuario {
 export class AuthService {
     private http = inject(HttpClient);
     private platformId = inject(PLATFORM_ID);
+    private router = inject(Router);
+
+    private getInitialToken(): string | null {
+        if (!isPlatformBrowser(this.platformId)) return null;
+        try {
+            return localStorage.getItem('access_token');
+        } catch {
+            return null;
+        }
+    }
+
+    private getInitialRefreshToken(): string | null {
+        if (!isPlatformBrowser(this.platformId)) return null;
+        try {
+            return localStorage.getItem('refresh_token');
+        } catch {
+            return null;
+        }
+    }
+
+    readonly tokenSignal = signal<string | null>(this.getInitialToken());
+    readonly refreshTokenSignal = signal<string | null>(this.getInitialRefreshToken());
+
+    readonly isLoggedIn = computed<boolean>(() => !!this.tokenSignal());
+
+    readonly decodedToken = computed<Record<string, any> | null>(() => {
+        const token = this.tokenSignal();
+        if (!token) return null;
+        try {
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+            const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(
+                atob(base64)
+                    .split('')
+                    .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                    .join('')
+            );
+            return JSON.parse(jsonPayload);
+        } catch {
+            return null;
+        }
+    });
+
+    readonly isAdmin = computed<boolean>(() => {
+        const payload = this.decodedToken();
+        if (!payload) return false;
+        const role = (payload['rol'] || payload['role'] || payload['rol_id'] || '').toString().toUpperCase();
+        return role === 'ADMIN' || role === 'SUPERADMIN';
+    });
+
+    readonly isSuperAdmin = computed<boolean>(() => {
+        const payload = this.decodedToken();
+        if (!payload) return false;
+        const role = (payload['rol'] || payload['role'] || payload['rol_id'] || '').toString().toUpperCase();
+        return role === 'SUPERADMIN';
+    });
+
+    readonly userRole = computed<'USER' | 'ADMIN' | 'SUPERADMIN' | null>(() => {
+        const payload = this.decodedToken();
+        if (!payload) return null;
+        const role = (payload['rol'] || payload['role'] || payload['rol_id'] || '').toString().toUpperCase();
+        if (role === 'SUPERADMIN') return 'SUPERADMIN';
+        if (role === 'ADMIN') return 'ADMIN';
+        return 'USER';
+    });
+
+    readonly userName = computed<string>(() => {
+        const payload = this.decodedToken();
+        if (!payload) return 'Usuario';
+        return payload['nombre_completo'] || payload['nombre'] || payload['correo'] || payload['sub'] || 'Administrador ITM';
+    });
+
+    readonly userEmail = computed<string>(() => {
+        const payload = this.decodedToken();
+        if (!payload) return '';
+        return payload['correo'] || payload['email'] || payload['sub'] || '';
+    });
+
+    readonly userSedeId = computed<string | null>(() => {
+        const payload = this.decodedToken();
+        if (!payload) return null;
+        return payload['sede_id'] || null;
+    });
+
+    readonly userId = computed<string | null>(() => {
+        const payload = this.decodedToken();
+        if (!payload) return null;
+        return payload['usuario_id'] || payload['id'] || payload['sub'] || null;
+    });
 
     private get authBase(): string {
         return API_URL.replace(/\/+$/, '');
@@ -87,90 +178,71 @@ export class AuthService {
     }
 
     getToken(): string | null {
-        if (!isPlatformBrowser(this.platformId)) return null;
-        return localStorage.getItem('access_token');
+        return this.tokenSignal();
     }
 
     getRefreshToken(): string | null {
-        if (!isPlatformBrowser(this.platformId)) return null;
-        return localStorage.getItem('refresh_token');
-    }
-
-    isLoggedIn(): boolean {
-        return !!this.getToken();
+        return this.refreshTokenSignal();
     }
 
     getDecodedToken(): Record<string, any> | null {
-        const token = this.getToken();
-        if (!token) return null;
-        try {
-            const parts = token.split('.');
-            if (parts.length !== 3) return null;
-            const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(
-                atob(base64)
-                    .split('')
-                    .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                    .join('')
-            );
-            return JSON.parse(jsonPayload);
-        } catch {
-            return null;
-        }
-    }
-
-    isAdmin(): boolean {
-        const payload = this.getDecodedToken();
-        if (!payload) return false;
-        const role = (payload['rol'] || payload['role'] || payload['rol_id'] || '').toString().toUpperCase();
-        return role === 'ADMIN' || role === 'SUPERADMIN';
-    }
-
-    isSuperAdmin(): boolean {
-        const payload = this.getDecodedToken();
-        if (!payload) return false;
-        const role = (payload['rol'] || payload['role'] || payload['rol_id'] || '').toString().toUpperCase();
-        return role === 'SUPERADMIN';
+        return this.decodedToken();
     }
 
     getUserRole(): 'USER' | 'ADMIN' | 'SUPERADMIN' | null {
-        const payload = this.getDecodedToken();
-        if (!payload) return null;
-        const role = (payload['rol'] || payload['role'] || payload['rol_id'] || '').toString().toUpperCase();
-        if (role === 'SUPERADMIN') return 'SUPERADMIN';
-        if (role === 'ADMIN') return 'ADMIN';
-        return 'USER';
+        return this.userRole();
     }
 
     getUserName(): string {
-        const payload = this.getDecodedToken();
-        if (!payload) return 'Usuario';
-        return payload['nombre_completo'] || payload['nombre'] || payload['correo'] || payload['sub'] || 'Administrador ITM';
+        return this.userName();
     }
 
     getUserEmail(): string {
-        const payload = this.getDecodedToken();
-        if (!payload) return '';
-        return payload['correo'] || payload['email'] || payload['sub'] || '';
+        return this.userEmail();
     }
 
     getUserSedeId(): string | null {
-        const payload = this.getDecodedToken();
-        if (!payload) return null;
-        return payload['sede_id'] || null;
+        return this.userSedeId();
     }
 
     getUserId(): string | null {
-        const payload = this.getDecodedToken();
-        if (!payload) return null;
-        return payload['usuario_id'] || payload['id'] || payload['sub'] || null;
+        return this.userId();
+    }
+
+    recuperarPassword(correo: string): Observable<{ mensaje?: string; success?: boolean }> {
+        return this.http.post<{ mensaje?: string; success?: boolean }>(`${this.authBase}/auth/recuperar-password`, { correo });
+    }
+
+    resetearPassword(correo: string, codigo: string, password_nueva: string): Observable<{ mensaje?: string; success?: boolean }> {
+        return this.http.post<{ mensaje?: string; success?: boolean }>(`${this.authBase}/auth/resetear-password`, {
+            correo,
+            codigo,
+            password_nueva
+        });
     }
 
     logout(): void {
-        if (isPlatformBrowser(this.platformId)) {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('admin_selected_sede_id');
+        const refreshToken = this.getRefreshToken();
+        const token = this.getToken();
+
+        const limpiarLocal = () => {
+            if (isPlatformBrowser(this.platformId)) {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
+                localStorage.removeItem('admin_selected_sede_id');
+            }
+            this.tokenSignal.set(null);
+            this.refreshTokenSignal.set(null);
+            this.router.navigate(['/auth']);
+        };
+
+        if (token && isPlatformBrowser(this.platformId)) {
+            this.http.post(`${this.authBase}/auth/logout`, { refresh_token: refreshToken || '' }).pipe(
+                catchError(() => of(null)),
+                finalize(() => limpiarLocal())
+            ).subscribe();
+        } else {
+            limpiarLocal();
         }
     }
 
@@ -180,6 +252,10 @@ export class AuthService {
             if (res.refresh_token) {
                 localStorage.setItem('refresh_token', res.refresh_token);
             }
+        }
+        this.tokenSignal.set(res.access_token);
+        if (res.refresh_token) {
+            this.refreshTokenSignal.set(res.refresh_token);
         }
     }
 }

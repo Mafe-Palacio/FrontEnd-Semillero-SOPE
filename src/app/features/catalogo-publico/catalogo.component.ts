@@ -585,7 +585,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
         .obtenerTodasUbicacionesUbicacionesGet()
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-          next: (lista) => this.ubicaciones.set(lista),
+          next: (lista) => this.ubicaciones.set((lista || []).filter(u => u.activa !== false)),
           error: (err) =>
             this.snackBar.open(mensajeDeError(err, 'No se pudieron cargar las ubicaciones.'), 'Cerrar', { duration: 5000 })
         });
@@ -595,7 +595,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
         .obtenerTodosPuntosEntregaPuntosEntregaGet()
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-          next: (lista) => this.puntosEntrega.set(lista),
+          next: (lista) => this.puntosEntrega.set((lista || []).filter(p => p.activa !== false)),
           error: (err) =>
             this.snackBar.open(mensajeDeError(err, 'No se pudieron cargar los puntos de entrega.'), 'Cerrar', { duration: 5000 })
         });

@@ -272,6 +272,9 @@ type TabTipo = 'perdidos' | 'encontrados' | 'bajas';
                         <p style="margin: 4px 0 0; font-size: 0.82rem; color: #6b7280;">
                           El autor de la publicación solicitó dar de baja este registro del sistema institucional.
                         </p>
+                        @if (baja.motivo) {
+                          <p style="margin: 6px 0 0; font-size: 0.85rem; color: #011C5B;"><strong>Motivo del autor:</strong> {{ baja.motivo }}</p>
+                        }
                       </div>
                     </div>
 
@@ -561,7 +564,7 @@ export class AdminAprobacionesComponent implements OnInit {
 
   listaPerdidos = signal<ReportePerdidaResponse[]>([]);
   listaEncontrados = signal<PublicacionEncontradoResponse[]>([]);
-  listaBajas = signal<Array<{ id: string; titulo: string; categoria: string; tipo: 'perdido' | 'encontrado' }>>([]);
+  listaBajas = signal<Array<{ id: string; titulo: string; categoria: string; tipo: 'perdido' | 'encontrado'; motivo?: string | null }>>([]);
 
   ubicacionesMapa = signal<Record<string, string>>({});
   puntosMapa = signal<Record<string, string>>({});
@@ -675,12 +678,14 @@ export class AdminAprobacionesComponent implements OnInit {
             id: r.reportePerdida_id,
             titulo: r.descripcion,
             categoria: r.categoria,
+            motivo: r.motivo_eliminacion,
             tipo: 'perdido' as const
           })),
           ...(bajasEncontrados ?? []).map((e) => ({
             id: e.publicacionEncontrado_id,
             titulo: e.descripcion,
             categoria: e.categoria,
+            motivo: e.motivo_eliminacion,
             tipo: 'encontrado' as const
           }))
         ];

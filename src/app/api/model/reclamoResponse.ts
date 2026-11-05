@@ -25,6 +25,9 @@ export interface ReclamoResponse {
     motivo_rechazo?: string | null;
     fecha_cita?: string | null;
     horario_cita?: string | null;
+    objeto_categoria?: string | null;
+    objeto_descripcion?: string | null;
+    objeto_imagen_url?: string | null;
 }
 export namespace ReclamoResponse {
 }

@@ -1,4 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { API_URL } from '../../core/api.config';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -34,6 +36,7 @@ export interface ItemEliminacion {
   styleUrl: './mis-reportes.component.scss'
 })
 export class MisReportesComponent implements OnInit {
+  private http = inject(HttpClient);
   private router = inject(Router);
   private fb = inject(FormBuilder);
   readonly authService = inject(AuthService);
@@ -146,11 +149,14 @@ export class MisReportesComponent implements OnInit {
     this.procesandoEliminacion.set(true);
     this.errorEliminacion.set(null);
 
-    const accion$ = item.tipo === 'PERDIDO'
-      ? this.reportesService.solicitarEliminacionReporteReportesPerdidaReporteIdSolicitarEliminacionPut(item.id)
-      : this.publicacionesService.solicitarEliminacionPublicacionPublicacionesEncontradasPublicacionIdSolicitarEliminacionPut(item.id);
+    // El cliente generado no envía cuerpo; se llama directo para incluir el motivo.
+    const base = API_URL.replace(/\/+$/, '');
+    const ruta = item.tipo === 'PERDIDO'
+      ? `${base}/reportes-perdida/${item.id}/solicitar-eliminacion`
+      : `${base}/publicaciones-encontradas/${item.id}/solicitar-eliminacion`;
+    const motivo = (this.formEliminacion.value.motivo || '').trim();
 
-    (accion$ as any).subscribe({
+    this.http.put(ruta, { motivo }).subscribe({
       next: () => {
         this.procesandoEliminacion.set(false);
         this.modalEliminarAbierto.set(false);
@@ -214,51 +220,50 @@ export class MisReportesComponent implements OnInit {
     }
   }
 
+  private static readonly ESTADOS_PUB_CONFIG: Record<string, { label: string; icon: string; clase: string; explicacion?: string }> = {
+    PENDIENTE: {
+      label: 'En revisión administrativa',
+      icon: 'schedule',
+      clase: 'badge-amber',
+      explicacion: 'En espera de aprobación para aparecer en el muro público.'
+    },
+    APROBADA: {
+      label: 'Publicada en muro público',
+      icon: 'check_circle',
+      clase: 'badge-green',
+      explicacion: 'Visible para toda la comunidad ITM en el catálogo.'
+    },
+    RECHAZADA: {
+      label: 'Publicación Rechazada',
+      icon: 'cancel',
+      clase: 'badge-red',
+      explicacion: 'No cumple con las políticas de moderación institucional.'
+    },
+    CERRADA: {
+      label: 'Caso Cerrado · Entregado a su dueño',
+      icon: 'task_alt',
+      clase: 'badge-closed',
+      explicacion: '¡Gracias por tu honestidad! Este artículo fue restituido exitosamente a su propietario.'
+    }
+  };
+
+  private static readonly ESTADO_BAJA_EN_REVISION = {
+    label: 'Baja en revisión',
+    icon: 'hourglass_top',
+    clase: 'badge-amber',
+    explicacion: 'El administrador está evaluando la solicitud de retiro de esta publicación.'
+  };
+
+  private static readonly ESTADO_PUB_DEFAULT = {
+    label: 'Información',
+    icon: 'info',
+    clase: 'badge-gray'
+  };
+
   getEstadoConfig(estado: EstadoPublicacion, eliminacionSolicitada?: boolean): { label: string; icon: string; clase: string; explicacion?: string } {
     if (eliminacionSolicitada || estado === 'ELIMINACION_PENDIENTE') {
-      return {
-        label: 'Baja en revisión',
-        icon: 'hourglass_top',
-        clase: 'badge-amber',
-        explicacion: 'El administrador está evaluando la solicitud de retiro de esta publicación.'
-      };
+      return MisReportesComponent.ESTADO_BAJA_EN_REVISION;
     }
-
-    switch (estado) {
-      case 'PENDIENTE':
-        return {
-          label: 'En revisión administrativa',
-          icon: 'schedule',
-          clase: 'badge-amber',
-          explicacion: 'En espera de aprobación para aparecer en el muro público.'
-        };
-      case 'APROBADA':
-        return {
-          label: 'Publicada en muro público',
-          icon: 'check_circle',
-          clase: 'badge-green',
-          explicacion: 'Visible para toda la comunidad ITM en el catálogo.'
-        };
-      case 'RECHAZADA':
-        return {
-          label: 'Publicación Rechazada',
-          icon: 'cancel',
-          clase: 'badge-red',
-          explicacion: 'No cumple con las políticas de moderación institucional.'
-        };
-      case 'CERRADA':
-        return {
-          label: 'Caso Cerrado · Entregado a su dueño',
-          icon: 'task_alt',
-          clase: 'badge-closed',
-          explicacion: '¡Gracias por tu honestidad! Este artículo fue restituido exitosamente a su propietario.'
-        };
-      default:
-        return {
-          label: estado,
-          icon: 'info',
-          clase: 'badge-gray'
-        };
-    }
+    return MisReportesComponent.ESTADOS_PUB_CONFIG[estado] || MisReportesComponent.ESTADO_PUB_DEFAULT;
   }
 }

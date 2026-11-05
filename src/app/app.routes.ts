@@ -31,18 +31,7 @@ export const routes: Routes = [
         canActivate: [authGuard],
         loadChildren: () => import('./features/reclamaciones/reclamaciones-module').then(m => m.ReclamacionesModule)
     },
-    {
-        // Módulo de Chat: exige sesión activa
-        path: 'chat',
-        canActivate: [authGuard],
-        loadChildren: () => import('./features/chat/chat-module').then(m => m.ChatModule)
-    },
-    {
-        // Notificaciones: exige sesión activa
-        path: 'notificaciones',
-        canActivate: [authGuard],
-        loadChildren: () => import('./features/notificaciones/notificaciones-module').then(m => m.NotificacionesModule)
-    },
+
     {
         // Por defecto redirige al catálogo público
         path: '',

@@ -128,7 +128,10 @@ export class MisReclamosComponent implements OnInit {
   }
 
   private cargarInformacionObjetos(lista: ReclamoResponse[]): void {
-    const ids = Array.from(new Set(lista.map(r => r.objetoEnCustodia_id).filter(Boolean)));
+    // Si el reclamo ya trae los datos del objeto no hace falta consultarlo aparte.
+    const ids = Array.from(new Set(
+      lista.filter(r => !r.objeto_categoria && !r.objeto_descripcion).map(r => r.objetoEnCustodia_id).filter(Boolean)
+    ));
     if (ids.length === 0) return;
 
     const peticiones = ids.map(id =>
@@ -232,8 +235,30 @@ export class MisReclamosComponent implements OnInit {
   }
 
   // Helpers de visualización
-  getObjeto(id: string): ObjetoEnCustodiaPublico | undefined {
-    return this.objetosInfo().get(id);
+  private static readonly ESTADOS_CONFIG: Record<string, { label: string; icon: string; clase: string }> = {
+    ENVIADO: { label: 'Solicitud Enviada', icon: 'send', clase: 'badge-amber' },
+    EN_REVISION: { label: 'En Revisión', icon: 'schedule', clase: 'badge-amber' },
+    APROBADO: { label: 'Aprobado · Cita Asignada', icon: 'event_available', clase: 'badge-green' },
+    LISTO_PARA_RECOGER: { label: 'Listo para Entrega', icon: 'check_circle', clase: 'badge-green' },
+    RECLAMADO: { label: 'Objeto Recuperado', icon: 'verified', clase: 'badge-green' },
+    RECHAZADO: { label: 'Reclamo Rechazado', icon: 'cancel', clase: 'badge-red' },
+    CANCELADO_POR_USUARIO: { label: 'Cancelado por Ti', icon: 'highlight_off', clase: 'badge-red' }
+  };
+  private static readonly ESTADO_DEFAULT = { label: 'Información', icon: 'info', clase: 'badge-gray' };
+
+  private objetoCache = new Map<string, { categoria?: string | null; descripcion?: string | null; imagen_url?: string | null }>();
+
+  /** Datos del objeto: primero los que ya trae el reclamo; si no, el detalle público. */
+  getObjeto(r: ReclamoResponse): { categoria?: string | null; descripcion?: string | null; imagen_url?: string | null } | undefined {
+    if (r.objeto_categoria || r.objeto_descripcion || r.objeto_imagen_url) {
+      let cached = this.objetoCache.get(r.reclamo_id);
+      if (!cached) {
+        cached = { categoria: r.objeto_categoria, descripcion: r.objeto_descripcion, imagen_url: r.objeto_imagen_url };
+        this.objetoCache.set(r.reclamo_id, cached);
+      }
+      return cached;
+    }
+    return this.objetosInfo().get(r.objetoEnCustodia_id);
   }
 
   getCategoriaLabel(categoria?: string | null): string {
@@ -268,23 +293,6 @@ export class MisReclamosComponent implements OnInit {
   }
 
   getEstadoConfig(estado: EstadoReclamo): { label: string; icon: string; clase: string } {
-    switch (estado) {
-      case 'ENVIADO':
-        return { label: 'Solicitud Enviada', icon: 'send', clase: 'badge-amber' };
-      case 'EN_REVISION':
-        return { label: 'En Revisión', icon: 'schedule', clase: 'badge-amber' };
-      case 'APROBADO':
-        return { label: 'Aprobado · Cita Asignada', icon: 'event_available', clase: 'badge-green' };
-      case 'LISTO_PARA_RECOGER':
-        return { label: 'Listo para Entrega', icon: 'check_circle', clase: 'badge-green' };
-      case 'RECLAMADO':
-        return { label: 'Objeto Recuperado', icon: 'verified', clase: 'badge-green' };
-      case 'RECHAZADO':
-        return { label: 'Reclamo Rechazado', icon: 'cancel', clase: 'badge-red' };
-      case 'CANCELADO_POR_USUARIO':
-        return { label: 'Cancelado por Ti', icon: 'highlight_off', clase: 'badge-red' };
-      default:
-        return { label: estado, icon: 'info', clase: 'badge-gray' };
-    }
+    return MisReclamosComponent.ESTADOS_CONFIG[estado] || MisReclamosComponent.ESTADO_DEFAULT;
   }
 }

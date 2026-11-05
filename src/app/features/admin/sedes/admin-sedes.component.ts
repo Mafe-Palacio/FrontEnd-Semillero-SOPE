@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -6,578 +6,71 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HttpClient } from '@angular/common/http';
 import { API_URL } from '../../../core/api.config';
 import { mensajeDeError } from '../../../core/api-error';
+import { AuthService } from '../../../core/auth.service';
+import { SedeAdminService } from '../../../core/sede-admin.service';
 import { SedesService } from '../../../api/api/sedes.service';
 import { UsuariosService } from '../../../api/api/usuarios.service';
 import { SedeResponse } from '../../../api/model/sedeResponse';
 import { UsuarioResponse } from '../../../api/model/usuarioResponse';
-import { SedeAdminService } from '../../../core/sede-admin.service';
+import { UbicacionResponse } from '../../../api/model/ubicacionResponse';
+import { PuntoEntregaResponse } from '../../../api/model/puntoEntregaResponse';
+import { TipoUbicacion } from '../../../api/model/tipoUbicacion';
+import { TipoPuntoEntrega } from '../../../api/model/tipoPuntoEntrega';
+
+export type TabSedes = 'sedes' | 'ubicaciones' | 'puntos';
 
 @Component({
   selector: 'app-admin-sedes',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MatIconModule, MatSnackBarModule],
-  template: `
-    <div class="itm-admin-page">
-      
-      <!-- Encabezado Principal -->
-      <div class="itm-admin-header">
-        <div>
-          <div class="sede-header-badges">
-            <h1 class="itm-admin-title">Sedes y Administradores Institucionales</h1>
-            <span class="itm-badge itm-badge-warning">Exclusivo Superadmin</span>
-          </div>
-          <p class="itm-admin-subtitle">
-            Parametrización oficial de sedes universitarias ITM y asignación de personal administrador
-          </p>
-        </div>
-
-        <div class="sede-header-actions">
-          <button type="button" (click)="abrirModalCrearAdmin()" class="itm-btn itm-btn-outline">
-            <mat-icon>person_add</mat-icon>
-            <span>Nuevo Administrador</span>
-          </button>
-
-          <button type="button" (click)="abrirModalCrearSede()" class="itm-btn itm-btn-primary">
-            <mat-icon>add_business</mat-icon>
-            <span>Nueva Sede ITM</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Grid de Dos Columnas: Sedes y Administradores -->
-      <div class="sede-two-col">
-        
-        <!-- Columna 1: Sedes Registradas -->
-        <div class="itm-table-card">
-          <div class="sede-panel-header">
-            <div class="sede-panel-title">
-              <div class="sede-panel-icon">
-                <mat-icon>apartment</mat-icon>
-              </div>
-              <div>
-                <h2>Sedes Universitarias ITM ({{ sedes().length }})</h2>
-                <p>Campus habilitados para recepción y custodia</p>
-              </div>
-            </div>
-
-            <button type="button" (click)="cargarSedes()" class="itm-icon-btn" title="Actualizar sedes">
-              <mat-icon>refresh</mat-icon>
-            </button>
-          </div>
-
-          @if (sedes().length === 0) {
-            <div class="itm-empty-state" style="border: none;">
-              <div class="itm-empty-icon">
-                <mat-icon>domain_disabled</mat-icon>
-              </div>
-              <h3 style="margin: 8px 0 0; font-size: 1rem;">No hay sedes registradas</h3>
-              <p style="margin: 0; font-size: 0.82rem; color: #6b7280;">Cree la primera sede institucional con el botón superior.</p>
-            </div>
-          } @else {
-            <div class="sede-list">
-              @for (s of sedes(); track s.sede_id) {
-                <div class="sede-item">
-                  <div class="sede-item-info">
-                    <div class="sede-item-top">
-                      <span class="sede-item-name">{{ s.nombre }}</span>
-                      <span class="itm-badge itm-badge-primary">{{ s.codigo }}</span>
-                      @if (s.activa) {
-                        <span class="itm-badge itm-badge-success">Activa</span>
-                      } @else {
-                        <span class="itm-badge itm-badge-danger">Inactiva</span>
-                      }
-                    </div>
-                    <div class="sede-item-id">UUID: {{ s.sede_id }}</div>
-                  </div>
-
-                  <button
-                    type="button"
-                    (click)="abrirModalEditarSede(s)"
-                    class="itm-btn itm-btn-outline"
-                    style="padding: 6px 12px !important; font-size: 0.78rem !important;">
-                    <mat-icon style="font-size: 16px; width: 16px; height: 16px;">edit</mat-icon>
-                    <span>Editar</span>
-                  </button>
-                </div>
-              }
-            </div>
-          }
-        </div>
-
-        <!-- Columna 2: Administradores Asignados -->
-        <div class="itm-table-card">
-          <div class="sede-panel-header">
-            <div class="sede-panel-title">
-              <div class="sede-panel-icon cyan">
-                <mat-icon>admin_panel_settings</mat-icon>
-              </div>
-              <div>
-                <h2>Equipo Administrador ({{ administradores().length }})</h2>
-                <p>Funcionarios con permisos de moderación y custodia</p>
-              </div>
-            </div>
-
-            <button type="button" (click)="cargarAdministradores()" class="itm-icon-btn" title="Actualizar administradores">
-              <mat-icon>refresh</mat-icon>
-            </button>
-          </div>
-
-          @if (administradores().length === 0) {
-            <div class="itm-empty-state" style="border: none;">
-              <div class="itm-empty-icon">
-                <mat-icon>manage_accounts</mat-icon>
-              </div>
-              <h3 style="margin: 8px 0 0; font-size: 1rem;">No se encontraron administradores</h3>
-              <p style="margin: 0; font-size: 0.82rem; color: #6b7280;">Habilite un nuevo administrador para las sedes del ITM.</p>
-            </div>
-          } @else {
-            <div class="sede-list">
-              @for (adm of administradores(); track adm.usuario_id) {
-                <div class="sede-item">
-                  <div class="sede-item-info">
-                    <div class="sede-item-top">
-                      <span class="sede-item-name">{{ adm.nombre_completo }}</span>
-                      <span
-                        class="itm-badge"
-                        [class.itm-badge-primary]="String(adm.rol) === 'SUPERADMIN'"
-                        [class.itm-badge-cyan]="String(adm.rol) === 'ADMIN'">
-                        {{ adm.rol }}
-                      </span>
-                    </div>
-                    <div class="sede-item-email">{{ adm.correo }} · C.C. {{ adm.cedula }}</div>
-                    <div class="sede-item-loc">
-                      <mat-icon>location_on</mat-icon>
-                      <span>{{ obtenerNombreSede(adm.sede_id) }}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    (click)="abrirModalAsignarSede(adm)"
-                    class="itm-btn itm-btn-outline"
-                    style="padding: 6px 12px !important; font-size: 0.78rem !important;">
-                    <mat-icon style="font-size: 16px; width: 16px; height: 16px;">swap_horiz</mat-icon>
-                    <span>Asignar Sede</span>
-                  </button>
-                </div>
-              }
-            </div>
-          }
-        </div>
-
-      </div>
-
-      <!-- Modal Crear / Editar Sede -->
-      @if (modalSedeAbierto()) {
-        <div class="itm-modal-backdrop">
-          <div class="itm-modal-card">
-            <div class="itm-modal-header">
-              <h3>
-                <mat-icon>apartment</mat-icon>
-                <span>{{ sedeEditandoId() ? 'Editar Sede ITM' : 'Registrar Nueva Sede ITM' }}</span>
-              </h3>
-              <button type="button" (click)="cerrarModalSede()" class="itm-modal-close">
-                <mat-icon>close</mat-icon>
-              </button>
-            </div>
-
-            <form [formGroup]="sedeForm" (ngSubmit)="guardarSede()">
-              <div class="itm-modal-body">
-                <div class="itm-field">
-                  <label for="sedeNombreInput" class="itm-label">Nombre institucional *</label>
-                  <input
-                    id="sedeNombreInput"
-                    type="text"
-                    formControlName="nombre"
-                    placeholder="Ej: Sede Fraternidad (Boston)"
-                    class="itm-input"
-                  />
-                </div>
-
-                <div class="itm-field">
-                  <label for="sedeCodigoInput" class="itm-label">Código corto de sede *</label>
-                  <input
-                    id="sedeCodigoInput"
-                    type="text"
-                    formControlName="codigo"
-                    placeholder="Ej: FRAT"
-                    class="itm-input"
-                    style="text-transform: uppercase; font-family: monospace;"
-                  />
-                </div>
-
-                <label class="sede-check-row">
-                  <input type="checkbox" formControlName="activa" />
-                  <span>Sede activa y operativa en el sistema OPE</span>
-                </label>
-              </div>
-
-              <div class="itm-modal-footer">
-                <button type="button" (click)="cerrarModalSede()" class="itm-btn itm-btn-ghost">
-                  Cancelar
-                </button>
-                <button type="submit" [disabled]="sedeForm.invalid || guardando()" class="itm-btn itm-btn-primary">
-                  {{ sedeEditandoId() ? 'Guardar Cambios' : 'Crear Sede' }}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      }
-
-      <!-- Modal Asignar Sede a Administrador -->
-      @if (modalAsignarAbierto()) {
-        <div class="itm-modal-backdrop">
-          <div class="itm-modal-card">
-            <div class="itm-modal-header">
-              <h3>
-                <mat-icon>swap_horiz</mat-icon>
-                <span>Asignar Sede de Operación</span>
-              </h3>
-              <button type="button" (click)="cerrarModalAsignar()" class="itm-modal-close">
-                <mat-icon>close</mat-icon>
-              </button>
-            </div>
-
-            <form [formGroup]="asignarForm" (ngSubmit)="confirmarAsignacionSede()">
-              <div class="itm-modal-body">
-                <div class="sede-admin-summary">
-                  <strong>{{ adminSeleccionado()?.nombre_completo }}</strong>
-                  <span>{{ adminSeleccionado()?.correo }}</span>
-                </div>
-
-                <div class="itm-field">
-                  <label for="selectSedeAsignar" class="itm-label">Sede de Jurisdicción *</label>
-                  <select id="selectSedeAsignar" formControlName="sede_id" class="itm-select">
-                    <option value="" disabled>-- Seleccione la sede asignada --</option>
-                    @for (s of sedes(); track s.sede_id) {
-                      <option [value]="s.sede_id">{{ s.nombre }} ({{ s.codigo }})</option>
-                    }
-                  </select>
-                </div>
-              </div>
-
-              <div class="itm-modal-footer">
-                <button type="button" (click)="cerrarModalAsignar()" class="itm-btn itm-btn-ghost">
-                  Cancelar
-                </button>
-                <button type="submit" [disabled]="asignarForm.invalid || guardando()" class="itm-btn itm-btn-primary">
-                  Confirmar Asignación
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      }
-
-      <!-- Modal Crear Administrador -->
-      @if (modalCrearAdminAbierto()) {
-        <div class="itm-modal-backdrop">
-          <div class="itm-modal-card">
-            <div class="itm-modal-header">
-              <h3>
-                <mat-icon>person_add</mat-icon>
-                <span>Habilitar Nuevo Administrador ITM</span>
-              </h3>
-              <button type="button" (click)="cerrarModalCrearAdmin()" class="itm-modal-close">
-                <mat-icon>close</mat-icon>
-              </button>
-            </div>
-
-            <form [formGroup]="crearAdminForm" (ngSubmit)="guardarNuevoAdmin()">
-              <div class="itm-modal-body">
-                <div class="itm-field">
-                  <label for="adminNombreInput" class="itm-label">Nombre Completo *</label>
-                  <input
-                    id="adminNombreInput"
-                    type="text"
-                    formControlName="nombre_completo"
-                    placeholder="Ej: Andrés Felipe Restrepo"
-                    class="itm-input"
-                  />
-                </div>
-
-                <div class="sede-form-2col">
-                  <div class="itm-field">
-                    <label for="adminCedulaInput" class="itm-label">Cédula / Documento *</label>
-                    <input
-                      id="adminCedulaInput"
-                      type="text"
-                      formControlName="cedula"
-                      placeholder="Ej: 1037648123"
-                      class="itm-input"
-                    />
-                  </div>
-
-                  <div class="itm-field">
-                    <label for="adminCelularInput" class="itm-label">Celular</label>
-                    <input
-                      id="adminCelularInput"
-                      type="text"
-                      formControlName="celular"
-                      placeholder="Ej: 3001234567"
-                      class="itm-input"
-                    />
-                  </div>
-                </div>
-
-                <div class="itm-field">
-                  <label for="adminEmailInput" class="itm-label">Correo Institucional (@itm.edu.co) *</label>
-                  <input
-                    id="adminEmailInput"
-                    type="email"
-                    formControlName="correo"
-                    placeholder="funcionario@correo.itm.edu.co"
-                    class="itm-input"
-                  />
-                </div>
-
-                <div class="itm-field">
-                  <label for="adminSedeSelect" class="itm-label">Sede de Operación *</label>
-                  <select id="adminSedeSelect" formControlName="sede_id" class="itm-select">
-                    <option value="" disabled>-- Seleccione sede inicial --</option>
-                    @for (s of sedes(); track s.sede_id) {
-                      <option [value]="s.sede_id">{{ s.nombre }} ({{ s.codigo }})</option>
-                    }
-                  </select>
-                </div>
-
-                <div class="itm-field">
-                  <label for="adminPasswordInput" class="itm-label">Contraseña Temporal Segura *</label>
-                  <input
-                    id="adminPasswordInput"
-                    type="password"
-                    formControlName="password_temporal"
-                    placeholder="Mín. 8 caracteres, mayúscula, minúscula, número y símbolo"
-                    class="itm-input"
-                  />
-                </div>
-              </div>
-
-              <div class="itm-modal-footer">
-                <button type="button" (click)="cerrarModalCrearAdmin()" class="itm-btn itm-btn-ghost">
-                  Cancelar
-                </button>
-                <button type="submit" [disabled]="crearAdminForm.invalid || guardando()" class="itm-btn itm-btn-primary">
-                  Crear Administrador
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      }
-
-    </div>
-  `,
-  styles: [`
-    .sede-header-badges {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .sede-header-actions {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .sede-two-col {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 22px;
-      align-items: start;
-    }
-
-    @media (max-width: 980px) {
-      .sede-two-col {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .sede-panel-header {
-      padding: 18px 22px;
-      background: #f8fafc;
-      border-bottom: 1px solid #e5e7eb;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .sede-panel-title {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .sede-panel-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 11px;
-      background: #f0f6fc;
-      color: var(--ing-1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .sede-panel-icon.cyan {
-      background: rgba(0, 160, 183, 0.12);
-      color: var(--ing-2);
-    }
-
-    .sede-panel-title h2 {
-      margin: 0;
-      font-size: 0.96rem;
-      font-weight: 800;
-      color: var(--ing-1);
-    }
-
-    .sede-panel-title p {
-      margin: 2px 0 0;
-      font-size: 0.78rem;
-      color: #6b7280;
-    }
-
-    .sede-list {
-      display: flex;
-      flex-direction: column;
-      max-height: 540px;
-      overflow-y: auto;
-    }
-
-    .sede-item {
-      padding: 16px 22px;
-      border-bottom: 1px solid #f1f5f9;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      transition: background-color 0.15s ease;
-    }
-
-    .sede-item:last-child {
-      border-bottom: none;
-    }
-
-    .sede-item:hover {
-      background: #f8fafc;
-    }
-
-    .sede-item-info {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 0;
-    }
-
-    .sede-item-top {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .sede-item-name {
-      font-weight: 800;
-      font-size: 0.9rem;
-      color: var(--ing-1);
-    }
-
-    .sede-item-id {
-      font-family: monospace;
-      font-size: 0.73rem;
-      color: #6b7280;
-    }
-
-    .sede-item-email {
-      font-size: 0.8rem;
-      color: #4b5563;
-    }
-
-    .sede-item-loc {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--ing-2);
-      margin-top: 2px;
-    }
-
-    .sede-item-loc mat-icon {
-      font-size: 15px !important;
-      width: 15px !important;
-      height: 15px !important;
-    }
-
-    .sede-check-row {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #374151;
-      cursor: pointer;
-    }
-
-    .sede-admin-summary {
-      background: #f8fafc;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 12px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      font-size: 0.84rem;
-    }
-
-    .sede-admin-summary strong {
-      color: var(--ing-1);
-    }
-
-    .sede-admin-summary span {
-      color: #6b7280;
-      font-size: 0.78rem;
-    }
-
-    .sede-form-2col {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    @media (max-width: 560px) {
-      .sede-form-2col {
-        grid-template-columns: 1fr;
-      }
-    }
-  `]
+  templateUrl: './admin-sedes.component.html',
+  styleUrl: './admin-sedes.component.scss'
 })
 export class AdminSedesComponent implements OnInit {
   private sedesService = inject(SedesService);
   private usuariosService = inject(UsuariosService);
-  private sedeAdmin = inject(SedeAdminService);
+  readonly sedeAdmin = inject(SedeAdminService);
+  readonly auth = inject(AuthService);
   private http = inject(HttpClient);
   private snack = inject(MatSnackBar);
 
   readonly String = String;
 
+  // Pestañas
+  tabActiva = signal<TabSedes>('sedes');
+  esSuperAdmin = computed(() => this.auth.isSuperAdmin());
+
+  // Sedes y Administradores
   sedes = signal<SedeResponse[]>([]);
   administradores = signal<UsuarioResponse[]>([]);
-  guardando = signal(false);
+  guardando = signal<boolean>(false);
 
-  modalSedeAbierto = signal(false);
-  modalAsignarAbierto = signal(false);
-  modalCrearAdminAbierto = signal(false);
+  // Ubicaciones
+  ubicaciones = signal<UbicacionResponse[]>([]);
+  cargandoUbicaciones = signal<boolean>(false);
+  modalUbicacionAbierto = signal<boolean>(false);
+  ubicacionEditandoId = signal<string | null>(null);
+  modalDesactivarUbicacionAbierto = signal<boolean>(false);
+  ubicacionADesactivar = signal<UbicacionResponse | null>(null);
+  errorModalUbicacion = signal<string | null>(null);
 
+  // Puntos de Entrega
+  puntosEntrega = signal<PuntoEntregaResponse[]>([]);
+  cargandoPuntos = signal<boolean>(false);
+  modalPuntoAbierto = signal<boolean>(false);
+  puntoEditandoId = signal<string | null>(null);
+  modalDesactivarPuntoAbierto = signal<boolean>(false);
+  puntoADesactivar = signal<PuntoEntregaResponse | null>(null);
+  errorModalPunto = signal<string | null>(null);
+
+  // Modales Sedes
+  modalSedeAbierto = signal<boolean>(false);
+  modalAsignarAbierto = signal<boolean>(false);
+  modalCrearAdminAbierto = signal<boolean>(false);
   sedeEditandoId = signal<string | null>(null);
   adminSeleccionado = signal<UsuarioResponse | null>(null);
 
+  // Formularios
   sedeForm = new FormGroup({
     nombre: new FormControl('', [Validators.required, Validators.minLength(3)]),
     codigo: new FormControl('', [Validators.required, Validators.minLength(2), Validators.maxLength(10)]),
@@ -597,11 +90,399 @@ export class AdminSedesComponent implements OnInit {
     password_temporal: new FormControl('', [Validators.required, Validators.minLength(8)])
   });
 
-  ngOnInit(): void {
-    this.cargarSedes();
-    this.cargarAdministradores();
+  ubicacionForm = new FormGroup({
+    nombre: new FormControl<string>('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(100)] }),
+    tipo: new FormControl<string>('BLOQUE', { nonNullable: true, validators: [Validators.required] }),
+    activa: new FormControl<boolean>(true, { nonNullable: true })
+  });
+
+  puntoForm = new FormGroup({
+    nombre: new FormControl<string>('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(100)] }),
+    tipo: new FormControl<string>('OFICINA', { nonNullable: true, validators: [Validators.required] }),
+    activa: new FormControl<boolean>(true, { nonNullable: true })
+  });
+
+  // Sede activa de trabajo
+  readonly activeSedeId = computed<string | null>(() => {
+    if (this.auth.isSuperAdmin()) {
+      return this.sedeAdmin.selectedSedeId();
+    }
+    return this.auth.getUserSedeId() || this.sedeAdmin.selectedSedeId();
+  });
+
+  readonly activeSedeNombre = computed<string>(() => {
+    const id = this.activeSedeId();
+    if (!id) return 'Sin sede seleccionada';
+    const s = this.sedes().find((x) => x.sede_id === id);
+    return s ? `${s.nombre} (${s.codigo})` : 'Sede asignada';
+  });
+
+  // Filtros visibles para la sede activa
+  readonly ubicacionesFiltradas = computed<UbicacionResponse[]>(() => {
+    const list = this.ubicaciones();
+    const sid = this.activeSedeId();
+    if (!sid) return list;
+    return list.filter(u => u.sede_id === sid);
+  });
+
+  readonly puntosFiltrados = computed<PuntoEntregaResponse[]>(() => {
+    const list = this.puntosEntrega();
+    const sid = this.activeSedeId();
+    if (!sid) return list;
+    return list.filter(p => p.sede_id === sid);
+  });
+
+  private get baseApi(): string {
+    return API_URL.replace(/\/+$/, '');
   }
 
+  ngOnInit(): void {
+    if (!this.esSuperAdmin()) {
+      this.tabActiva.set('ubicaciones');
+    }
+    this.cargarSedes();
+    this.cargarAdministradores();
+    this.cargarUbicaciones();
+    this.cargarPuntosEntrega();
+  }
+
+  cambiarTab(tab: TabSedes): void {
+    this.tabActiva.set(tab);
+    if (tab === 'ubicaciones') {
+      this.cargarUbicaciones();
+    } else if (tab === 'puntos') {
+      this.cargarPuntosEntrega();
+    }
+  }
+
+  onCambiarSedeContexto(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    if (target && target.value) {
+      this.sedeAdmin.seleccionarSede(target.value);
+      this.cargarUbicaciones();
+      this.cargarPuntosEntrega();
+    }
+  }
+
+  // =========================================================================
+  // GESTIÓN DE UBICACIONES
+  // =========================================================================
+  cargarUbicaciones(): void {
+    this.cargandoUbicaciones.set(true);
+    const sid = this.activeSedeId();
+    const query = sid ? `?sede=${encodeURIComponent(sid)}` : '';
+
+    this.http.get<UbicacionResponse[]>(`${this.baseApi}/ubicaciones/${query}`).subscribe({
+      next: (data) => {
+        this.ubicaciones.set(Array.isArray(data) ? data : []);
+        this.cargandoUbicaciones.set(false);
+      },
+      error: (err) => {
+        this.cargandoUbicaciones.set(false);
+        this.mostrarFeedback(mensajeDeError(err, 'No fue posible cargar las ubicaciones.'));
+      }
+    });
+  }
+
+  abrirModalCrearUbicacion(): void {
+    const sid = this.activeSedeId();
+    if (!sid) {
+      this.mostrarFeedback('Debes seleccionar una sede institucional antes de registrar una ubicación.');
+      return;
+    }
+    this.ubicacionEditandoId.set(null);
+    this.errorModalUbicacion.set(null);
+    this.ubicacionForm.reset({
+      nombre: '',
+      tipo: 'BLOQUE',
+      activa: true
+    });
+    this.modalUbicacionAbierto.set(true);
+  }
+
+  abrirModalEditarUbicacion(u: UbicacionResponse): void {
+    this.ubicacionEditandoId.set(u.ubicacion_id);
+    this.errorModalUbicacion.set(null);
+    this.ubicacionForm.setValue({
+      nombre: u.nombre,
+      tipo: u.tipo || 'BLOQUE',
+      activa: u.activa !== false
+    });
+    this.modalUbicacionAbierto.set(true);
+  }
+
+  cerrarModalUbicacion(): void {
+    this.modalUbicacionAbierto.set(false);
+    this.ubicacionEditandoId.set(null);
+    this.errorModalUbicacion.set(null);
+  }
+
+  guardarUbicacion(): void {
+    if (this.ubicacionForm.invalid || this.guardando()) {
+      this.ubicacionForm.markAllAsTouched();
+      return;
+    }
+
+    const sid = this.activeSedeId();
+    if (!sid) {
+      this.errorModalUbicacion.set('No hay sede seleccionada para asociar la ubicación.');
+      return;
+    }
+
+    const { nombre, tipo, activa } = this.ubicacionForm.getRawValue();
+    this.guardando.set(true);
+    this.errorModalUbicacion.set(null);
+
+    const editId = this.ubicacionEditandoId();
+    if (editId) {
+      const payload = {
+        nombre: nombre.trim(),
+        tipo,
+        activa: !!activa
+      };
+      this.http.put<UbicacionResponse>(`${this.baseApi}/ubicaciones/${editId}`, payload).subscribe({
+        next: (res) => {
+          this.guardando.set(false);
+          this.mostrarFeedback(`Ubicación "${res.nombre}" actualizada exitosamente.`);
+          this.cerrarModalUbicacion();
+          this.cargarUbicaciones();
+        },
+        error: (err) => {
+          this.guardando.set(false);
+          this.errorModalUbicacion.set(mensajeDeError(err, 'No se pudo actualizar la ubicación.'));
+        }
+      });
+    } else {
+      const payload = {
+        sede_id: sid,
+        nombre: nombre.trim(),
+        tipo,
+        activa: !!activa
+      };
+      this.http.post<UbicacionResponse>(`${this.baseApi}/ubicaciones/`, payload).subscribe({
+        next: (res) => {
+          this.guardando.set(false);
+          this.mostrarFeedback(`Ubicación "${res.nombre}" registrada correctamente.`);
+          this.cerrarModalUbicacion();
+          this.cargarUbicaciones();
+        },
+        error: (err) => {
+          this.guardando.set(false);
+          this.errorModalUbicacion.set(mensajeDeError(err, 'No se pudo registrar la ubicación.'));
+        }
+      });
+    }
+  }
+
+  toggleActivaUbicacion(u: UbicacionResponse): void {
+    if (this.guardando()) return;
+    this.guardando.set(true);
+    const nuevoEstado = !(u.activa !== false);
+
+    this.http.put<UbicacionResponse>(`${this.baseApi}/ubicaciones/${u.ubicacion_id}`, { activa: nuevoEstado }).subscribe({
+      next: (res) => {
+        this.guardando.set(false);
+        this.mostrarFeedback(`Ubicación "${res.nombre}" ${nuevoEstado ? 'activada' : 'desactivada'}.`);
+        this.cargarUbicaciones();
+      },
+      error: (err) => {
+        this.guardando.set(false);
+        this.mostrarFeedback(mensajeDeError(err, 'No fue posible cambiar el estado de la ubicación.'));
+      }
+    });
+  }
+
+  solicitarDesactivarUbicacion(u: UbicacionResponse): void {
+    this.ubicacionADesactivar.set(u);
+    this.modalDesactivarUbicacionAbierto.set(true);
+  }
+
+  cerrarModalDesactivarUbicacion(): void {
+    if (this.guardando()) return;
+    this.modalDesactivarUbicacionAbierto.set(false);
+    this.ubicacionADesactivar.set(null);
+  }
+
+  confirmarDesactivarUbicacion(): void {
+    const u = this.ubicacionADesactivar();
+    if (!u || this.guardando()) return;
+
+    this.guardando.set(true);
+    this.http.delete(`${this.baseApi}/ubicaciones/${u.ubicacion_id}`).subscribe({
+      next: () => {
+        this.guardando.set(false);
+        this.mostrarFeedback(`Ubicación "${u.nombre}" desactivada.`);
+        this.cerrarModalDesactivarUbicacion();
+        this.cargarUbicaciones();
+      },
+      error: (err) => {
+        this.guardando.set(false);
+        this.mostrarFeedback(mensajeDeError(err, 'No fue posible desactivar la ubicación.'));
+      }
+    });
+  }
+
+  // =========================================================================
+  // GESTIÓN DE PUNTOS DE ENTREGA
+  // =========================================================================
+  cargarPuntosEntrega(): void {
+    this.cargandoPuntos.set(true);
+    const sid = this.activeSedeId();
+    const query = sid ? `?sede_id=${encodeURIComponent(sid)}` : '';
+
+    this.http.get<PuntoEntregaResponse[]>(`${this.baseApi}/puntos-entrega/${query}`).subscribe({
+      next: (data) => {
+        this.puntosEntrega.set(Array.isArray(data) ? data : []);
+        this.cargandoPuntos.set(false);
+      },
+      error: (err) => {
+        this.cargandoPuntos.set(false);
+        this.mostrarFeedback(mensajeDeError(err, 'No fue posible cargar los puntos de entrega.'));
+      }
+    });
+  }
+
+  abrirModalCrearPunto(): void {
+    const sid = this.activeSedeId();
+    if (!sid) {
+      this.mostrarFeedback('Debes seleccionar una sede institucional antes de registrar un punto de entrega.');
+      return;
+    }
+    this.puntoEditandoId.set(null);
+    this.errorModalPunto.set(null);
+    this.puntoForm.reset({
+      nombre: '',
+      tipo: 'OFICINA',
+      activa: true
+    });
+    this.modalPuntoAbierto.set(true);
+  }
+
+  abrirModalEditarPunto(p: PuntoEntregaResponse): void {
+    this.puntoEditandoId.set(p.puntoEntrega_id);
+    this.errorModalPunto.set(null);
+    this.puntoForm.setValue({
+      nombre: p.nombre,
+      tipo: p.tipo || 'OFICINA',
+      activa: p.activa !== false
+    });
+    this.modalPuntoAbierto.set(true);
+  }
+
+  cerrarModalPunto(): void {
+    this.modalPuntoAbierto.set(false);
+    this.puntoEditandoId.set(null);
+    this.errorModalPunto.set(null);
+  }
+
+  guardarPuntoEntrega(): void {
+    if (this.puntoForm.invalid || this.guardando()) {
+      this.puntoForm.markAllAsTouched();
+      return;
+    }
+
+    const sid = this.activeSedeId();
+    if (!sid) {
+      this.errorModalPunto.set('No hay sede seleccionada para asociar el punto de entrega.');
+      return;
+    }
+
+    const { nombre, tipo, activa } = this.puntoForm.getRawValue();
+    this.guardando.set(true);
+    this.errorModalPunto.set(null);
+
+    const editId = this.puntoEditandoId();
+    if (editId) {
+      const payload = {
+        nombre: nombre.trim(),
+        tipo,
+        activa: !!activa
+      };
+      this.http.put<PuntoEntregaResponse>(`${this.baseApi}/puntos-entrega/${editId}`, payload).subscribe({
+        next: (res) => {
+          this.guardando.set(false);
+          this.mostrarFeedback(`Punto de entrega "${res.nombre}" actualizado.`);
+          this.cerrarModalPunto();
+          this.cargarPuntosEntrega();
+        },
+        error: (err) => {
+          this.guardando.set(false);
+          this.errorModalPunto.set(mensajeDeError(err, 'No se pudo actualizar el punto de entrega.'));
+        }
+      });
+    } else {
+      const payload = {
+        sede_id: sid,
+        nombre: nombre.trim(),
+        tipo,
+        activa: !!activa
+      };
+      this.http.post<PuntoEntregaResponse>(`${this.baseApi}/puntos-entrega/`, payload).subscribe({
+        next: (res) => {
+          this.guardando.set(false);
+          this.mostrarFeedback(`Punto de entrega "${res.nombre}" registrado exitosamente.`);
+          this.cerrarModalPunto();
+          this.cargarPuntosEntrega();
+        },
+        error: (err) => {
+          this.guardando.set(false);
+          this.errorModalPunto.set(mensajeDeError(err, 'No se pudo registrar el punto de entrega.'));
+        }
+      });
+    }
+  }
+
+  toggleActivaPunto(p: PuntoEntregaResponse): void {
+    if (this.guardando()) return;
+    this.guardando.set(true);
+    const nuevoEstado = !(p.activa !== false);
+
+    this.http.put<PuntoEntregaResponse>(`${this.baseApi}/puntos-entrega/${p.puntoEntrega_id}`, { activa: nuevoEstado }).subscribe({
+      next: (res) => {
+        this.guardando.set(false);
+        this.mostrarFeedback(`Punto "${res.nombre}" ${nuevoEstado ? 'activado' : 'desactivado'}.`);
+        this.cargarPuntosEntrega();
+      },
+      error: (err) => {
+        this.guardando.set(false);
+        this.mostrarFeedback(mensajeDeError(err, 'No fue posible cambiar el estado del punto.'));
+      }
+    });
+  }
+
+  solicitarDesactivarPunto(p: PuntoEntregaResponse): void {
+    this.puntoADesactivar.set(p);
+    this.modalDesactivarPuntoAbierto.set(true);
+  }
+
+  cerrarModalDesactivarPunto(): void {
+    if (this.guardando()) return;
+    this.modalDesactivarPuntoAbierto.set(false);
+    this.puntoADesactivar.set(null);
+  }
+
+  confirmarDesactivarPunto(): void {
+    const p = this.puntoADesactivar();
+    if (!p || this.guardando()) return;
+
+    this.guardando.set(true);
+    this.http.delete(`${this.baseApi}/puntos-entrega/${p.puntoEntrega_id}`).subscribe({
+      next: () => {
+        this.guardando.set(false);
+        this.mostrarFeedback(`Punto de entrega "${p.nombre}" desactivado.`);
+        this.cerrarModalDesactivarPunto();
+        this.cargarPuntosEntrega();
+      },
+      error: (err) => {
+        this.guardando.set(false);
+        this.mostrarFeedback(mensajeDeError(err, 'No fue posible desactivar el punto de entrega.'));
+      }
+    });
+  }
+
+  // =========================================================================
+  // GESTIÓN DE SEDES Y ADMINISTRADORES
+  // =========================================================================
   cargarSedes(): void {
     this.sedesService.obtenerTodasSedesSedesGet().subscribe({
       next: (data: SedeResponse[]) => {
@@ -614,7 +495,7 @@ export class AdminSedesComponent implements OnInit {
   }
 
   cargarAdministradores(): void {
-    this.http.get<UsuarioResponse[]>(`${API_URL}/usuarios/administradores`).subscribe({
+    this.http.get<UsuarioResponse[]>(`${this.baseApi}/usuarios/administradores`).subscribe({
       next: (admins) => {
         this.administradores.set(Array.isArray(admins) ? admins : []);
       },
@@ -764,7 +645,7 @@ export class AdminSedesComponent implements OnInit {
     };
 
     this.guardando.set(true);
-    this.http.post<UsuarioResponse>(`${API_URL}/usuarios/administradores`, payload).subscribe({
+    this.http.post<UsuarioResponse>(`${this.baseApi}/usuarios/administradores`, payload).subscribe({
       next: (nuevoAdm) => {
         this.guardando.set(false);
         this.administradores.update((list) => [nuevoAdm, ...list]);
@@ -776,6 +657,24 @@ export class AdminSedesComponent implements OnInit {
         this.mostrarFeedback(mensajeDeError(err, 'No se pudo crear el administrador. Verifique correo @itm.edu.co y contraseña segura.'));
       }
     });
+  }
+
+  getTipoUbicacionLabel(tipo?: string | null): string {
+    switch (tipo) {
+      case 'BLOQUE': return 'Bloque';
+      case 'PORTERIA': return 'Portería';
+      case 'ZONA_COMUN': return 'Zona Común';
+      case 'OTRO': return 'Otro Espacio';
+      default: return tipo || 'Espacio';
+    }
+  }
+
+  getTipoPuntoLabel(tipo?: string | null): string {
+    switch (tipo) {
+      case 'OFICINA': return 'Oficina de Custodia';
+      case 'PORTERIA': return 'Portería Institucional';
+      default: return tipo || 'Punto';
+    }
   }
 
   private mostrarFeedback(msg: string): void {

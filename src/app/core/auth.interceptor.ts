@@ -19,17 +19,18 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         req.url.includes('ngrok') ||
         req.url.includes('localhost:8000') ||
         req.url.includes('127.0.0.1:8000');
-    const esAuth = req.url.includes('/auth/');
+    const esLogout = req.url.includes('/auth/logout');
+    const esAuth = req.url.includes('/auth/') && !esLogout;
     const esPublico = req.url.includes('/catalogo') || req.url.includes('/buscar');
 
     const preparar = (r: HttpRequest<unknown>, token: string | null) => {
         if (!esApi) return r;
         let headers = r.headers.set('ngrok-skip-browser-warning', 'true');
-        if (token && !esAuth) {
+        if (token && (!esAuth || esLogout)) {
             headers = headers.set('Authorization', `Bearer ${token}`);
         }
         const activeSedeId = sedeAdmin.selectedSedeId();
-        if (activeSedeId && !esAuth && auth.isSuperAdmin()) {
+        if (activeSedeId && !esAuth && !esLogout && auth.isSuperAdmin()) {
             headers = headers.set('X-Sede-Id', activeSedeId);
         }
         return r.clone({ headers });
@@ -42,7 +43,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
     return next(preparar(req, auth.getToken())).pipe(
         catchError((err: HttpErrorResponse) => {
-            if (err.status !== 401 || !esApi || esAuth || esPublico) {
+            if (err.status !== 401 || !esApi || esAuth || esLogout || esPublico) {
                 return throwError(() => err);
             }
 

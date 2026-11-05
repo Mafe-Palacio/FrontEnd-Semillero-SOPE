@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -13,6 +13,7 @@ import { mensajeDeError } from '../../../core/api-error';
 @Component({
   selector: 'app-login',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterModule,
     ReactiveFormsModule,
@@ -32,8 +33,8 @@ export class Login {
   private route = inject(ActivatedRoute);
   private snack = inject(MatSnackBar);
 
-  hidePassword = true;
-  isLoading = false;
+  readonly hidePassword = signal<boolean>(true);
+  readonly isLoading = signal<boolean>(false);
 
   loginForm = this.fb.nonNullable.group({
     username: ['', [Validators.required, Validators.email]],
@@ -41,23 +42,23 @@ export class Login {
   });
 
   onSubmit(): void {
-    if (this.loginForm.invalid || this.isLoading) {
+    if (this.loginForm.invalid || this.isLoading()) {
       this.loginForm.markAllAsTouched();
       return;
     }
 
     const { username, password } = this.loginForm.getRawValue();
-    this.isLoading = true;
+    this.isLoading.set(true);
 
     this.auth.login(username.trim().toLowerCase(), password).subscribe({
       next: () => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         const returnUrl = this.route.snapshot.queryParams['returnUrl'] || (this.auth.isAdmin() ? '/admin/dashboard' : '/catalogo');
         this.snack.open('¡Sesión iniciada correctamente!', 'Aceptar', { duration: 3000 });
         this.router.navigateByUrl(returnUrl);
       },
       error: (err: HttpErrorResponse) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         const mensaje = mensajeDeError(err, 'No se pudo iniciar sesión. Verifique sus credenciales.');
         this.snack.open(mensaje, 'Cerrar', { duration: 6000 });
       }
