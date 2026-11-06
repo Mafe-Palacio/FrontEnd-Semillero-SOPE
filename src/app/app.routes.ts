@@ -31,6 +31,12 @@ export const routes: Routes = [
         canActivate: [authGuard],
         loadChildren: () => import('./features/reclamaciones/reclamaciones-module').then(m => m.ReclamacionesModule)
     },
+    {
+        // Perfil Institucional del usuario: exige sesión activa
+        path: 'perfil',
+        canActivate: [authGuard],
+        loadComponent: () => import('./features/perfil/perfil.component').then(m => m.PerfilComponent)
+    },
 
     {
         // Por defecto redirige al catálogo público

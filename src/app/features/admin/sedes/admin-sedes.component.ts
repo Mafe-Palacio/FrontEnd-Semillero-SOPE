@@ -495,6 +495,11 @@ export class AdminSedesComponent implements OnInit {
   }
 
   cargarAdministradores(): void {
+    // GET /usuarios/administradores es exclusivo del SUPERADMIN: un ADMIN recibiría 403.
+    if (!this.esSuperAdmin()) {
+      this.administradores.set([]);
+      return;
+    }
     this.http.get<UsuarioResponse[]>(`${this.baseApi}/usuarios/administradores`).subscribe({
       next: (admins) => {
         this.administradores.set(Array.isArray(admins) ? admins : []);

@@ -38,6 +38,11 @@ export interface PerfilUsuario {
     rol: string;
     tipo_vinculacion: string;
     sede_id?: string | null;
+    is_verified?: boolean;
+    is_active?: boolean;
+    is_blocked?: boolean;
+    fecha_creacion?: string;
+    fecha_edicion?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

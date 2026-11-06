@@ -1,0 +1,327 @@
+<div class="perfil-page">
+
+  <!-- 1. Encabezado de Página Institucional -->
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-titles">
+        <div class="header-badge-row">
+          <span class="user-role-badge">{{ humanizarRol(perfilActual()?.rol) }}</span>
+          @if (perfilActual()?.is_verified) {
+            <span class="verified-pill">
+              <mat-icon>verified</mat-icon>
+              <span>Verificado</span>
+            </span>
+          }
+        </div>
+        <h1 class="page-title">Mi Perfil</h1>
+        <p class="page-subtitle">
+          {{ perfilActual()?.nombre_completo || authService.getUserName() }} · {{ perfilActual()?.correo || authService.getUserEmail() }}
+        </p>
+      </div>
+      <div class="header-actions">
+        <button
+          type="button"
+          class="btn-refresh"
+          (click)="cargarPerfil()"
+          [disabled]="cargandoPerfil()"
+          aria-label="Actualizar datos del perfil">
+          <mat-icon [class.spin]="cargandoPerfil()">refresh</mat-icon>
+          <span>Actualizar</span>
+        </button>
+        <a routerLink="/catalogo" class="btn-catalogo" aria-label="Ir al Catálogo Público">
+          <mat-icon>travel_explore</mat-icon>
+          <span>Ir al Catálogo</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. Tarjeta Principal con Pestañas y Contenido -->
+  <div class="perfil-card">
+    
+    <!-- Pestañas de Navegación -->
+    <div class="perfil-tabs" role="tablist">
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tabPerfil() === 'info'"
+        [class.active]="tabPerfil() === 'info'"
+        (click)="tabPerfil.set('info')">
+        <mat-icon class="tab-icon">person</mat-icon>
+        <span>Mi información</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tabPerfil() === 'password'"
+        [class.active]="tabPerfil() === 'password'"
+        (click)="tabPerfil.set('password')">
+        <mat-icon class="tab-icon">lock</mat-icon>
+        <span>Cambiar Contraseña</span>
+      </button>
+    </div>
+
+    <!-- PESTAÑA 1: MI INFORMACIÓN -->
+    @if (tabPerfil() === 'info') {
+      @if (cargandoPerfil() && !perfilActual()) {
+        <div class="perfil-loading-state">
+          <mat-icon class="spin-icon">sync</mat-icon>
+          <span>Cargando información del usuario...</span>
+        </div>
+      } @else {
+        <!-- MODO LECTURA -->
+        @if (!editandoPerfil()) {
+          <div class="perfil-read-container">
+            <div class="perfil-info-grid">
+              <div class="perfil-data-item">
+                <span class="perfil-data-label">Nombre completo</span>
+                <span class="perfil-data-val">{{ perfilActual()?.nombre_completo || 'No especificado' }}</span>
+              </div>
+
+              <div class="perfil-data-item">
+                <span class="perfil-data-label">Cédula</span>
+                <span class="perfil-data-val">{{ perfilActual()?.cedula || 'No especificado' }}</span>
+              </div>
+
+              <div class="perfil-data-item perfil-item-span2">
+                <span class="perfil-data-label">Correo institucional</span>
+                <span class="perfil-data-val val-email">{{ perfilActual()?.correo || 'No especificado' }}</span>
+              </div>
+
+              <div class="perfil-data-item">
+                <span class="perfil-data-label">Tipo de vinculación</span>
+                <span class="perfil-data-val">{{ humanizarVinculacion(perfilActual()?.tipo_vinculacion) }}</span>
+              </div>
+
+              <div class="perfil-data-item">
+                <span class="perfil-data-label">Rol institucional</span>
+                <span class="perfil-data-val val-rol">{{ humanizarRol(perfilActual()?.rol) }}</span>
+              </div>
+
+              @if (perfilActual()?.rol !== 'USER') {
+                <div class="perfil-data-item perfil-item-span2">
+                  <span class="perfil-data-label">Sede asignada</span>
+                  <span class="perfil-data-val">{{ obtenerNombreSede(perfilActual()?.sede_id) }}</span>
+                </div>
+              }
+
+              <div class="perfil-data-item">
+                <span class="perfil-data-label">Número de celular</span>
+                <span class="perfil-data-val">{{ perfilActual()?.celular || 'No registrado' }}</span>
+              </div>
+
+              <div class="perfil-data-item">
+                <span class="perfil-data-label">Carné institucional</span>
+                <span class="perfil-data-val">{{ perfilActual()?.carnet || 'No registrado' }}</span>
+              </div>
+
+              <div class="perfil-data-item perfil-item-span2">
+                <span class="perfil-data-label">Estado de la cuenta</span>
+                <div class="perfil-badges-row">
+                  @if (perfilActual()?.is_verified) {
+                    <span class="perfil-badge badge-success">
+                      <mat-icon>verified</mat-icon>
+                      <span>Verificada</span>
+                    </span>
+                  } @else {
+                    <span class="perfil-badge badge-warning">
+                      <mat-icon>schedule</mat-icon>
+                      <span>No verificada</span>
+                    </span>
+                  }
+
+                  @if (perfilActual()?.is_active !== false) {
+                    <span class="perfil-badge badge-success">
+                      <mat-icon>check_circle</mat-icon>
+                      <span>Activa</span>
+                    </span>
+                  } @else {
+                    <span class="perfil-badge badge-danger">
+                      <mat-icon>block</mat-icon>
+                      <span>Inactiva</span>
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <div class="perfil-data-item">
+                <span class="perfil-data-label">Miembro desde</span>
+                <span class="perfil-data-val">{{ formatearFecha(perfilActual()?.fecha_creacion) }}</span>
+              </div>
+
+              <div class="perfil-data-item">
+                <span class="perfil-data-label">Última actualización</span>
+                <span class="perfil-data-val">{{ formatearFecha(perfilActual()?.fecha_edicion) }}</span>
+              </div>
+            </div>
+
+            <div class="perfil-actions read-actions">
+              <button
+                type="button"
+                class="btn-primario btn-edit-profile"
+                (click)="iniciarEdicionPerfil()"
+                aria-label="Editar datos de contacto">
+                <mat-icon>edit</mat-icon>
+                <span>Editar perfil</span>
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- MODO EDICIÓN -->
+        @else {
+          <div class="perfil-edit-container">
+            <div class="perfil-readonly-summary">
+              <div class="perfil-readonly-notice">
+                <mat-icon>info</mat-icon>
+                <span>Para corregir tu nombre, cédula o correo comunícate con un administrador.</span>
+              </div>
+
+              <div class="perfil-readonly-grid">
+                <div class="readonly-item">
+                  <span class="readonly-label">Nombre:</span>
+                  <span class="readonly-val">{{ perfilActual()?.nombre_completo }}</span>
+                </div>
+                <div class="readonly-item">
+                  <span class="readonly-label">Cédula:</span>
+                  <span class="readonly-val">{{ perfilActual()?.cedula }}</span>
+                </div>
+                <div class="readonly-item readonly-item-full">
+                  <span class="readonly-label">Correo:</span>
+                  <span class="readonly-val">{{ perfilActual()?.correo }}</span>
+                </div>
+                <div class="readonly-item">
+                  <span class="readonly-label">Vinculación:</span>
+                  <span class="readonly-val">{{ humanizarVinculacion(perfilActual()?.tipo_vinculacion) }}</span>
+                </div>
+                <div class="readonly-item">
+                  <span class="readonly-label">Rol:</span>
+                  <span class="readonly-val">{{ humanizarRol(perfilActual()?.rol) }}</span>
+                </div>
+                @if (perfilActual()?.rol !== 'USER') {
+                  <div class="readonly-item readonly-item-full">
+                    <span class="readonly-label">Sede:</span>
+                    <span class="readonly-val">{{ obtenerNombreSede(perfilActual()?.sede_id) }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <form [formGroup]="perfilForm" (ngSubmit)="guardarPerfil()" class="perfil-form">
+              <div class="perfil-info-banner">
+                <strong>Importante:</strong> Para reportar pérdidas, publicar hallazgos o reclamar objetos es obligatorio tener registrado tu número de celular.
+              </div>
+
+              <div class="perfil-field">
+                <label for="celularInput">Número de Celular *</label>
+                <input
+                  #celularInput
+                  id="celularInput"
+                  type="text"
+                  formControlName="celular"
+                  placeholder="Ej. 3001234567"
+                  inputmode="numeric"
+                  autocomplete="tel" />
+                @if (perfilForm.controls.celular.invalid && perfilForm.controls.celular.touched) {
+                  <small class="perfil-error">Ingresa un número de celular válido (7 a 15 dígitos).</small>
+                }
+              </div>
+
+              <div class="perfil-field">
+                <label for="carnetInput">Carné Institucional (opcional)</label>
+                <input
+                  id="carnetInput"
+                  type="text"
+                  formControlName="carnet"
+                  placeholder="Número de carné ITM" />
+              </div>
+
+              <div class="perfil-actions">
+                <button
+                  type="button"
+                  class="btn-secundario"
+                  (click)="cancelarEdicionPerfil()"
+                  [disabled]="cargandoPerfil()"
+                  aria-label="Cancelar cambios">
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  class="btn-primario"
+                  [disabled]="cargandoPerfil() || perfilForm.invalid"
+                  aria-label="Guardar cambios de perfil">
+                  @if (cargandoPerfil()) {
+                    <mat-icon class="spin-icon">sync</mat-icon>
+                  }
+                  <span>{{ cargandoPerfil() ? 'Guardando...' : 'Guardar Cambios' }}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        }
+      }
+    }
+
+    <!-- PESTAÑA 2: CAMBIAR CONTRASEÑA -->
+    @else {
+      <div class="password-tab-container">
+        <div class="password-info-banner">
+          <mat-icon>security</mat-icon>
+          <div>
+            <strong>Recomendación de seguridad:</strong> Elige una contraseña segura que contenga mínimo 8 caracteres, al menos una letra mayúscula, una minúscula, un número y un símbolo especial.
+          </div>
+        </div>
+
+        <form [formGroup]="passwordForm" (ngSubmit)="guardarPassword()" class="perfil-form">
+          <div class="perfil-field">
+            <label for="passwordActualInput">Contraseña Actual *</label>
+            <input
+              id="passwordActualInput"
+              type="password"
+              formControlName="password_actual"
+              placeholder="Tu contraseña actual"
+              autocomplete="current-password" />
+            @if (passwordForm.controls.password_actual.invalid && passwordForm.controls.password_actual.touched) {
+              <small class="perfil-error">La contraseña actual es obligatoria.</small>
+            }
+          </div>
+
+          <div class="perfil-field">
+            <label for="passwordNuevaInput">Nueva Contraseña *</label>
+            <input
+              id="passwordNuevaInput"
+              type="password"
+              formControlName="password_nueva"
+              placeholder="Mín. 8 caracteres, mayúscula, minúscula, número y símbolo"
+              autocomplete="new-password" />
+            @if (passwordForm.controls.password_nueva.invalid && passwordForm.controls.password_nueva.touched) {
+              <small class="perfil-error">Mínimo 8 caracteres, incluyendo mayúscula, minúscula, número y carácter especial.</small>
+            }
+          </div>
+
+          <div class="perfil-actions">
+            <button
+              type="button"
+              class="btn-secundario"
+              (click)="tabPerfil.set('info')"
+              [disabled]="cargandoPerfil()"
+              aria-label="Regresar a información de perfil">
+              Volver a Mi Información
+            </button>
+            <button
+              type="submit"
+              class="btn-primario"
+              [disabled]="cargandoPerfil() || passwordForm.invalid"
+              aria-label="Actualizar contraseña">
+              @if (cargandoPerfil()) {
+                <mat-icon class="spin-icon">sync</mat-icon>
+              }
+              <span>{{ cargandoPerfil() ? 'Actualizando...' : 'Actualizar Contraseña' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    }
+
+  </div>
+</div>

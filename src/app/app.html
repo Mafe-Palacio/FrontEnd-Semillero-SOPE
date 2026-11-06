@@ -32,10 +32,10 @@
             <mat-icon>post_add</mat-icon>
             <span class="action-label">Mis Reportes</span>
           </a>
-          <button mat-button type="button" (click)="abrirModalPerfil()" class="nav-action-btn" aria-label="Mi perfil">
+          <a mat-button routerLink="/perfil" routerLinkActive="active" class="nav-action-btn" aria-label="Mi perfil">
             <mat-icon>person</mat-icon>
             <span class="action-label">Mi Perfil</span>
-          </button>
+          </a>
           <button mat-button (click)="logout()" class="nav-action-btn btn-logout" aria-label="Cerrar sesión">
             <mat-icon>logout</mat-icon>
             <span class="action-label">Salir</span>
@@ -78,6 +78,9 @@
         }
         <a mat-list-item routerLink="/reclamaciones" routerLinkActive="active" (click)="isMobile() && sidenav.close()"><mat-icon matListItemIcon>assignment</mat-icon><div matListItemTitle>Mis Reclamos</div></a>
         <a mat-list-item routerLink="/reportes" routerLinkActive="active" (click)="isMobile() && sidenav.close()"><mat-icon matListItemIcon>post_add</mat-icon><div matListItemTitle>Mis Reportes</div></a>
+        @if (isLoggedIn()) {
+          <a mat-list-item routerLink="/perfil" routerLinkActive="active" (click)="isMobile() && sidenav.close()"><mat-icon matListItemIcon>person</mat-icon><div matListItemTitle>Mi Perfil</div></a>
+        }
       </mat-nav-list>
     </mat-sidenav>
 
@@ -109,10 +112,10 @@
               <mat-icon>post_add</mat-icon>
               <span class="action-label">Mis Reportes</span>
             </a>
-            <button mat-button type="button" (click)="abrirModalPerfil()" class="nav-action-btn" aria-label="Mi perfil">
+            <a mat-button routerLink="/perfil" routerLinkActive="active" class="nav-action-btn" aria-label="Mi perfil">
               <mat-icon>person</mat-icon>
               <span class="action-label">Mi Perfil</span>
-            </button>
+            </a>
             <button mat-button (click)="logout()" class="nav-action-btn btn-logout" aria-label="Cerrar sesión">
               <mat-icon>logout</mat-icon>
               <span class="action-label">Salir</span>
@@ -132,80 +135,4 @@
     </mat-sidenav-content>
 
   </mat-sidenav-container>
-}
-
-<!-- MODAL DE MI PERFIL (HU23 / HU25) -->
-@if (modalPerfilAbierto()) {
-  <div class="perfil-modal-backdrop" (click)="cerrarModalPerfil()">
-    <div class="perfil-modal-card" (click)="$event.stopPropagation()">
-      <div class="perfil-modal-header">
-        <div>
-          <h3>Mi Perfil Institucional</h3>
-          <p>{{ perfilActual()?.nombre_completo || authService.getUserName() }} · {{ perfilActual()?.correo || authService.getUserEmail() }}</p>
-        </div>
-        <button type="button" class="perfil-close-btn" (click)="cerrarModalPerfil()" aria-label="Cerrar modal">
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
-
-      <div class="perfil-tabs">
-        <button type="button" [class.active]="tabPerfil() === 'datos'" (click)="tabPerfil.set('datos')">
-          Datos de Contacto
-        </button>
-        <button type="button" [class.active]="tabPerfil() === 'password'" (click)="tabPerfil.set('password')">
-          Cambiar Contraseña
-        </button>
-      </div>
-
-      @if (tabPerfil() === 'datos') {
-        <form [formGroup]="perfilForm" (ngSubmit)="guardarPerfil()" class="perfil-form">
-          <div class="perfil-info-banner">
-            <strong>Importante:</strong> Para reportar pérdidas, publicar hallazgos o reclamar objetos es obligatorio tener registrado tu número de celular.
-          </div>
-
-          <div class="perfil-field">
-            <label>Número de Celular *</label>
-            <input type="text" formControlName="celular" placeholder="Ej. 3001234567" inputmode="numeric" />
-            @if (perfilForm.controls.celular.invalid && perfilForm.controls.celular.touched) {
-              <small class="perfil-error">Ingresa un número de celular válido (7 a 15 dígitos).</small>
-            }
-          </div>
-
-          <div class="perfil-field">
-            <label>Carné Institucional (opcional)</label>
-            <input type="text" formControlName="carnet" placeholder="Número de carné ITM" />
-          </div>
-
-          <div class="perfil-actions">
-            <button type="button" class="btn-secundario" (click)="cerrarModalPerfil()">Cancelar</button>
-            <button type="submit" class="btn-primario" [disabled]="cargandoPerfil()">
-              {{ cargandoPerfil() ? 'Guardando...' : 'Guardar Cambios' }}
-            </button>
-          </div>
-        </form>
-      } @else {
-        <form [formGroup]="passwordForm" (ngSubmit)="guardarPassword()" class="perfil-form">
-          <div class="perfil-field">
-            <label>Contraseña Actual *</label>
-            <input type="password" formControlName="password_actual" placeholder="Tu contraseña actual" />
-          </div>
-
-          <div class="perfil-field">
-            <label>Nueva Contraseña *</label>
-            <input type="password" formControlName="password_nueva" placeholder="Mín. 8 caracteres, mayúscula, minúscula, número y símbolo" />
-            @if (passwordForm.controls.password_nueva.invalid && passwordForm.controls.password_nueva.touched) {
-              <small class="perfil-error">Mínimo 8 caracteres, incluyendo mayúscula, minúscula, número y carácter especial.</small>
-            }
-          </div>
-
-          <div class="perfil-actions">
-            <button type="button" class="btn-secundario" (click)="cerrarModalPerfil()">Cancelar</button>
-            <button type="submit" class="btn-primario" [disabled]="cargandoPerfil()">
-              {{ cargandoPerfil() ? 'Actualizando...' : 'Actualizar Contraseña' }}
-            </button>
-          </div>
-        </form>
-      }
-    </div>
-  </div>
 }

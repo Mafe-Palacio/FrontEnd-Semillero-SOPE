@@ -24,6 +24,7 @@ export interface UsuarioReclamanteInfo {
   correo: string;
   celular?: string | null;
   carnet?: string | null;
+  cedula?: string | null;
 }
 
 @Component({
@@ -1128,7 +1129,7 @@ export class CustodiaReclamosComponent implements OnInit {
     this.actaForm.reset({
       reclamo_id: rec.reclamo_id,
       nombre_reclamante: u?.nombre_completo || '',
-      cedula_reclamante: '',
+      cedula_reclamante: u?.cedula || '',
       correo_reclamante: u?.correo || '',
       celular_reclamante: u?.celular || '',
       carnet_reclamante: u?.carnet || '',
