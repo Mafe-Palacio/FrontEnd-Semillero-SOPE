@@ -7,6 +7,7 @@
     "dev": "ng serve --host 0.0.0.0 --port 3000",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
+    "lint": "tsc --noEmit",
     "test": "ng test",
     "serve:ssr:frontend-objetos-perdidos": "PORT=3000 node dist/frontend-objetos-perdidos/server/server.mjs"
   },

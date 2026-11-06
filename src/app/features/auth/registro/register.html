@@ -28,10 +28,10 @@
       @if (paso() === 'datos') {
         <h2 class="form-title">Crear Cuenta Institucional</h2>
 
-        <form [formGroup]="form" (ngSubmit)="enviarRegistro()" class="auth-form">
+        <form [formGroup]="form" (ngSubmit)="enviarRegistro()" class="auth-form register-form">
 
           <!-- Fila 1: Nombre completo -->
-          <mat-form-field appearance="outline" class="full-width">
+          <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
             <mat-label>Nombre completo</mat-label>
             <mat-icon matPrefix>person_outline</mat-icon>
             <input
@@ -47,7 +47,7 @@
 
           <!-- Fila 2: Cédula y Celular -->
           <div class="form-grid-2">
-            <mat-form-field appearance="outline" class="full-width">
+            <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
               <mat-label>Documento / Cédula</mat-label>
               <mat-icon matPrefix>badge</mat-icon>
               <input
@@ -61,7 +61,7 @@
               }
             </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width">
+            <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
               <mat-label>Celular de contacto</mat-label>
               <mat-icon matPrefix>phone_iphone</mat-icon>
               <input
@@ -81,17 +81,18 @@
 
           <!-- Fila 3: Tipo de vinculación y Carné -->
           <div class="form-grid-2">
-            <mat-form-field appearance="outline" class="full-width">
+            <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
               <mat-label>Tipo de vinculación</mat-label>
               <mat-icon matPrefix>school</mat-icon>
               <mat-select formControlName="tipo_vinculacion">
+                <mat-select-trigger>{{ obtenerEtiquetaCorta(form.controls.tipo_vinculacion.value) }}</mat-select-trigger>
                 @for (t of tipos; track t.valor) {
                   <mat-option [value]="t.valor">{{ t.etiqueta }}</mat-option>
                 }
               </mat-select>
             </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width">
+            <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
               <mat-label>Carné ITM (opcional)</mat-label>
               <mat-icon matPrefix>credit_card</mat-icon>
               <input
@@ -104,24 +105,22 @@
 
           <!-- Fila 4: Usuario de correo y dominio -->
           <div [class.form-grid-2]="esOficios">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Usuario del correo (antes del &#64;)</mat-label>
+            <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
+              <mat-label>Usuario del correo</mat-label>
               <mat-icon matPrefix>alternate_email</mat-icon>
               <input
                 matInput
                 formControlName="prefijo_correo"
-                placeholder="nombre.apellido"
+                placeholder="Ingresa tu usuario"
+                autocomplete="username"
               />
-              @if (!esOficios) {
-                <span matTextSuffix class="domain-suffix">&#64;{{ dominioFijo }}</span>
-              }
               @if (form.controls.prefijo_correo.invalid && form.controls.prefijo_correo.touched) {
                 <mat-error>Ingresa solo el usuario sin &#64; ni espacios</mat-error>
               }
             </mat-form-field>
 
             @if (esOficios) {
-              <mat-form-field appearance="outline" class="full-width">
+              <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
                 <mat-label>Dominio (después del &#64;)</mat-label>
                 <mat-icon matPrefix>language</mat-icon>
                 <input
@@ -134,14 +133,14 @@
           </div>
 
           <!-- Fila 5: Contraseña -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Contraseña segura</mat-label>
+          <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
+            <mat-label>Contraseña</mat-label>
             <mat-icon matPrefix>lock_outline</mat-icon>
             <input
               matInput
               [type]="hidePassword ? 'password' : 'text'"
               formControlName="password"
-              placeholder="Mín. 8 caracteres, mayúscula, número y símbolo"
+              placeholder="Mín. 8 caracteres, mayúscula, minúscula y número"
               autocomplete="new-password"
             />
             <button
@@ -153,8 +152,39 @@
             >
               <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
             </button>
-            @if (form.controls.password.invalid && form.controls.password.touched) {
-              <mat-error>Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo (ej. !&#64;#)</mat-error>
+            @if (form.controls.password.hasError('required') && form.controls.password.touched) {
+              <mat-error>La contraseña es obligatoria</mat-error>
+            }
+            @if (form.controls.password.hasError('passwordComplexity') && form.controls.password.touched) {
+              <mat-error>Mínimo 8 caracteres, mayúscula, minúscula y número</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Fila 6: Confirmar contraseña -->
+          <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
+            <mat-label>Confirmar contraseña</mat-label>
+            <mat-icon matPrefix>lock</mat-icon>
+            <input
+              matInput
+              [type]="hideConfirmPassword ? 'password' : 'text'"
+              formControlName="confirmPassword"
+              placeholder="Repite la contraseña"
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              mat-icon-button
+              matSuffix
+              (click)="hideConfirmPassword = !hideConfirmPassword"
+              aria-label="Mostrar u ocultar confirmación de contraseña"
+            >
+              <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (form.controls.confirmPassword.hasError('required') && form.controls.confirmPassword.touched) {
+              <mat-error>Confirma tu contraseña</mat-error>
+            }
+            @if ((form.controls.confirmPassword.hasError('noCoincide') || form.controls.confirmPassword.hasError('noIgual')) && form.controls.confirmPassword.touched) {
+              <mat-error>Las contraseñas no coinciden</mat-error>
             }
           </mat-form-field>
 
@@ -193,8 +223,8 @@
           </p>
         </div>
 
-        <form (ngSubmit)="verificarCodigo()" class="auth-form">
-          <mat-form-field appearance="outline" class="full-width">
+        <form (ngSubmit)="verificarCodigo()" class="auth-form register-form">
+          <mat-form-field appearance="outline" class="full-width" subscriptSizing="dynamic">
             <mat-label>Código de verificación (6 dígitos)</mat-label>
             <mat-icon matPrefix>verified_user</mat-icon>
             <input

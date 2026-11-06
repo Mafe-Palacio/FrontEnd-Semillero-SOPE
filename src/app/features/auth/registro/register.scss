@@ -5,6 +5,18 @@ $ing-3: #56ACDE;
 $cian: #29ABE2;
 $gris: #C6C6C6;
 
+:host {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+}
+
 .auth-bg {
   min-height: 100vh;
   width: 100%;
@@ -78,6 +90,7 @@ $gris: #C6C6C6;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  max-width: 100%;
 }
 
 .back-link-box {
@@ -118,28 +131,47 @@ $gris: #C6C6C6;
   padding-bottom: 5px;
 }
 
-.auth-form {
+.auth-form,
+.register-form {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+  width: 100%;
 }
 
 .full-width {
   width: 100%;
-  margin-bottom: 2px;
+  margin-bottom: 12px;
 }
 
 .form-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 16px;
+  width: 100%;
+
+  .full-width {
+    margin-bottom: 12px;
+  }
 }
 
-.domain-suffix {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: $ing-1;
-  padding-left: 4px;
-  white-space: nowrap;
+mat-form-field.mat-mdc-form-field {
+  --mdc-outlined-text-field-container-shape: 8px;
+  font-family: 'Montserrat', sans-serif;
+
+  .mat-mdc-text-field-wrapper {
+    border-radius: 8px;
+  }
+}
+
+mat-error {
+  margin-top: 4px;
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: #B23B24;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .info-box {
@@ -245,10 +277,24 @@ $gris: #C6C6C6;
   }
 }
 
+@media (max-width: 1100px) {
+  .form-grid-2 {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 16px;
+  }
+}
+
 @media (max-width: 860px) {
+  .auth-bg {
+    padding: 14px;
+  }
+
   .split-card.register-split-card {
     flex-direction: column;
     min-height: 0;
+    width: 100%;
   }
 
   .card-left {
@@ -257,17 +303,38 @@ $gris: #C6C6C6;
     border-bottom: 1px solid #eaeaea;
 
     .brand-showcase img {
-      max-width: 200px;
+      max-width: 180px;
     }
   }
 
   .card-right {
-    padding: 28px 22px;
+    padding: 24px 20px;
+    width: 100%;
   }
 
-  .form-grid-2 {
-    grid-template-columns: 1fr;
-    gap: 0;
+  .form-title {
+    font-size: 1.4rem;
+  }
+
+  .actions-between {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+
+    .login-link {
+      text-align: center;
+      order: 2;
+    }
+
+    .submit-button {
+      width: 100%;
+      order: 1;
+    }
+
+    .resend-button {
+      width: 100%;
+      justify-content: center;
+    }
   }
 }
 

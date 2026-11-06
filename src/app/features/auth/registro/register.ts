@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -10,6 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/auth.service';
 import { mensajeDeError } from '../../../core/api-error';
+import { passwordComplexityValidator, igualAValidator } from '../../../core/password-validators';
 
 @Component({
     selector: 'app-register',
@@ -36,16 +38,22 @@ export class Register {
     paso = signal<'datos' | 'codigo'>('datos');
     cargando = signal(false);
     hidePassword = true;
+    hideConfirmPassword = true;
 
     private usuarioId = '';
     correoRegistrado = '';
 
     readonly tipos = [
-        { valor: 'ESTUDIANTE', etiqueta: 'Estudiante (@correo.itm.edu.co)', dominio: 'correo.itm.edu.co' },
-        { valor: 'PROFESOR', etiqueta: 'Profesor (@correo.itm.edu.co)', dominio: 'correo.itm.edu.co' },
-        { valor: 'ADMINISTRATIVO', etiqueta: 'Administrativo (@itm.edu.co)', dominio: 'itm.edu.co' },
-        { valor: 'OFICIOS_VARIOS', etiqueta: 'Oficios varios (Dominio personalizado)', dominio: '' }
+        { valor: 'ESTUDIANTE', etiqueta: 'Estudiante (@correo.itm.edu.co)', dominio: 'correo.itm.edu.co', corto: 'Estudiante' },
+        { valor: 'PROFESOR', etiqueta: 'Profesor (@correo.itm.edu.co)', dominio: 'correo.itm.edu.co', corto: 'Profesor' },
+        { valor: 'ADMINISTRATIVO', etiqueta: 'Administrativo (@itm.edu.co)', dominio: 'itm.edu.co', corto: 'Administrativo' },
+        { valor: 'OFICIOS_VARIOS', etiqueta: 'Oficios varios (Dominio personalizado)', dominio: '', corto: 'Otro' }
     ];
+
+    obtenerEtiquetaCorta(valor?: string): string {
+        const match = this.tipos.find(t => t.valor === valor);
+        return match ? match.corto : '';
+    }
 
     form = this.fb.nonNullable.group({
         nombre_completo: ['', Validators.required],
@@ -55,8 +63,19 @@ export class Register {
         tipo_vinculacion: ['ESTUDIANTE', Validators.required],
         prefijo_correo: ['', [Validators.required, Validators.pattern(/^[^@\s]+$/)]],
         dominio_personalizado: [''],
-        password: ['', [Validators.required, Validators.minLength(8)]]
+        password: ['', [Validators.required, passwordComplexityValidator]],
+        confirmPassword: ['', [Validators.required, igualAValidator('password')]]
     });
+
+    constructor() {
+        this.form.controls.password.valueChanges
+            .pipe(takeUntilDestroyed())
+            .subscribe(() => {
+                if (this.form.controls.confirmPassword.touched || this.form.controls.confirmPassword.value) {
+                    this.form.controls.confirmPassword.updateValueAndValidity();
+                }
+            });
+    }
 
     codigo = this.fb.nonNullable.control('', [Validators.required, Validators.pattern(/^\d{6}$/)]);
 
