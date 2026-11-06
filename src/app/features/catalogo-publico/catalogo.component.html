@@ -621,6 +621,23 @@
                 </div>
               </div>
 
+              <div class="form-group">
+                <div class="form-label-row">
+                  <label for="lost-detalle-lugar" class="form-label">Detalle del lugar (opcional)</label>
+                  <span class="char-counter">{{ formReportePerdido.controls.detalleLugar.value.length }}/200</span>
+                </div>
+                <input
+                  id="lost-detalle-lugar"
+                  type="text"
+                  formControlName="detalleLugar"
+                  class="form-input"
+                  placeholder="Ej. Bloque L, salón L503"
+                  maxlength="200"
+                  aria-describedby="lost-detalle-lugar-help"
+                />
+                <small id="lost-detalle-lugar-help" class="form-hint">Si fue en un bloque o zona grande, indica el salón, piso o punto exacto.</small>
+              </div>
+
               <!-- Adjuntar Fotografía del Objeto Perdido -->
               <div class="form-group">
                 <label class="form-label">Fotografía de referencia (opcional · JPG o PNG máx. 5 MB):</label>
@@ -656,6 +673,21 @@
                     </div>
                   }
                 </div>
+              </div>
+
+              <div class="form-group">
+                <div class="form-label-row">
+                  <label for="lost-observaciones" class="form-label">Observaciones (opcional)</label>
+                  <span class="char-counter">{{ formReportePerdido.controls.observaciones.value.length }}/500</span>
+                </div>
+                <textarea
+                  id="lost-observaciones"
+                  formControlName="observaciones"
+                  rows="3"
+                  class="form-textarea"
+                  placeholder="Agrega cualquier información adicional sobre el lugar o lo ocurrido."
+                  maxlength="500"
+                ></textarea>
               </div>
 
             </div>
@@ -766,6 +798,23 @@
               </div>
 
               <div class="form-group">
+                <div class="form-label-row">
+                  <label for="found-detalle-lugar" class="form-label">Detalle del lugar (opcional)</label>
+                  <span class="char-counter">{{ formReporteEncontrado.controls.detalleLugar.value.length }}/200</span>
+                </div>
+                <input
+                  id="found-detalle-lugar"
+                  type="text"
+                  formControlName="detalleLugar"
+                  class="form-input"
+                  placeholder="Ej. Bloque L, salón L503"
+                  maxlength="200"
+                  aria-describedby="found-detalle-lugar-help"
+                />
+                <small id="found-detalle-lugar-help" class="form-hint">Si fue en un bloque o zona grande, indica el salón, piso o punto exacto.</small>
+              </div>
+
+              <div class="form-group">
                 <label for="found-fecha" class="form-label">Fecha del hallazgo: *</label>
                 <input
                   id="found-fecha"
@@ -810,6 +859,21 @@
                     </div>
                   }
                 </div>
+              </div>
+
+              <div class="form-group">
+                <div class="form-label-row">
+                  <label for="found-observaciones" class="form-label">Observaciones (opcional)</label>
+                  <span class="char-counter">{{ formReporteEncontrado.controls.observaciones.value.length }}/500</span>
+                </div>
+                <textarea
+                  id="found-observaciones"
+                  formControlName="observaciones"
+                  rows="3"
+                  class="form-textarea"
+                  placeholder="Agrega cualquier información adicional sobre el lugar o lo ocurrido."
+                  maxlength="500"
+                ></textarea>
               </div>
 
             </div>

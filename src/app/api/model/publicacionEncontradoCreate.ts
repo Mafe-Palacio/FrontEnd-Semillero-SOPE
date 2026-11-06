@@ -20,6 +20,8 @@ export interface PublicacionEncontradoCreate {
     lugar_entrega_fisica_id: string;
     fecha_hallazgo: string;
     imagen_url?: string | null;
+    detalle_lugar?: string | null;
+    observaciones?: string | null;
 }
 export namespace PublicacionEncontradoCreate {
 }

@@ -29,6 +29,8 @@ export interface PublicacionEncontradoResponse {
     eliminacion_solicitada: boolean;
     motivo_eliminacion?: string | null;
     fecha_edicion?: string | null;
+    detalle_lugar?: string | null;
+    observaciones?: string | null;
 }
 export namespace PublicacionEncontradoResponse {
 }

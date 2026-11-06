@@ -179,7 +179,9 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     categoria: new FormControl<string>(CategoriaObjeto.Electronicos, { nonNullable: true, validators: [Validators.required] }),
     descripcion: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
     lugarPerdidaId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
-    fechaExtravio: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] })
+    detalleLugar: new FormControl<string>('', { nonNullable: true, validators: [Validators.maxLength(200)] }),
+    fechaExtravio: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    observaciones: new FormControl<string>('', { nonNullable: true, validators: [Validators.maxLength(500)] })
   });
 
   // Formulario "Encontré un objeto"
@@ -187,8 +189,10 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     categoria: new FormControl<string>(CategoriaObjeto.Electronicos, { nonNullable: true, validators: [Validators.required] }),
     descripcion: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
     lugarHallazgoId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    detalleLugar: new FormControl<string>('', { nonNullable: true, validators: [Validators.maxLength(200)] }),
     lugarEntregaId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
-    fechaHallazgo: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] })
+    fechaHallazgo: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    observaciones: new FormControl<string>('', { nonNullable: true, validators: [Validators.maxLength(500)] })
   });
 
   // Filtros de categoría: salen de core/categorias.ts (las mismas 11 categorías del backend)
@@ -485,7 +489,9 @@ export class CatalogoComponent implements OnInit, OnDestroy {
       categoria: CategoriaObjeto.Electronicos,
       descripcion: '',
       lugarPerdidaId: '',
-      fechaExtravio: new Date().toISOString().substring(0, 10)
+      detalleLugar: '',
+      fechaExtravio: new Date().toISOString().substring(0, 10),
+      observaciones: ''
     });
     this.cargarLugares();
     this.modalReportarPerdidoAbierto.set(true);
@@ -590,7 +596,23 @@ export class CatalogoComponent implements OnInit, OnDestroy {
         .obtenerTodasUbicacionesUbicacionesGet()
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-          next: (lista) => this.ubicaciones.set((lista || []).filter(u => u.activa !== false)),
+          next: (lista) => {
+            const activas = (lista || []).filter(u => u.activa !== false);
+            const normalizar = (n?: string | null) => (n || '').trim().toLowerCase();
+            const getPrioridad = (nombre?: string | null): number => {
+              const s = normalizar(nombre);
+              if (s === 'otros' || s === 'otro') return 2;
+              if (s === 'fuera del campus' || s === 'fuera de campus') return 3;
+              return 1;
+            };
+            const ordenadas = [...activas].sort((a, b) => {
+              const pa = getPrioridad(a.nombre);
+              const pb = getPrioridad(b.nombre);
+              if (pa !== pb) return pa - pb;
+              return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
+            });
+            this.ubicaciones.set(ordenadas);
+          },
           error: (err) =>
             this.snackBar.open(mensajeDeError(err, 'No se pudieron cargar las ubicaciones.'), 'Cerrar', { duration: 5000 })
         });
@@ -620,8 +642,10 @@ export class CatalogoComponent implements OnInit, OnDestroy {
         categoria: f.categoria as CategoriaObjeto,
         descripcion: f.descripcion.trim(),
         lugar_perdida_id: f.lugarPerdidaId,
+        detalle_lugar: f.detalleLugar.trim() || undefined,
         fecha_perdida: f.fechaExtravio,
-        imagen_url: this.imagenPerdidoUrl() || undefined
+        imagen_url: this.imagenPerdidoUrl() || undefined,
+        observaciones: f.observaciones.trim() || undefined
       })
       .pipe(finalize(() => this.enviando.set(false)), takeUntil(this.destroy$))
       .subscribe({
@@ -647,8 +671,10 @@ export class CatalogoComponent implements OnInit, OnDestroy {
       categoria: (categoriaPreseleccionada as CategoriaObjeto) || CategoriaObjeto.Electronicos,
       descripcion: '',
       lugarHallazgoId: '',
+      detalleLugar: '',
       lugarEntregaId: '',
-      fechaHallazgo: new Date().toISOString().substring(0, 10)
+      fechaHallazgo: new Date().toISOString().substring(0, 10),
+      observaciones: ''
     });
     this.cargarLugares();
     this.modalRegistrarEncontradoAbierto.set(true);
@@ -671,9 +697,11 @@ export class CatalogoComponent implements OnInit, OnDestroy {
         categoria: f.categoria as CategoriaObjeto,
         descripcion: f.descripcion.trim(),
         lugar_hallazgo_id: f.lugarHallazgoId,
+        detalle_lugar: f.detalleLugar.trim() || undefined,
         lugar_entrega_fisica_id: f.lugarEntregaId,
         fecha_hallazgo: f.fechaHallazgo,
-        imagen_url: this.imagenEncontradoUrl() || undefined
+        imagen_url: this.imagenEncontradoUrl() || undefined,
+        observaciones: f.observaciones.trim() || undefined
       })
       .pipe(finalize(() => this.enviando.set(false)), takeUntil(this.destroy$))
       .subscribe({

@@ -125,6 +125,18 @@
                     <mat-icon class="meta-icon">place</mat-icon>
                     <span><strong>Lugar:</strong> {{ getNombreUbicacion(rep.lugar_perdida_id) }}</span>
                   </div>
+                  @if (rep.detalle_lugar) {
+                    <div class="meta-row">
+                      <mat-icon class="meta-icon">meeting_room</mat-icon>
+                      <span><strong>Detalle:</strong> {{ rep.detalle_lugar }}</span>
+                    </div>
+                  }
+                  @if (rep.observaciones) {
+                    <div class="meta-row">
+                      <mat-icon class="meta-icon">notes</mat-icon>
+                      <span><strong>Observaciones:</strong> {{ rep.observaciones }}</span>
+                    </div>
+                  }
                   <div class="meta-row">
                     <mat-icon class="meta-icon">event</mat-icon>
                     <span><strong>Extravío:</strong> {{ formatearFecha(rep.fecha_perdida) }}</span>
@@ -236,6 +248,18 @@
                     <mat-icon class="meta-icon">explore</mat-icon>
                     <span><strong>Hallado en:</strong> {{ getNombreUbicacion(pub.lugar_hallazgo_id) }}</span>
                   </div>
+                  @if (pub.detalle_lugar) {
+                    <div class="meta-row">
+                      <mat-icon class="meta-icon">meeting_room</mat-icon>
+                      <span><strong>Detalle:</strong> {{ pub.detalle_lugar }}</span>
+                    </div>
+                  }
+                  @if (pub.observaciones) {
+                    <div class="meta-row">
+                      <mat-icon class="meta-icon">notes</mat-icon>
+                      <span><strong>Observaciones:</strong> {{ pub.observaciones }}</span>
+                    </div>
+                  }
                   <div class="meta-row">
                     <mat-icon class="meta-icon">storefront</mat-icon>
                     <span><strong>Entregado en:</strong> {{ getNombrePuntoEntrega(pub.lugar_entrega_fisica_id) }}</span>

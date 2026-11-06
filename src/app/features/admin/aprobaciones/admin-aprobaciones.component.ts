@@ -125,10 +125,22 @@ type TabTipo = 'perdidos' | 'encontrados' | 'bajas';
                             <mat-icon>place</mat-icon>
                             <span>Lugar extravío: <strong>{{ obtenerNombreUbicacion(item.lugar_perdida_id) }}</strong></span>
                           </span>
+                          @if (item.detalle_lugar) {
+                            <span class="aprob-meta-pill">
+                              <mat-icon>meeting_room</mat-icon>
+                              <span>Detalle del lugar: <strong>{{ item.detalle_lugar }}</strong></span>
+                            </span>
+                          }
                           <span class="aprob-meta-pill">
                             <mat-icon>event</mat-icon>
                             <span>Fecha pérdida: <strong>{{ item.fecha_perdida }}</strong></span>
                           </span>
+                          @if (item.observaciones) {
+                            <span class="aprob-meta-pill">
+                              <mat-icon>notes</mat-icon>
+                              <span>Observaciones: <strong>{{ item.observaciones }}</strong></span>
+                            </span>
+                          }
                         </div>
                       </div>
                     </div>
@@ -201,10 +213,22 @@ type TabTipo = 'perdidos' | 'encontrados' | 'bajas';
                             <mat-icon>place</mat-icon>
                             <span>Hallazgo: <strong>{{ obtenerNombreUbicacion(item.lugar_hallazgo_id) }}</strong></span>
                           </span>
+                          @if (item.detalle_lugar) {
+                            <span class="aprob-meta-pill">
+                              <mat-icon>meeting_room</mat-icon>
+                              <span>Detalle del lugar: <strong>{{ item.detalle_lugar }}</strong></span>
+                            </span>
+                          }
                           <span class="aprob-meta-pill">
                             <mat-icon>storefront</mat-icon>
                             <span>Punto custodia: <strong>{{ obtenerNombrePuntoEntrega(item.lugar_entrega_fisica_id) }}</strong></span>
                           </span>
+                          @if (item.observaciones) {
+                            <span class="aprob-meta-pill">
+                              <mat-icon>notes</mat-icon>
+                              <span>Observaciones: <strong>{{ item.observaciones }}</strong></span>
+                            </span>
+                          }
                         </div>
                       </div>
                     </div>

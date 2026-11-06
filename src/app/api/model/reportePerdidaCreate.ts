@@ -20,6 +20,8 @@ export interface ReportePerdidaCreate {
     fecha_perdida: string;
     hora_aproximada?: string | null;
     imagen_url?: string | null;
+    detalle_lugar?: string | null;
+    observaciones?: string | null;
 }
 export namespace ReportePerdidaCreate {
 }

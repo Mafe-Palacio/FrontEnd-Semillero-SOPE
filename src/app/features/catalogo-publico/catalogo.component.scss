@@ -877,6 +877,27 @@ $shadow-md: 0 6px 24px rgba(1, 28, 91, 0.12);
   color: $ing-navy;
 }
 
+.form-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.char-counter {
+  font-size: 11px;
+  font-weight: 600;
+  color: $muted;
+}
+
+.form-hint {
+  display: block;
+  font-size: 11.5px;
+  color: $muted;
+  line-height: 1.4;
+  margin-top: 3px;
+}
+
 .form-input,
 .form-textarea {
   width: 100%;
