@@ -111,6 +111,11 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   private readonly snackBar = inject(MatSnackBar);
   private readonly platformId = inject(PLATFORM_ID);
 
+  readonly puedeVerFechaIngreso = computed(() => {
+    const rol = this.authService.getUserRole();
+    return rol === 'ADMIN' || rol === 'SUPERADMIN';
+  });
+
   private readonly destroy$ = new Subject<void>();
 
   // Pestaña activa del muro público: Objetos en Custodia vs Reportados como Perdidos

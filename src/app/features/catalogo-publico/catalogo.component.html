@@ -224,10 +224,12 @@
                   <div class="card-body">
                     <div class="card-top-meta">
                       <span class="card-code">{{ item.codigoPublico }}</span>
-                      <span class="card-date">
-                        <mat-icon>calendar_today</mat-icon>
-                        {{ item.fechaFormateada }}
-                      </span>
+                      @if (puedeVerFechaIngreso()) {
+                        <span class="card-date">
+                          <mat-icon>calendar_today</mat-icon>
+                          {{ item.fechaFormateada }}
+                        </span>
+                      }
                     </div>
 
                     <h3 class="card-title">{{ item.descripcion }}</h3>
@@ -396,10 +398,12 @@
                   <mat-icon>place</mat-icon>
                   <span>{{ item.lugarGeneral }}</span>
                 </div>
-                <div class="summary-chip">
-                  <mat-icon>event</mat-icon>
-                  <span>Ingreso: {{ item.fechaFormateada }}</span>
-                </div>
+                @if (puedeVerFechaIngreso()) {
+                  <div class="summary-chip">
+                    <mat-icon>event</mat-icon>
+                    <span>Ingreso: {{ item.fechaFormateada }}</span>
+                  </div>
+                }
               </div>
 
               @if (cargandoPreguntas()) {
