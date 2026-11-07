@@ -1,5 +1,6 @@
-import { Component, OnInit, signal, ViewChild } from '@angular/core';
+import { Component, OnInit, signal, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { CustodiaInventarioComponent } from './custodia-inventario.component';
 import { CustodiaPreguntasComponent } from './custodia-preguntas.component';
@@ -112,10 +113,18 @@ export type TabCustodia = 'inventario' | 'preguntas' | 'reclamos' | 'matching';
 export class AdminCustodiaComponent implements OnInit {
   @ViewChild('inventarioComp') inventarioComp?: CustodiaInventarioComponent;
 
+  private route = inject(ActivatedRoute);
+
   tabActiva = signal<TabCustodia>('inventario');
   objetoIdSeleccionado = signal<string | null>(null);
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    const objeto = this.route.snapshot.queryParamMap.get('objeto');
+    if (tab === 'preguntas' && objeto) {
+      this.irAPreguntas(objeto);
+    }
+  }
 
   setTab(tab: TabCustodia): void {
     this.tabActiva.set(tab);

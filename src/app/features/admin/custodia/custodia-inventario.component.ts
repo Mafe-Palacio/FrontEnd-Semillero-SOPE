@@ -12,6 +12,8 @@ import { CategoriaObjeto } from '../../../api/model/categoriaObjeto';
 import { EstadoCustodia } from '../../../api/model/estadoCustodia';
 import { ObjetoEnCustodiaResponse } from '../../../api/model/objetoEnCustodiaResponse';
 import { PuntoEntregaResponse } from '../../../api/model/puntoEntregaResponse';
+import { AuthService } from '../../../core/auth.service';
+import { SedeAdminService } from '../../../core/sede-admin.service';
 
 @Component({
   selector: 'app-custodia-inventario',
@@ -484,14 +486,6 @@ import { PuntoEntregaResponse } from '../../../api/model/puntoEntregaResponse';
     }
   `,
   styles: [`
-    .filter-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;
-      gap: 12px;
-      align-items: end;
-      width: 100%;
-    }
-
     .filter-actions {
       display: flex;
       gap: 8px;
@@ -595,16 +589,18 @@ import { PuntoEntregaResponse } from '../../../api/model/puntoEntregaResponse';
 
     .location-name {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 4px;
       font-size: 0.82rem;
       color: #4b5563;
     }
 
     .location-name mat-icon {
+      flex: 0 0 16px;
       font-size: 16px !important;
       width: 16px !important;
       height: 16px !important;
+      margin-top: 1px;
       color: var(--ing-1);
     }
 
@@ -706,6 +702,8 @@ import { PuntoEntregaResponse } from '../../../api/model/puntoEntregaResponse';
 export class CustodiaInventarioComponent implements OnInit {
   private http = inject(HttpClient);
   private snack = inject(MatSnackBar);
+  private auth = inject(AuthService);
+  private sedeAdmin = inject(SedeAdminService);
 
   gestionarPreguntas = output<string>();
 
@@ -759,7 +757,12 @@ export class CustodiaInventarioComponent implements OnInit {
   }
 
   cargarPuntosEntrega(): void {
-    this.http.get<PuntoEntregaResponse[]>(`${API_URL}/puntos-entrega/`).subscribe({
+    const sedeId = this.auth.isSuperAdmin() ? this.sedeAdmin.selectedSedeId() : this.auth.getUserSedeId();
+    if (!sedeId) {
+      this.puntosEntrega.set([]);
+      return;
+    }
+    this.http.get<PuntoEntregaResponse[]>(`${API_URL}/puntos-entrega/?sede_id=${sedeId}&activa=true`).subscribe({
       next: (ptos) => this.puntosEntrega.set(Array.isArray(ptos) ? ptos : []),
       error: () => this.puntosEntrega.set([])
     });

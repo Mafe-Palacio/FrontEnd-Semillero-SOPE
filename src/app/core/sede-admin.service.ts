@@ -24,6 +24,7 @@ export class SedeAdminService {
   private sedesSignal = signal<SedeResponse[]>([]);
   private selectedSedeIdSignal = signal<string | null>(null);
   private loadingSignal = signal<boolean>(false);
+  private errorSedesSignal = signal<boolean>(false);
 
   readonly sedes = computed(() => this.sedesSignal());
   readonly selectedSedeId = computed(() => {
@@ -32,6 +33,7 @@ export class SedeAdminService {
     return id;
   });
   readonly isLoading = computed(() => this.loadingSignal());
+  readonly errorSedes = computed(() => this.errorSedesSignal());
 
   readonly selectedSede = computed(() => {
     const id = this.selectedSedeIdSignal();
@@ -58,26 +60,34 @@ export class SedeAdminService {
 
   /**
    * Carga las sedes activas de la institución.
-   * Si la API no responde o da 502, provee las sedes oficiales del ITM como respaldo visual.
    */
   cargarSedes(): Observable<SedeResponse[]> {
     this.loadingSignal.set(true);
+    this.errorSedesSignal.set(false);
     return this.http.get<SedeResponse[]>(`${API_URL}/sedes/`).pipe(
       tap((sedes) => {
         this.loadingSignal.set(false);
-        if (Array.isArray(sedes) && sedes.length > 0) {
-          this.sedesSignal.set(sedes);
-          this.autoSeleccionarSiEsAdmin(sedes);
-        } else {
-          this.usarSedesRespaldo();
-        }
+        const lista = Array.isArray(sedes) ? sedes : [];
+        this.sedesSignal.set(lista);
+        this.autoSeleccionarSiEsAdmin(lista);
       }),
       catchError(() => {
         this.loadingSignal.set(false);
-        this.usarSedesRespaldo();
+        this.errorSedesSignal.set(true);
+        if (isPlatformBrowser(this.platformId)) {
+          setTimeout(() => {
+            if (this.errorSedesSignal()) {
+              this.cargarSedes().subscribe();
+            }
+          }, 3000);
+        }
         return of(this.sedesSignal());
       })
     );
+  }
+
+  reintentarSedes(): void {
+    this.cargarSedes().subscribe();
   }
 
   seleccionarSede(sedeId: string): void {
@@ -112,52 +122,5 @@ export class SedeAdminService {
         this.limpiarSedeSeleccionada();
       }
     }
-  }
-
-  private usarSedesRespaldo(): void {
-    const sedesRespaldo: SedeResponse[] = [
-      {
-        sede_id: '11111111-1111-1111-1111-111111111111',
-        nombre: 'Sede Fraternidad (Boston)',
-        codigo: 'FRAT',
-        activa: true,
-        fecha_creacion: new Date().toISOString(),
-        fecha_edicion: new Date().toISOString()
-      },
-      {
-        sede_id: '22222222-2222-2222-2222-222222222222',
-        nombre: 'Sede Robledo',
-        codigo: 'ROBL',
-        activa: true,
-        fecha_creacion: new Date().toISOString(),
-        fecha_edicion: new Date().toISOString()
-      },
-      {
-        sede_id: '33333333-3333-3333-3333-333333333333',
-        nombre: 'Sede Castilla',
-        codigo: 'CAST',
-        activa: true,
-        fecha_creacion: new Date().toISOString(),
-        fecha_edicion: new Date().toISOString()
-      },
-      {
-        sede_id: '44444444-4444-4444-4444-444444444444',
-        nombre: 'Sede Prado',
-        codigo: 'PRAD',
-        activa: true,
-        fecha_creacion: new Date().toISOString(),
-        fecha_edicion: new Date().toISOString()
-      },
-      {
-        sede_id: '55555555-5555-5555-5555-555555555555',
-        nombre: 'Sede Floresta',
-        codigo: 'FLOR',
-        activa: true,
-        fecha_creacion: new Date().toISOString(),
-        fecha_edicion: new Date().toISOString()
-      }
-    ];
-
-    this.sedesSignal.set(sedesRespaldo);
   }
 }

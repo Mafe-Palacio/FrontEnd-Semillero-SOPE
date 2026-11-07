@@ -1,6 +1,7 @@
 import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, FormControl, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HttpClient } from '@angular/common/http';
@@ -75,6 +76,21 @@ type TabTipo = 'perdidos' | 'encontrados' | 'bajas';
           </div>
         </div>
       </div>
+
+      @if (ultimoAprobado(); as ua) {
+        <div class="aviso-preguntas" role="status">
+          <mat-icon>quiz</mat-icon>
+          <div class="aviso-preguntas-texto">
+            <strong>Objeto ingresado a custodia</strong>
+            <span>"{{ ua.descripcion }}" aún no tiene preguntas de seguridad. Sin ellas, nadie podrá reclamarlo.</span>
+          </div>
+          <button type="button" class="itm-btn itm-btn-primary" (click)="irACrearPreguntas()">
+            <mat-icon>arrow_forward</mat-icon>
+            <span>Ir a crear preguntas de seguridad</span>
+          </button>
+          <button type="button" class="itm-btn itm-btn-ghost" (click)="descartarAvisoPreguntas()">Después</button>
+        </div>
+      }
 
       <!-- Listado Principal -->
       <div class="itm-table-card">
@@ -564,6 +580,36 @@ type TabTipo = 'perdidos' | 'encontrados' | 'bajas';
       flex-shrink: 0;
     }
 
+    .aviso-preguntas {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-left: 4px solid var(--itm-azul);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+    }
+
+    .aviso-preguntas mat-icon {
+      color: var(--itm-azul, #011c5b);
+      font-size: 26px;
+      width: 26px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+
+    .aviso-preguntas-texto {
+      flex: 1 1 260px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.88rem;
+      color: #1f2937;
+    }
+
     .spin-icon {
       animation: itmSpin 1.1s linear infinite;
     }
@@ -577,6 +623,7 @@ type TabTipo = 'perdidos' | 'encontrados' | 'bajas';
 export class AdminAprobacionesComponent implements OnInit {
   private http = inject(HttpClient);
   private snack = inject(MatSnackBar);
+  private router = inject(Router);
   private reportesService = inject(ReportesDePrdidaService);
   private encontradosService = inject(PublicacionesEncontradasService);
   private ubicacionesService = inject(UbicacionesService);
@@ -585,6 +632,8 @@ export class AdminAprobacionesComponent implements OnInit {
 
   activeTab = signal<TabTipo>('perdidos');
   isLoading = signal(false);
+
+  ultimoAprobado = signal<{ objetoId: string; descripcion: string } | null>(null);
 
   listaPerdidos = signal<ReportePerdidaResponse[]>([]);
   listaEncontrados = signal<PublicacionEncontradoResponse[]>([]);
@@ -731,13 +780,41 @@ export class AdminAprobacionesComponent implements OnInit {
     });
   }
 
+  irACrearPreguntas(): void {
+    const ua = this.ultimoAprobado();
+    if (ua) {
+      this.router.navigate(['/admin/custodia'], { queryParams: { tab: 'preguntas', objeto: ua.objetoId } });
+      this.ultimoAprobado.set(null);
+    }
+  }
+
+  descartarAvisoPreguntas(): void {
+    this.ultimoAprobado.set(null);
+  }
+
   aprobarPublicacionEncontrado(id: string): void {
+    const itemPre = this.listaEncontrados().find((item) => item.publicacionEncontrado_id === id);
+    const itemDescripcion = itemPre?.descripcion || 'Objeto aprobado';
+
     this.encontradosService.moderarPublicacionEncontradaPublicacionesEncontradasPublicacionIdModeracionPut(id, {
       estado: 'APROBADA' as any
     }).subscribe({
       next: () => {
-        this.mostrarFeedback('Objeto verificado e ingresado exitosamente a custodia oficial ITM.');
+        this.mostrarFeedback('Objeto ingresado a custodia. Configura sus preguntas de seguridad.');
         this.listaEncontrados.update((list) => list.filter((item) => item.publicacionEncontrado_id !== id));
+
+        this.http.get<any[]>(`${API_URL}/objetos-custodia/`, { params: { publicacion: id } }).subscribe({
+          next: (objs) => {
+            const obj = Array.isArray(objs) ? objs[0] : null;
+            if (obj?.objetoEnCustodia_id) {
+              this.ultimoAprobado.set({
+                objetoId: obj.objetoEnCustodia_id,
+                descripcion: obj.descripcion || itemDescripcion
+              });
+            }
+          },
+          error: () => {}
+        });
       },
       error: (err) => {
         this.mostrarFeedback(mensajeDeError(err, 'Error al aprobar la publicación de hallazgo.'));

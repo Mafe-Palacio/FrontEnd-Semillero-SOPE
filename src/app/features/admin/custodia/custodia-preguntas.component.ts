@@ -14,6 +14,9 @@ import { ObjetoEnCustodiaResponse } from '../../../api/model/objetoEnCustodiaRes
   selector: 'app-custodia-preguntas',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MatIconModule, MatSnackBarModule],
+  host: {
+    '(document:keydown.escape)': 'onEscape()'
+  },
   template: `
     <div class="itm-tab-content">
 
@@ -73,7 +76,7 @@ import { ObjetoEnCustodiaResponse } from '../../../api/model/objetoEnCustodiaRes
 
             <button
               type="button"
-              (click)="borrarTodasPreguntas()"
+              (click)="pedirConfirmacionEliminarTodas()"
               class="itm-btn itm-btn-danger">
               <mat-icon>delete_sweep</mat-icon>
               <span>Borrar Todas</span>
@@ -86,9 +89,9 @@ import { ObjetoEnCustodiaResponse } from '../../../api/model/objetoEnCustodiaRes
       <div class="notice-card">
         <mat-icon class="notice-icon">admin_panel_settings</mat-icon>
         <div class="notice-body">
-          <h4>Cuestionario de Validación de Titularidad (HU04, HU08, HU20)</h4>
+          <h4>Preguntas de validación de titularidad</h4>
           <p>
-            Las <strong>respuestas correctas</strong> registradas son de uso <strong>estrictamente confidencial del administrador</strong> para evaluar reclamaciones. Los usuarios en el catálogo público solo verán las preguntas sin ninguna pista de respuesta.
+            Las respuestas correctas son confidenciales: solo las ve el administrador. Los usuarios únicamente verán las preguntas.
           </p>
         </div>
       </div>
@@ -163,7 +166,7 @@ import { ObjetoEnCustodiaResponse } from '../../../api/model/objetoEnCustodiaRes
                     </button>
                     <button
                       type="button"
-                      (click)="borrarPregunta(p)"
+                      (click)="pedirConfirmacionEliminar(p, idx + 1)"
                       class="itm-btn itm-btn-outline compact itm-btn-danger"
                       title="Eliminar esta pregunta">
                       <mat-icon>delete</mat-icon>
@@ -330,6 +333,122 @@ import { ObjetoEnCustodiaResponse } from '../../../api/model/objetoEnCustodiaRes
         </div>
       </div>
     }
+
+    <!-- Modal Confirmar Eliminar Pregunta Individual -->
+    @if (modalEliminarAbierto() && preguntaAEliminar(); as e) {
+      <div class="itm-modal-backdrop" (click)="cancelarEliminar()">
+        <div
+          class="itm-modal-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modalEliminarPreguntaTitulo"
+          (click)="$event.stopPropagation()">
+          <div class="itm-modal-header danger">
+            <h3 id="modalEliminarPreguntaTitulo">
+              <mat-icon>delete_forever</mat-icon>
+              <span>Eliminar pregunta</span>
+            </h3>
+            <button
+              type="button"
+              (click)="cancelarEliminar()"
+              [disabled]="guardando()"
+              class="itm-modal-close"
+              aria-label="Cerrar">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+
+          <div class="itm-modal-body">
+            <p style="margin: 0; font-size: 0.95rem; color: #1f2937;">
+              <strong>¿Deseas eliminar la pregunta #{{ e.numero }}?</strong>
+            </p>
+            <p style="margin: 0; font-size: 0.88rem; color: #4b5563; font-style: italic; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #e5e7eb;">
+              "{{ e.pregunta.pregunta }}"
+            </p>
+            <p style="margin: 0; font-size: 0.8rem; color: #dc2626; font-weight: 600;">
+              Esta acción no se puede deshacer.
+            </p>
+          </div>
+
+          <div class="itm-modal-footer">
+            <button
+              type="button"
+              (click)="cancelarEliminar()"
+              [disabled]="guardando()"
+              class="itm-btn itm-btn-ghost"
+              autofocus>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              (click)="confirmarEliminar()"
+              class="itm-btn itm-btn-primary itm-btn-danger-solid"
+              [disabled]="guardando()">
+              <mat-icon>{{ guardando() ? 'sync' : 'delete' }}</mat-icon>
+              <span>{{ guardando() ? 'Eliminando...' : 'Sí, eliminar' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Modal Confirmar Eliminar Todas las Preguntas -->
+    @if (modalEliminarTodasAbierto()) {
+      <div class="itm-modal-backdrop" (click)="cancelarEliminarTodas()">
+        <div
+          class="itm-modal-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modalEliminarTodasTitulo"
+          (click)="$event.stopPropagation()">
+          <div class="itm-modal-header danger">
+            <h3 id="modalEliminarTodasTitulo">
+              <mat-icon>delete_sweep</mat-icon>
+              <span>Eliminar todas las preguntas</span>
+            </h3>
+            <button
+              type="button"
+              (click)="cancelarEliminarTodas()"
+              [disabled]="guardando()"
+              class="itm-modal-close"
+              aria-label="Cerrar">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+
+          <div class="itm-modal-body">
+            <p style="margin: 0; font-size: 0.95rem; color: #1f2937;">
+              <strong>¿Eliminar TODAS las preguntas de seguridad de este objeto?</strong>
+            </p>
+            <p style="margin: 0; font-size: 0.88rem; color: #4b5563;">
+              Se eliminarán las {{ preguntas().length }} preguntas de validación asociadas.
+            </p>
+            <p style="margin: 0; font-size: 0.8rem; color: #dc2626; font-weight: 600;">
+              Esta acción no se puede deshacer.
+            </p>
+          </div>
+
+          <div class="itm-modal-footer">
+            <button
+              type="button"
+              (click)="cancelarEliminarTodas()"
+              [disabled]="guardando()"
+              class="itm-btn itm-btn-ghost"
+              autofocus>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              (click)="confirmarEliminarTodas()"
+              class="itm-btn itm-btn-primary itm-btn-danger-solid"
+              [disabled]="guardando()">
+              <mat-icon>{{ guardando() ? 'sync' : 'delete_sweep' }}</mat-icon>
+              <span>{{ guardando() ? 'Eliminando...' : 'Sí, eliminar todas' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
   styles: [`
     .questions-top-bar {
@@ -349,6 +468,7 @@ import { ObjetoEnCustodiaResponse } from '../../../api/model/objetoEnCustodiaRes
       display: flex;
       gap: 14px;
       padding: 14px 18px;
+      margin-top: 16px;
       margin-bottom: 16px;
       background: #eff6ff;
       border: 1px solid #bfdbfe;
@@ -549,6 +669,21 @@ import { ObjetoEnCustodiaResponse } from '../../../api/model/objetoEnCustodiaRes
     @keyframes itmSpin {
       to { transform: rotate(360deg); }
     }
+    .itm-btn-danger-solid {
+      background-color: #dc2626 !important;
+      color: #ffffff !important;
+      border: 1px solid #dc2626 !important;
+
+      &:hover:not(:disabled) {
+        background-color: #b91c1c !important;
+        border-color: #b91c1c !important;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
   `]
 })
 export class CustodiaPreguntasComponent implements OnInit {
@@ -567,6 +702,10 @@ export class CustodiaPreguntasComponent implements OnInit {
   modalCrearAbierto = signal<boolean>(false);
   modalEditarAbierto = signal<boolean>(false);
   preguntaEditando = signal<PreguntaSeguridadResponse | null>(null);
+
+  modalEliminarAbierto = signal<boolean>(false);
+  preguntaAEliminar = signal<{ pregunta: PreguntaSeguridadResponse; numero: number } | null>(null);
+  modalEliminarTodasAbierto = signal<boolean>(false);
 
   formCrear = new FormGroup({
     preguntas: new FormArray<FormGroup>([])
@@ -735,36 +874,74 @@ export class CustodiaPreguntasComponent implements OnInit {
       });
   }
 
-  borrarPregunta(p: PreguntaSeguridadResponse): void {
-    const confirmar = confirm(`¿Deseas eliminar la pregunta "${p.pregunta}"?`);
-    if (!confirmar) return;
-
-    this.http.delete(`${API_URL}/preguntas-seguridad/${p.preguntaSeguridad_id}`).subscribe({
-      next: () => {
-        this.snack.open('Pregunta eliminada.', 'Cerrar', { duration: 3000 });
-        this.cargarPreguntas();
-      },
-      error: (err) => {
-        this.snack.open(mensajeDeError(err, 'No fue posible eliminar la pregunta.'), 'Cerrar', { duration: 4500 });
-      }
-    });
+  onEscape(): void {
+    if (this.guardando()) return;
+    if (this.modalEliminarAbierto()) {
+      this.cancelarEliminar();
+    } else if (this.modalEliminarTodasAbierto()) {
+      this.cancelarEliminarTodas();
+    } else if (this.modalEditarAbierto()) {
+      this.cerrarModalEditar();
+    } else if (this.modalCrearAbierto()) {
+      this.cerrarModalCrear();
+    }
   }
 
-  borrarTodasPreguntas(): void {
+  pedirConfirmacionEliminar(p: PreguntaSeguridadResponse, numero: number): void {
+    this.preguntaAEliminar.set({ pregunta: p, numero });
+    this.modalEliminarAbierto.set(true);
+  }
+
+  cancelarEliminar(): void {
+    if (this.guardando()) return;
+    this.modalEliminarAbierto.set(false);
+    this.preguntaAEliminar.set(null);
+  }
+
+  confirmarEliminar(): void {
+    const item = this.preguntaAEliminar();
+    if (!item || this.guardando()) return;
+
+    this.guardando.set(true);
+    this.http.delete(`${API_URL}/preguntas-seguridad/${item.pregunta.preguntaSeguridad_id}`)
+      .pipe(finalize(() => this.guardando.set(false)))
+      .subscribe({
+        next: () => {
+          this.snack.open(`Pregunta #${item.numero} eliminada.`, 'Cerrar', { duration: 3000 });
+          this.cancelarEliminar();
+          this.cargarPreguntas();
+        },
+        error: (err) => {
+          this.snack.open(mensajeDeError(err, 'No fue posible eliminar la pregunta.'), 'Cerrar', { duration: 5000 });
+        }
+      });
+  }
+
+  pedirConfirmacionEliminarTodas(): void {
+    this.modalEliminarTodasAbierto.set(true);
+  }
+
+  cancelarEliminarTodas(): void {
+    if (this.guardando()) return;
+    this.modalEliminarTodasAbierto.set(false);
+  }
+
+  confirmarEliminarTodas(): void {
     const id = this.objetoIdActual();
-    if (!id) return;
+    if (!id || this.guardando()) return;
 
-    const confirmar = confirm('¿Confirmas eliminar TODAS las preguntas de seguridad asociadas a este objeto?');
-    if (!confirmar) return;
-
-    this.http.delete(`${API_URL}/preguntas-seguridad/objeto/${id}`).subscribe({
-      next: () => {
-        this.snack.open('Todas las preguntas fueron eliminadas.', 'Cerrar', { duration: 4000 });
-        this.cargarPreguntas();
-      },
-      error: (err) => {
-        this.snack.open(mensajeDeError(err, 'Error al eliminar las preguntas del objeto.'), 'Cerrar', { duration: 5000 });
-      }
-    });
+    this.guardando.set(true);
+    this.http.delete(`${API_URL}/preguntas-seguridad/objeto/${id}`)
+      .pipe(finalize(() => this.guardando.set(false)))
+      .subscribe({
+        next: () => {
+          this.snack.open('Todas las preguntas fueron eliminadas.', 'Cerrar', { duration: 4000 });
+          this.cancelarEliminarTodas();
+          this.cargarPreguntas();
+        },
+        error: (err) => {
+          this.snack.open(mensajeDeError(err, 'Error al eliminar las preguntas del objeto.'), 'Cerrar', { duration: 5000 });
+        }
+      });
   }
 }

@@ -149,6 +149,23 @@ import { SedeAdminService } from '../../core/sede-admin.service';
 
           <!-- Bloque Derecho: Selector de Sede + Badge de Usuario -->
           <div class="topbar-right">
+            @if (sedeAdmin.errorSedes()) {
+              <div class="sede-error-banner" role="alert">
+                <mat-icon class="sede-error-icon">warning</mat-icon>
+                <span class="sede-error-text">No se pudieron cargar las sedes</span>
+                <button 
+                  type="button" 
+                  class="btn-reintentar-sedes" 
+                  (click)="sedeAdmin.reintentarSedes()" 
+                  [disabled]="sedeAdmin.isLoading()">
+                  @if (!sedeAdmin.isLoading()) {
+                    <mat-icon class="reintentar-icon">refresh</mat-icon>
+                  }
+                  <span>{{ sedeAdmin.isLoading() ? 'Cargando...' : 'Reintentar' }}</span>
+                </button>
+              </div>
+            }
+
             @if (isSuperAdmin()) {
               <div class="sede-select-wrapper">
                 <select 
@@ -500,6 +517,64 @@ import { SedeAdminService } from '../../core/sede-admin.service';
       flex-shrink: 0;
     }
 
+    .sede-error-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: #FEF2F2;
+      border: 1px solid #FCA5A5;
+      padding: 5px 10px;
+      border-radius: 10px;
+      color: #991B1B;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .sede-error-icon {
+      font-size: 18px !important;
+      width: 18px !important;
+      height: 18px !important;
+      line-height: 18px !important;
+      color: #B23B24;
+      flex-shrink: 0;
+    }
+
+    .sede-error-text {
+      white-space: nowrap;
+    }
+
+    .btn-reintentar-sedes {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background-color: #B23B24;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background-color 0.2s, opacity 0.2s;
+    }
+
+    .btn-reintentar-sedes:hover:not(:disabled) {
+      background-color: #8E2E1B;
+    }
+
+    .btn-reintentar-sedes:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .reintentar-icon {
+      font-size: 14px !important;
+      width: 14px !important;
+      height: 14px !important;
+      line-height: 14px !important;
+    }
+
     .sede-select-wrapper {
       position: relative;
     }
@@ -608,7 +683,7 @@ import { SedeAdminService } from '../../core/sede-admin.service';
 })
 export class AdminLayoutComponent implements OnInit {
   private auth = inject(AuthService);
-  private sedeAdmin = inject(SedeAdminService);
+  sedeAdmin = inject(SedeAdminService);
   private router = inject(Router);
 
   sedes = this.sedeAdmin.sedes;
@@ -627,10 +702,13 @@ export class AdminLayoutComponent implements OnInit {
 
   currentSedeNombre = computed(() => {
     const s = this.sedeAdmin.selectedSede();
-    return s ? s.nombre : (this.isSuperAdmin() ? 'Supervisión Global' : 'Sede Fraternidad');
+    return s ? s.nombre : (this.isSuperAdmin() ? 'Supervisión Global' : 'Sede asignada');
   });
 
   ngOnInit(): void {
+    if (this.auth.isSuperAdmin()) {
+      this.sedeAdmin.limpiarSedeSeleccionada();
+    }
     this.sedeAdmin.cargarSedes().subscribe();
   }
 

@@ -37,7 +37,7 @@ export interface UsuarioReclamanteInfo {
       <!-- Filtros de Reclamos -->
       <div class="itm-filter-bar">
         <form [formGroup]="filterForm" (ngSubmit)="aplicarFiltros()" class="filter-grid">
-          <div class="itm-field">
+          <div class="itm-field field-wide">
             <label for="filtroEstadoReclamo" class="itm-label">Estado del Reclamo</label>
             <select id="filtroEstadoReclamo" formControlName="estado" class="itm-select">
               <option value="">Todos los estados</option>
@@ -51,12 +51,12 @@ export interface UsuarioReclamanteInfo {
             </select>
           </div>
 
-          <div class="itm-field">
+          <div class="itm-field field-date">
             <label for="filtroFechaDesde" class="itm-label">Desde</label>
             <input id="filtroFechaDesde" type="date" formControlName="fecha_desde" class="itm-input" />
           </div>
 
-          <div class="itm-field">
+          <div class="itm-field field-date">
             <label for="filtroFechaHasta" class="itm-label">Hasta</label>
             <input id="filtroFechaHasta" type="date" formControlName="fecha_hasta" class="itm-input" />
           </div>
@@ -580,14 +580,6 @@ export interface UsuarioReclamanteInfo {
 
   `,
   styles: [`
-    .filter-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;
-      gap: 12px;
-      align-items: end;
-      width: 100%;
-    }
-
     .filter-actions {
       display: flex;
       gap: 8px;

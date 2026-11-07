@@ -31,7 +31,7 @@ export interface PosibleCoincidenciaItem {
 
       <!-- Barra de Filtros y Acción de Smart Match -->
       <div class="itm-filter-bar">
-        <form [formGroup]="filterForm" (ngSubmit)="aplicarFiltros()" class="filter-grid">
+        <form [formGroup]="filterForm" (ngSubmit)="aplicarFiltros()" class="filter-grid dos-columnas">
           <div class="itm-field">
             <label for="filtroScore" class="itm-label">Score Mínimo (%)</label>
             <select id="filtroScore" formControlName="score_minimo" class="itm-select">
@@ -81,9 +81,9 @@ export interface PosibleCoincidenciaItem {
       <div class="match-info-card">
         <mat-icon class="match-info-icon">psychology</mat-icon>
         <div>
-          <h4>Cotejo Algorítmico de Coincidencias (Smart Match · HU25)</h4>
+          <h4>Coincidencias automáticas</h4>
           <p>
-            Compara de manera cruzada las categorías, sedes y ventana temporal (-7 a +60 días) de los <strong>objetos físicos en custodia</strong> contra los <strong>reportes de pérdida ciudadanos aprobados</strong> para alertar oportunamente a los legítimos propietarios.
+            Compara los objetos en custodia con los reportes de pérdida aprobados para avisar a sus posibles dueños.
           </p>
         </div>
       </div>
@@ -232,14 +232,6 @@ export interface PosibleCoincidenciaItem {
     </div>
   `,
   styles: [`
-    .filter-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;
-      gap: 12px;
-      align-items: end;
-      width: 100%;
-    }
-
     .filter-actions {
       display: flex;
       gap: 8px;
@@ -254,6 +246,7 @@ export interface PosibleCoincidenciaItem {
       display: flex;
       gap: 14px;
       padding: 14px 18px;
+      margin-top: 16px;
       margin-bottom: 16px;
       background: #f0fdf4;
       border: 1px solid #bbf7d0;

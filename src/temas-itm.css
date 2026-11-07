@@ -716,3 +716,36 @@ a:hover { color: var(--ing-1); text-decoration: underline; }
   justify-content: flex-end;
   gap: 10px;
 }
+
+.itm-modal-card > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.itm-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.itm-modal-body > * {
+  flex-shrink: 0;
+}
+.itm-modal-header,
+.itm-modal-footer {
+  flex-shrink: 0;
+}
+
+/* ===== Filtros compactos del módulo de custodia ===== */
+.itm-filter-bar { padding: 12px 16px; gap: 10px; border-radius: 14px; }
+.filter-grid { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; width: 100%; }
+.filter-grid .itm-field { flex: 1 1 150px; min-width: 140px; gap: 4px; }
+.filter-grid .itm-field.field-wide { flex: 2 1 220px; }
+.filter-grid .itm-field.field-date { flex: 0 1 160px; }
+.filter-grid.dos-columnas .itm-field { flex: 1 1 calc(50% - 6px); min-width: 0; }
+.filter-grid .itm-label { font-size: 0.68rem; letter-spacing: .02em; }
+.filter-grid .itm-select, .filter-grid .itm-input { padding: 6px 10px; font-size: 0.8rem; border-radius: 8px; }
+.filter-grid .filter-actions { display: flex; gap: 6px; }
+.filter-grid.dos-columnas .filter-actions { flex: 0 0 100%; }
+.itm-filter-bar .itm-btn { padding: 6px 12px !important; font-size: 0.78rem !important; border-radius: 8px !important; gap: 6px; }
+.itm-filter-bar .itm-btn mat-icon, .itm-filter-bar .itm-btn .mat-icon { font-size: 16px; width: 16px; height: 16px; }
+.itm-filter-bar .top-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
