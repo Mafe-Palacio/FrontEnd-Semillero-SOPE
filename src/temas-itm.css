@@ -66,8 +66,8 @@ button.mat-mdc-raised-button, button.mat-mdc-unelevated-button,
   cursor: pointer;
   transition: background .2s, transform .1s, box-shadow .2s;
 }
-button.mat-mdc-raised-button:hover, button.mat-mdc-unelevated-button:hover,
-.btn:hover, .btn-primary:hover, button[type="submit"]:hover {
+button.mat-mdc-raised-button:hover, button.mat-mdc-unelevated-button:not(.login-button):hover,
+.btn:hover, .btn-primary:hover, button[type="submit"]:not(.login-button):hover {
   background: var(--ing-2);
   box-shadow: 0 4px 12px rgba(16, 45, 105, .25);
 }

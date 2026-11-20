@@ -14,7 +14,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterModule } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Subject, forkJoin, of } from 'rxjs';
-import { debounceTime, distinctUntilChanged, takeUntil, finalize, startWith, switchMap } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, takeUntil, finalize, startWith, switchMap, catchError } from 'rxjs/operators';
 
 // Angular Material
 import { MatIconModule } from '@angular/material/icon';
@@ -27,6 +27,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 // Core Services & API
 import { API_URL } from '../../core/api.config';
 import { AuthService } from '../../core/auth.service';
+import { SedeAdminService } from '../../core/sede-admin.service';
 import { CATEGORIAS } from '../../core/categorias';
 import { mensajeDeError } from '../../core/api-error';
 import { ObjetosEnCustodiaService } from '../../api/api/objetosEnCustodia.service';
@@ -55,6 +56,7 @@ export interface ObjetoCatalogoItem {
   categoria: CategoriaObjeto;
   categoriaEtiqueta: string;
   sede: string;
+  lugarOrigenId: string;
   lugarGeneral: string;
   fechaIngreso: string;
   fechaFormateada: string;
@@ -107,9 +109,14 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   private readonly puntosService = inject(PuntosEntregaService);
   private readonly reportesService = inject(ReportesDePrdidaService);
   private readonly authService = inject(AuthService);
+  private readonly sedeAdminService = inject(SedeAdminService);
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
   private readonly platformId = inject(PLATFORM_ID);
+
+  readonly sedesActivas = computed(() =>
+    this.sedeAdminService.sedes().filter((s) => s.activa !== false)
+  );
 
   readonly puedeVerFechaIngreso = computed(() => {
     const rol = this.authService.getUserRole();
@@ -147,6 +154,11 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   readonly reporteEncontradoEnviado = signal<boolean>(false);
   readonly ubicaciones = signal<UbicacionResponse[]>([]);
   readonly puntosEntrega = signal<PuntoEntregaResponse[]>([]);
+  readonly ubicacionesPerdido = signal<UbicacionResponse[]>([]);
+  readonly ubicacionesEncontrado = signal<UbicacionResponse[]>([]);
+  readonly puntosEntregaEncontrado = signal<PuntoEntregaResponse[]>([]);
+  readonly cargandoUbicacionesPerdido = signal<boolean>(false);
+  readonly cargandoLugaresEncontrado = signal<boolean>(false);
   readonly enviando = signal<boolean>(false);
 
   // Estado de carga de fotografías (HU28 - POST /imagenes)
@@ -164,11 +176,12 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   readonly filtrosForm = new FormGroup({
     termino: new FormControl<string>('', { nonNullable: true }),
     categoria: new FormControl<string>('TODAS', { nonNullable: true }),
+    sede: new FormControl<string>('TODAS', { nonNullable: true }),
     orden: new FormControl<'recientes' | 'antiguos'>('recientes', { nonNullable: true })
   });
 
   // Los valores de un FormGroup NO son signals: sin esto, `computed` no se entera de que
-  // cambió la búsqueda/categoría/orden y la lista nunca se filtra.
+  // cambió la búsqueda/categoría/sede/orden y la lista nunca se filtra.
   private readonly filtros = toSignal(
     this.filtrosForm.valueChanges.pipe(startWith(this.filtrosForm.getRawValue())),
     { initialValue: this.filtrosForm.getRawValue() }
@@ -178,7 +191,8 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   readonly formReportePerdido = new FormGroup({
     categoria: new FormControl<string>(CategoriaObjeto.Electronicos, { nonNullable: true, validators: [Validators.required] }),
     descripcion: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
-    lugarPerdidaId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    sedeId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    lugarPerdidaId: new FormControl<string>({ value: '', disabled: true }, { nonNullable: true, validators: [Validators.required] }),
     detalleLugar: new FormControl<string>('', { nonNullable: true, validators: [Validators.maxLength(200)] }),
     fechaExtravio: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
     observaciones: new FormControl<string>('', { nonNullable: true, validators: [Validators.maxLength(500)] })
@@ -188,9 +202,10 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   readonly formReporteEncontrado = new FormGroup({
     categoria: new FormControl<string>(CategoriaObjeto.Electronicos, { nonNullable: true, validators: [Validators.required] }),
     descripcion: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
-    lugarHallazgoId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    sedeId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    lugarHallazgoId: new FormControl<string>({ value: '', disabled: true }, { nonNullable: true, validators: [Validators.required] }),
     detalleLugar: new FormControl<string>('', { nonNullable: true, validators: [Validators.maxLength(200)] }),
-    lugarEntregaId: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
+    lugarEntregaId: new FormControl<string>({ value: '', disabled: true }, { nonNullable: true, validators: [Validators.required] }),
     fechaHallazgo: new FormControl<string>('', { nonNullable: true, validators: [Validators.required] }),
     observaciones: new FormControl<string>('', { nonNullable: true, validators: [Validators.maxLength(500)] })
   });
@@ -209,14 +224,22 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   readonly objetosFiltrados = computed(() => {
     const lista = this.objetos();
     this.filtros();
+    // Leer señales de ubicaciones/puntos para recalcular al cargar sedes/lugares
+    this.ubicaciones();
+    this.puntosEntrega();
     const f = this.filtrosForm.getRawValue();
     const query = f.termino.trim().toLowerCase();
     const cat = f.categoria;
+    const sede = f.sede;
     const orden = f.orden;
 
     return lista
       .filter((item) => {
         if (cat !== 'TODAS' && item.categoria !== cat) {
+          return false;
+        }
+
+        if (sede !== 'TODAS' && !this.coincideObjetoConSede(item, sede)) {
           return false;
         }
 
@@ -243,15 +266,28 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   readonly perdidosFiltrados = computed(() => {
     const lista = this.perdidosPublicos();
     this.filtros();
+    const ubis = this.ubicaciones();
     const f = this.filtrosForm.getRawValue();
     const query = f.termino.trim().toLowerCase();
     const cat = f.categoria;
+    const sede = f.sede;
     const orden = f.orden;
 
     return lista
       .filter((item) => {
         if (cat !== 'TODAS' && item.categoria !== cat) {
           return false;
+        }
+
+        if (sede !== 'TODAS') {
+          const lugarNorm = (item.lugar_perdida_nombre || '').trim().toLowerCase();
+          const coincideSede = Boolean(
+            lugarNorm &&
+              ubis.some((u) => u.sede_id === sede && (u.nombre || '').trim().toLowerCase() === lugarNorm)
+          );
+          if (!coincideSede) {
+            return false;
+          }
         }
 
         if (query) {
@@ -279,6 +315,9 @@ export class CatalogoComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.suscribirCambiosFiltros();
+    this.suscribirCambiosSedeFormularios();
+    this.cargarSedesSiHaceFalta();
+    this.cargarLugares();
     this.cargarCatalogo();
     this.cargarPerdidosPublicos();
   }
@@ -316,6 +355,135 @@ export class CatalogoComponent implements OnInit, OnDestroy {
       .subscribe(() => {});
   }
 
+  private suscribirCambiosSedeFormularios(): void {
+    // Formulario "Se me perdió un objeto": al cambiar sede, limpiar y cargar ubicaciones de esa sede
+    this.formReportePerdido.controls.sedeId.valueChanges
+      .pipe(
+        switchMap((sedeId) => {
+          const lugarCtrl = this.formReportePerdido.controls.lugarPerdidaId;
+          lugarCtrl.setValue('', { emitEvent: false });
+
+          if (!sedeId) {
+            lugarCtrl.disable({ emitEvent: false });
+            this.ubicacionesPerdido.set([]);
+            this.cargandoUbicacionesPerdido.set(false);
+            return of(null);
+          }
+
+          lugarCtrl.enable({ emitEvent: false });
+          this.ubicacionesPerdido.set(this.ordenarUbicaciones(this.ubicaciones().filter((u) => u.sede_id === sedeId)));
+          this.cargandoUbicacionesPerdido.set(true);
+
+          return this.ubicacionesService.obtenerTodasUbicacionesUbicacionesGet(sedeId).pipe(
+            catchError(() => of(null)),
+            finalize(() => this.cargandoUbicacionesPerdido.set(false))
+          );
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((lista) => {
+        const sedeId = this.formReportePerdido.controls.sedeId.value;
+        if (Array.isArray(lista) && sedeId) {
+          const filtradas = lista.filter((u) => u.activa !== false && u.sede_id === sedeId);
+          this.ubicacionesPerdido.set(this.ordenarUbicaciones(filtradas));
+        }
+      });
+
+    // Formulario "Encontré un objeto": al cambiar sede, limpiar y cargar ubicaciones + puntos de entrega de esa sede
+    this.formReporteEncontrado.controls.sedeId.valueChanges
+      .pipe(
+        switchMap((sedeId) => {
+          const lugarCtrl = this.formReporteEncontrado.controls.lugarHallazgoId;
+          const entregaCtrl = this.formReporteEncontrado.controls.lugarEntregaId;
+          lugarCtrl.setValue('', { emitEvent: false });
+          entregaCtrl.setValue('', { emitEvent: false });
+
+          if (!sedeId) {
+            lugarCtrl.disable({ emitEvent: false });
+            entregaCtrl.disable({ emitEvent: false });
+            this.ubicacionesEncontrado.set([]);
+            this.puntosEntregaEncontrado.set([]);
+            this.cargandoLugaresEncontrado.set(false);
+            return of(null);
+          }
+
+          lugarCtrl.enable({ emitEvent: false });
+          entregaCtrl.enable({ emitEvent: false });
+          this.ubicacionesEncontrado.set(
+            this.ordenarUbicaciones(this.ubicaciones().filter((u) => u.sede_id === sedeId))
+          );
+          this.puntosEntregaEncontrado.set(
+            this.puntosEntrega().filter((p) => p.activa !== false && p.sede_id === sedeId)
+          );
+          this.cargandoLugaresEncontrado.set(true);
+
+          return forkJoin({
+            ubicaciones: this.ubicacionesService
+              .obtenerTodasUbicacionesUbicacionesGet(sedeId)
+              .pipe(catchError(() => of(null))),
+            puntos: this.puntosService
+              .obtenerTodosPuntosEntregaPuntosEntregaGet(sedeId, undefined, undefined, true)
+              .pipe(catchError(() => of(null)))
+          }).pipe(finalize(() => this.cargandoLugaresEncontrado.set(false)));
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((res) => {
+        const sedeId = this.formReporteEncontrado.controls.sedeId.value;
+        if (!res || !sedeId) return;
+        if (Array.isArray(res.ubicaciones)) {
+          const filtradas = res.ubicaciones.filter((u) => u.activa !== false && u.sede_id === sedeId);
+          this.ubicacionesEncontrado.set(this.ordenarUbicaciones(filtradas));
+        }
+        if (Array.isArray(res.puntos)) {
+          const puntosFiltrados = res.puntos.filter((p) => p.activa !== false && p.sede_id === sedeId);
+          this.puntosEntregaEncontrado.set(puntosFiltrados);
+        }
+      });
+  }
+
+  private cargarSedesSiHaceFalta(): void {
+    if (this.sedeAdminService.sedes().length === 0 && !this.sedeAdminService.isLoading()) {
+      this.sedeAdminService.cargarSedes().pipe(takeUntil(this.destroy$)).subscribe();
+    }
+  }
+
+  private ordenarUbicaciones(lista: UbicacionResponse[]): UbicacionResponse[] {
+    const normalizar = (n?: string | null) => (n || '').trim().toLowerCase();
+    const getPrioridad = (nombre?: string | null): number => {
+      const s = normalizar(nombre);
+      if (s === 'otros' || s === 'otro') return 2;
+      if (s === 'fuera del campus' || s === 'fuera de campus') return 3;
+      return 1;
+    };
+    return [...lista].sort((a, b) => {
+      const pa = getPrioridad(a.nombre);
+      const pb = getPrioridad(b.nombre);
+      if (pa !== pb) return pa - pb;
+      return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
+    });
+  }
+
+  private coincideObjetoConSede(item: ObjetoCatalogoItem, sedeId: string): boolean {
+    const puntos = this.puntosEntrega();
+    const ubis = this.ubicaciones();
+
+    if (item.lugarOrigenId) {
+      const ptoPorId = puntos.find((p) => p.puntoEntrega_id === item.lugarOrigenId);
+      if (ptoPorId) return ptoPorId.sede_id === sedeId;
+      const ubiPorId = ubis.find((u) => u.ubicacion_id === item.lugarOrigenId);
+      if (ubiPorId) return ubiPorId.sede_id === sedeId;
+    }
+
+    const lugarNorm = (item.lugarGeneral || '').trim().toLowerCase();
+    if (!lugarNorm) return false;
+
+    return (
+      ubis.some((u) => u.sede_id === sedeId && (u.nombre || '').trim().toLowerCase() === lugarNorm) ||
+      puntos.some((p) => p.sede_id === sedeId && (p.nombre || '').trim().toLowerCase() === lugarNorm)
+    );
+  }
+
   cargarCatalogo(): void {
     this.cargando.set(true);
     this.errorMensaje.set(null);
@@ -349,6 +517,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
       categoria: item.categoria,
       categoriaEtiqueta: etiqueta,
       sede: 'ITM',
+      lugarOrigenId: item.lugar_origen_id || '',
       lugarGeneral: item.lugar_origen_nombre ?? 'Oficina de custodia',
       fechaIngreso: item.fecha_ingreso,
       fechaFormateada: this.formatearFecha(fecha),
@@ -376,6 +545,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     this.filtrosForm.setValue({
       termino: '',
       categoria: 'TODAS',
+      sede: 'TODAS',
       orden: 'recientes'
     });
   }
@@ -485,14 +655,21 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     this.imagenPerdidoUrl.set(null);
     this.imagenPerdidoNombre.set(null);
     this.subiendoImagenPerdido.set(false);
-    this.formReportePerdido.reset({
-      categoria: CategoriaObjeto.Electronicos,
-      descripcion: '',
-      lugarPerdidaId: '',
-      detalleLugar: '',
-      fechaExtravio: new Date().toISOString().substring(0, 10),
-      observaciones: ''
-    });
+    this.ubicacionesPerdido.set([]);
+    this.formReportePerdido.reset(
+      {
+        categoria: CategoriaObjeto.Electronicos,
+        descripcion: '',
+        sedeId: '',
+        lugarPerdidaId: '',
+        detalleLugar: '',
+        fechaExtravio: new Date().toISOString().substring(0, 10),
+        observaciones: ''
+      },
+      { emitEvent: false }
+    );
+    this.formReportePerdido.controls.lugarPerdidaId.disable({ emitEvent: false });
+    this.cargarSedesSiHaceFalta();
     this.cargarLugares();
     this.modalReportarPerdidoAbierto.set(true);
   }
@@ -597,24 +774,10 @@ export class CatalogoComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (lista) => {
-            const activas = (lista || []).filter(u => u.activa !== false);
-            const normalizar = (n?: string | null) => (n || '').trim().toLowerCase();
-            const getPrioridad = (nombre?: string | null): number => {
-              const s = normalizar(nombre);
-              if (s === 'otros' || s === 'otro') return 2;
-              if (s === 'fuera del campus' || s === 'fuera de campus') return 3;
-              return 1;
-            };
-            const ordenadas = [...activas].sort((a, b) => {
-              const pa = getPrioridad(a.nombre);
-              const pb = getPrioridad(b.nombre);
-              if (pa !== pb) return pa - pb;
-              return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
-            });
-            this.ubicaciones.set(ordenadas);
+            const activas = (lista || []).filter((u) => u.activa !== false);
+            this.ubicaciones.set(this.ordenarUbicaciones(activas));
           },
-          error: (err) =>
-            this.snackBar.open(mensajeDeError(err, 'No se pudieron cargar las ubicaciones.'), 'Cerrar', { duration: 5000 })
+          error: () => {}
         });
     }
     if (this.puntosEntrega().length === 0) {
@@ -622,9 +785,8 @@ export class CatalogoComponent implements OnInit, OnDestroy {
         .obtenerTodosPuntosEntregaPuntosEntregaGet()
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-          next: (lista) => this.puntosEntrega.set((lista || []).filter(p => p.activa !== false)),
-          error: (err) =>
-            this.snackBar.open(mensajeDeError(err, 'No se pudieron cargar los puntos de entrega.'), 'Cerrar', { duration: 5000 })
+          next: (lista) => this.puntosEntrega.set((lista || []).filter((p) => p.activa !== false)),
+          error: () => {}
         });
     }
   }
@@ -632,7 +794,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   enviarReportePerdido(): void {
     if (this.formReportePerdido.invalid || this.enviando() || this.subiendoImagenPerdido()) {
       this.formReportePerdido.markAllAsTouched();
-      this.snackBar.open('Completa categoría, descripción, lugar y fecha.', 'Cerrar', { duration: 3000 });
+      this.snackBar.open('Completa categoría, descripción, sede, lugar y fecha.', 'Cerrar', { duration: 3000 });
       return;
     }
     const f = this.formReportePerdido.getRawValue();
@@ -667,15 +829,24 @@ export class CatalogoComponent implements OnInit, OnDestroy {
     this.imagenEncontradoUrl.set(null);
     this.imagenEncontradoNombre.set(null);
     this.subiendoImagenEncontrado.set(false);
-    this.formReporteEncontrado.reset({
-      categoria: (categoriaPreseleccionada as CategoriaObjeto) || CategoriaObjeto.Electronicos,
-      descripcion: '',
-      lugarHallazgoId: '',
-      detalleLugar: '',
-      lugarEntregaId: '',
-      fechaHallazgo: new Date().toISOString().substring(0, 10),
-      observaciones: ''
-    });
+    this.ubicacionesEncontrado.set([]);
+    this.puntosEntregaEncontrado.set([]);
+    this.formReporteEncontrado.reset(
+      {
+        categoria: (categoriaPreseleccionada as CategoriaObjeto) || CategoriaObjeto.Electronicos,
+        descripcion: '',
+        sedeId: '',
+        lugarHallazgoId: '',
+        detalleLugar: '',
+        lugarEntregaId: '',
+        fechaHallazgo: new Date().toISOString().substring(0, 10),
+        observaciones: ''
+      },
+      { emitEvent: false }
+    );
+    this.formReporteEncontrado.controls.lugarHallazgoId.disable({ emitEvent: false });
+    this.formReporteEncontrado.controls.lugarEntregaId.disable({ emitEvent: false });
+    this.cargarSedesSiHaceFalta();
     this.cargarLugares();
     this.modalRegistrarEncontradoAbierto.set(true);
   }
@@ -687,7 +858,7 @@ export class CatalogoComponent implements OnInit, OnDestroy {
   enviarReporteEncontrado(): void {
     if (this.formReporteEncontrado.invalid || this.enviando() || this.subiendoImagenEncontrado()) {
       this.formReporteEncontrado.markAllAsTouched();
-      this.snackBar.open('Completa categoría, descripción, lugares y fecha.', 'Cerrar', { duration: 3000 });
+      this.snackBar.open('Completa categoría, descripción, sede, lugares y fecha.', 'Cerrar', { duration: 3000 });
       return;
     }
     const f = this.formReporteEncontrado.getRawValue();

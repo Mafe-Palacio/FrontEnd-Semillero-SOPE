@@ -102,6 +102,19 @@
           </div>
 
           <div class="sort-selector-box">
+            <label for="sede-filtro-select" class="sort-label">
+              <mat-icon>apartment</mat-icon>
+              <span>Sede:</span>
+            </label>
+            <select id="sede-filtro-select" formControlName="sede" class="sort-select">
+              <option value="TODAS">Todas las sedes</option>
+              @for (s of sedesActivas(); track s.sede_id) {
+                <option [value]="s.sede_id">{{ s.nombre }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="sort-selector-box">
             <label for="orden-select" class="sort-label">
               <mat-icon>sort</mat-icon>
               <span>Orden:</span>
@@ -151,7 +164,7 @@
             }
           </div>
 
-          @if (filtrosForm.controls.termino.value || filtrosForm.controls.categoria.value !== 'TODAS') {
+          @if (filtrosForm.controls.termino.value || filtrosForm.controls.categoria.value !== 'TODAS' || filtrosForm.controls.sede.value !== 'TODAS') {
             <button type="button" class="reset-filters-btn" (click)="limpiarFiltros()">
               <mat-icon>filter_alt_off</mat-icon>
               <span>Restablecer filtros</span>
@@ -600,12 +613,24 @@
                 ></textarea>
               </div>
 
+              <div class="form-group">
+                <label for="lost-sede" class="form-label">Sede: *</label>
+                <select id="lost-sede" formControlName="sedeId" class="form-input">
+                  <option value="" disabled>Selecciona una sede</option>
+                  @for (s of sedesActivas(); track s.sede_id) {
+                    <option [value]="s.sede_id">{{ s.nombre }}</option>
+                  }
+                </select>
+              </div>
+
               <div class="form-row-2">
                 <div class="form-group">
-                  <label for="lost-lugar" class="form-label">Lugar donde crees haberlo perdido: *</label>
+                  <label for="lost-lugar" class="form-label">¿Dónde lo perdiste?: *</label>
                   <select id="lost-lugar" formControlName="lugarPerdidaId" class="form-input">
-                    <option value="" disabled>Selecciona una ubicación</option>
-                    @for (u of ubicaciones(); track u.ubicacion_id) {
+                    <option value="" disabled>
+                      {{ formReportePerdido.controls.sedeId.value ? 'Selecciona una ubicación' : 'Primero selecciona una sede' }}
+                    </option>
+                    @for (u of ubicacionesPerdido(); track u.ubicacion_id) {
                       <option [value]="u.ubicacion_id">{{ u.nombre }}</option>
                     }
                   </select>
@@ -776,12 +801,24 @@
                 ></textarea>
               </div>
 
+              <div class="form-group">
+                <label for="found-sede" class="form-label">Sede: *</label>
+                <select id="found-sede" formControlName="sedeId" class="form-input">
+                  <option value="" disabled>Selecciona una sede</option>
+                  @for (s of sedesActivas(); track s.sede_id) {
+                    <option [value]="s.sede_id">{{ s.nombre }}</option>
+                  }
+                </select>
+              </div>
+
               <div class="form-row-2">
                 <div class="form-group">
-                  <label for="found-lugar" class="form-label">Lugar donde lo encontraste: *</label>
+                  <label for="found-lugar" class="form-label">¿Dónde lo encontraste?: *</label>
                   <select id="found-lugar" formControlName="lugarHallazgoId" class="form-input">
-                    <option value="" disabled>Selecciona una ubicación</option>
-                    @for (u of ubicaciones(); track u.ubicacion_id) {
+                    <option value="" disabled>
+                      {{ formReporteEncontrado.controls.sedeId.value ? 'Selecciona una ubicación' : 'Primero selecciona una sede' }}
+                    </option>
+                    @for (u of ubicacionesEncontrado(); track u.ubicacion_id) {
                       <option [value]="u.ubicacion_id">{{ u.nombre }}</option>
                     }
                   </select>
@@ -789,8 +826,10 @@
                 <div class="form-group">
                   <label for="found-entrega" class="form-label">Punto de entrega: *</label>
                   <select id="found-entrega" formControlName="lugarEntregaId" class="form-input">
-                    <option value="" disabled>Selecciona un punto</option>
-                    @for (p of puntosEntrega(); track p.puntoEntrega_id) {
+                    <option value="" disabled>
+                      {{ formReporteEncontrado.controls.sedeId.value ? 'Selecciona un punto de entrega' : 'Primero selecciona una sede' }}
+                    </option>
+                    @for (p of puntosEntregaEncontrado(); track p.puntoEntrega_id) {
                       <option [value]="p.puntoEntrega_id">{{ p.nombre }}</option>
                     }
                   </select>

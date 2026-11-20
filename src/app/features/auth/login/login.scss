@@ -30,7 +30,7 @@ $rojo-itm: #b23b24;
   padding: 24px;
   box-sizing: border-box;
   font-family: 'Montserrat', sans-serif;
-  background-image: url('https://www.itm.edu.co//wp-content/uploads/noticias/fraternidad-2.jpg');
+  background-image: url('/imagenes/fraternidad-2.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -269,6 +269,65 @@ a[routerLink*="recuperar"] {
       cursor: not-allowed;
       box-shadow: none;
     }
+  }
+}
+
+.button-container button.login-button.mat-mdc-unelevated-button {
+  --mdc-filled-button-container-color: #011c5b;
+  --mdc-filled-button-label-text-color: #ffffff;
+  --mat-filled-button-container-color: #011c5b;
+  --mat-filled-button-label-text-color: #ffffff;
+  --mat-button-filled-container-color: #011c5b;
+  --mat-button-filled-label-text-color: #ffffff;
+  --mat-button-filled-state-layer-color: transparent;
+  --mat-button-filled-hover-state-layer-opacity: 0;
+  --mat-button-filled-focus-state-layer-opacity: 0;
+  --mat-button-filled-pressed-state-layer-opacity: 0;
+  --mat-button-filled-ripple-color: transparent;
+  background-color: #011c5b !important;
+  background-image: none !important;
+  color: #ffffff !important;
+
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled),
+  &:active:not(:disabled) {
+    background-color: #102d69 !important;
+    background-image: none !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(1, 28, 91, 0.25);
+  }
+
+  &:hover:not(:disabled) span,
+  &:focus-visible:not(:disabled) span,
+  &:active:not(:disabled) span,
+  &:hover:not(:disabled) ::ng-deep .mdc-button__label,
+  &:focus-visible:not(:disabled) ::ng-deep .mdc-button__label,
+  &:active:not(:disabled) ::ng-deep .mdc-button__label {
+    color: #ffffff !important;
+  }
+
+  &:disabled,
+  &.mat-mdc-button-disabled {
+    --mat-button-filled-disabled-container-color: #d1d5db;
+    --mat-button-filled-disabled-label-text-color: #6b7280;
+    background-color: #d1d5db !important;
+    background-image: none !important;
+    color: #6b7280 !important;
+    cursor: not-allowed;
+    box-shadow: none;
+
+    span,
+    ::ng-deep .mdc-button__label {
+      color: #6b7280 !important;
+    }
+  }
+
+  // capa de estado de Material: que no pinte el botón de blanco
+  ::ng-deep .mat-mdc-button-persistent-ripple::before,
+  ::ng-deep .mat-mdc-button-ripple,
+  ::ng-deep .mat-ripple-element {
+    background-color: transparent !important;
+    opacity: 0 !important;
   }
 }
 
